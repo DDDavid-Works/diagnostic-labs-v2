@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DiagnosticLabs.Application/DiagnosticLabs.Application.csproj" />
+    <Project Path="src/DiagnosticLabs.Domain/DiagnosticLabs.Domain.csproj" />
+    <Project Path="src/DiagnosticLabs.Infrastructure/DiagnosticLabs.Infrastructure.csproj" />
+    <Project Path="src/DiagnosticLabs.Wpf/DiagnosticLabs.Wpf.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DiagnosticLabs.Application.Tests/DiagnosticLabs.Application.Tests.csproj" />
+  </Folder>
+</Solution>

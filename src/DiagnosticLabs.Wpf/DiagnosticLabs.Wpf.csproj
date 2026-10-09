@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>DiagnosticLabs.Wpf</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DiagnosticLabs.Infrastructure\DiagnosticLabs.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Settings.Configuration" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

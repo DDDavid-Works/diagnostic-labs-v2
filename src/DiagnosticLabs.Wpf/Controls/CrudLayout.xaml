@@ -1,0 +1,91 @@
+<UserControl x:Class="DiagnosticLabs.Wpf.Controls.CrudLayout"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             Loaded="OnLoaded">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+  </UserControl.Resources>
+
+  <Grid Margin="24,20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,0,0,14" />
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="1.3*" MinWidth="340" />
+        <ColumnDefinition Width="20" />
+        <ColumnDefinition Width="1*" MinWidth="320" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Search + list -->
+      <Grid Grid.Column="0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,6">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="Search" KeyDown="SearchBox_OnKeyDown" />
+          <Button Grid.Column="1" Content="Search" Margin="8,0,0,0" Command="{Binding SearchCommand}" />
+        </Grid>
+
+        <CheckBox Grid.Row="1" Content="Show inactive" Margin="0,0,0,8" IsChecked="{Binding IncludeInactive}"
+                  Visibility="{Binding HasActiveFlag, Converter={StaticResource BoolToVis}}"
+                  Checked="IncludeInactive_OnChanged" Unchecked="IncludeInactive_OnChanged" />
+
+        <ContentControl Grid.Row="2" Content="{Binding GridContent, ElementName=Root}" />
+
+        <DockPanel Grid.Row="3" Margin="0,10,0,0" LastChildFill="False">
+          <Button DockPanel.Dock="Left" Content="Previous" Command="{Binding PreviousPageCommand}"
+                  IsEnabled="{Binding CanGoPrevious}" />
+          <Button DockPanel.Dock="Left" Content="Next" Margin="8,0,0,0" Command="{Binding NextPageCommand}"
+                  IsEnabled="{Binding CanGoNext}" />
+          <TextBlock DockPanel.Dock="Left" Text="{Binding PageDisplay}" VerticalAlignment="Center" Margin="14,0,0,0"
+                     Foreground="{StaticResource MutedTextBrush}" />
+          <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding PageSizes}" SelectedItem="{Binding PageSize}"
+                    Width="70" SelectionChanged="PageSize_OnSelectionChanged" ToolTip="Rows per page" />
+        </DockPanel>
+      </Grid>
+
+      <!-- Edit form -->
+      <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}"
+              BorderThickness="1" CornerRadius="4" Padding="18,8,18,16">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <ContentControl x:Name="FormHost" Content="{Binding FormContent, ElementName=Root}" />
+          </ScrollViewer>
+
+          <StackPanel Grid.Row="1" Margin="0,14,0,0">
+            <CheckBox Content="Active" IsChecked="{Binding IsActive}" Margin="0,0,0,10"
+                      Visibility="{Binding HasActiveFlag, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Text="{Binding Message}" Style="{StaticResource StatusText}" Margin="0,0,0,10" />
+            <StackPanel Orientation="Horizontal">
+              <Button Content="New" Command="{Binding NewRecordCommand}" IsEnabled="{Binding CanCreate}" />
+              <Button Content="Save" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                      Click="Save_OnClick" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" />
+              <Button Content="Delete" Style="{StaticResource DangerButton}" Margin="8,0,0,0"
+                      Command="{Binding DeleteCommand}" IsEnabled="{Binding CanDelete}" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>
