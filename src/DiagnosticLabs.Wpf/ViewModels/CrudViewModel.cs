@@ -128,6 +128,9 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     /// <summary>Load dropdown lists etc. before the first search.</summary>
     protected virtual Task OnInitializeAsync() => Task.CompletedTask;
 
+    /// <summary>Called once the screen has loaded and shown its empty form (e.g. to open a record another screen asked for).</summary>
+    protected virtual Task OnReadyAsync() => Task.CompletedTask;
+
     /// <summary>Called after a successful save (e.g. refresh dropdowns that may have gained a value).</summary>
     protected virtual Task OnSavedAsync() => Task.CompletedTask;
 
@@ -172,6 +175,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         await OnInitializeAsync();
         await LoadPageAsync();
         StartNew();
+        await OnReadyAsync();
     });
 
     [RelayCommand]

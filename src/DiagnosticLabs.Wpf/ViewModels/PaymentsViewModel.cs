@@ -37,6 +37,7 @@ public partial class PaymentsViewModel(
     private bool _settingAmount;
     private int _suggestVersion;
     private int _registrationVersion;
+    private long _requestedRegistrationId;
 
     // ----- the registration being paid -----
     [ObservableProperty]
@@ -301,6 +302,15 @@ public partial class PaymentsViewModel(
 
     protected override string SavedMessage(PaymentDetails saved, bool wasNew) =>
         saved.Type == PaymentType.Charge ? "Saved. The registration is charged." : "Saved successfully.";
+
+    /// <summary>Asks the screen to open with this registration loaded (used by "Pay now" on a registration).</summary>
+    public void RequestRegistration(long registrationId) => _requestedRegistrationId = registrationId;
+
+    protected override async Task OnReadyAsync()
+    {
+        if (_requestedRegistrationId != 0)
+            await LoadRegistrationAsync(_requestedRegistrationId, 0, payBalance: true);
+    }
 
     protected override async Task OnInitializeAsync()
     {

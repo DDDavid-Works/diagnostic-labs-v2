@@ -96,6 +96,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<IPasswordChangeDialog, PasswordChangeDialog>();
         builder.Services.AddSingleton<IFileDialogService, FileDialogService>();
         builder.Services.AddSingleton<IServicePickerDialog, ServicePickerDialog>();
+        builder.Services.AddSingleton<INavigationService, NavigationService>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<PatientsViewModel>();
         builder.Services.AddTransient<RegistrationsViewModel>();

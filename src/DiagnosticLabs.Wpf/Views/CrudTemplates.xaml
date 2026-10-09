@@ -99,8 +99,13 @@
       </ctl:CrudLayout.GridContent>
 
       <ctl:CrudLayout.FooterContent>
-        <Button Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
-                ToolTip="Save, then start the next patient (Ctrl+S saves)" />
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next patient (Ctrl+S saves)" />
+          <Button Content="Pay now" Margin="8,0,0,0" Command="{Binding PayNowCommand}"
+                  Visibility="{Binding CanPayNow, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Open Payments with this registration ready to pay" />
+        </StackPanel>
       </ctl:CrudLayout.FooterContent>
 
       <ctl:CrudLayout.FormContent>

@@ -54,8 +54,14 @@
           </Grid.RowDefinitions>
 
           <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-            <ContentControl x:Name="FormHost" Content="{Binding FormContent, ElementName=Root}"
-                            MaxWidth="{Binding FormMaxWidth, ElementName=Root}" HorizontalAlignment="Left" />
+            <!-- The form grows to FormMaxWidth and stays at the left; the tiny second column takes whatever is left over. -->
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="FormColumn" Width="*" MaxWidth="680" />
+                <ColumnDefinition Width="0.0001*" />
+              </Grid.ColumnDefinitions>
+              <ContentControl x:Name="FormHost" Content="{Binding FormContent, ElementName=Root}" />
+            </Grid>
           </ScrollViewer>
 
           <StackPanel Grid.Row="1" Margin="0,14,0,0">

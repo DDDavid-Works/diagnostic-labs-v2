@@ -36,6 +36,7 @@ public partial class RegistrationsViewModel(
     ICurrentUser user,
     IServicePickerDialog servicePicker,
     IEntryBuilderDialog entryBuilder,
+    INavigationService navigation,
     ILogger<RegistrationsViewModel> logger)
     : CrudViewModel<IRegistrationService, RegistrationListItem, RegistrationDetails, RegistrationInput>(
         runner, dialogs, user, ModuleIds.PatientRegistrations, "Patient Registration", "Registration", hasActiveFlag: false, logger)
@@ -156,7 +157,14 @@ public partial class RegistrationsViewModel(
     // The code is what uniquely finds the new registration in the list.
     protected override string SearchTextAfterCreate => RegistrationCode;
 
-    protected override void OnRecordChanged() => OnPropertyChanged(nameof(CanChangePatient));
+    /// <summary>"Pay now" is for saved registrations, and only for people who may record payments.</summary>
+    public bool CanPayNow => !IsNew && CurrentUser.Can(ModuleIds.Payments, ModuleAction.Create);
+
+    protected override void OnRecordChanged()
+    {
+        OnPropertyChanged(nameof(CanChangePatient));
+        OnPropertyChanged(nameof(CanPayNow));
+    }
 
     // ------------------------------------------------------------------ reactions
 
@@ -608,6 +616,14 @@ public partial class RegistrationsViewModel(
     }
 
     // ------------------------------------------------------------------ commands
+
+    /// <summary>Opens Payments with this registration loaded.</summary>
+    [RelayCommand]
+    private void PayNow()
+    {
+        if (!IsNew)
+            navigation.OpenPayment(Id);
+    }
 
     /// <summary>Saves, then shows an empty form ready for the next patient.</summary>
     [RelayCommand]

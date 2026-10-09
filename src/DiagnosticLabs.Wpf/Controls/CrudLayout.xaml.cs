@@ -26,7 +26,11 @@ public partial class CrudLayout : UserControl
         DependencyProperty.Register(nameof(SearchFilters), typeof(object), typeof(CrudLayout));
 
     public static readonly DependencyProperty FormMaxWidthProperty =
-        DependencyProperty.Register(nameof(FormMaxWidth), typeof(double), typeof(CrudLayout), new PropertyMetadata(680d));
+        DependencyProperty.Register(
+            nameof(FormMaxWidth),
+            typeof(double),
+            typeof(CrudLayout),
+            new PropertyMetadata(680d, (d, e) => ((CrudLayout)d).FormColumn.MaxWidth = (double)e.NewValue));
 
     private bool _loaded;
 

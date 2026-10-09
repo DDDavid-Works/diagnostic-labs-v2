@@ -15,6 +15,7 @@ public partial class MainViewModel(
     IServiceProvider services,
     IPasswordChangeDialog passwordDialog,
     IDialogService dialogs,
+    INavigationService navigation,
     ILogger<MainViewModel> logger) : ViewModelBase(logger)
 {
     // Modules that exist in the new app. Everything else shows a "not migrated yet" page.
@@ -61,11 +62,20 @@ public partial class MainViewModel(
     [RelayCommand]
     private Task LoadMenuAsync() => RunAsync(async () =>
     {
+        navigation.PaymentHandler = OpenPayment;
         var groups = await runner.RunAsync<IMenuService, IReadOnlyList<MenuGroup>>(s => s.GetMenuAsync());
         Menu.Clear();
         foreach (var group in groups)
             Menu.Add(group);
     });
+
+    /// <summary>Opens Payments with a registration already loaded (from "Pay now" on the registration screen).</summary>
+    private void OpenPayment(long registrationId)
+    {
+        var payments = services.GetRequiredService<PaymentsViewModel>();
+        payments.RequestRegistration(registrationId);
+        CurrentPage = payments;
+    }
 
     [RelayCommand]
     private void OpenModule(MenuItem? item)
