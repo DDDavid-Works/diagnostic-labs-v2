@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DiagnosticLabs.Application.Management;
 
 /// <summary>A service included in a package, at the price it has inside the package.</summary>
-public sealed record PackageServiceLine(long Id, long ServiceId, decimal Price);
+public sealed record PackageServiceLine(long Id, long ServiceId, decimal Price, string? ServiceName = null);
 
 public sealed record PackageListItem(long Id, string PackageName, string PackageDescription, decimal Price, string? CompanyName, bool IsActive) : IHasId;
 
@@ -40,7 +40,7 @@ public sealed class PackageCatalogService(IAppDbContext db, ICurrentUser user)
 
     protected override IQueryable<Package> ForListing(IQueryable<Package> q) => q.Include(p => p.Company);
 
-    protected override IQueryable<Package> ForEditing(IQueryable<Package> q) => q.Include(p => p.Services);
+    protected override IQueryable<Package> ForEditing(IQueryable<Package> q) => q.Include(p => p.Services).ThenInclude(s => s.Service);
 
     protected override IQueryable<Package> Matches(IQueryable<Package> q, string word) =>
         q.Where(p => p.PackageName.Contains(word) || p.PackageDescription.Contains(word));
@@ -52,7 +52,7 @@ public sealed class PackageCatalogService(IAppDbContext db, ICurrentUser user)
 
     protected override PackageDetails ToDetails(Package p) =>
         new(p.Id, p.PackageName, p.PackageDescription, p.Price, p.CompanyId, p.IsActive,
-            [.. p.Services.Where(s => !s.IsDeleted).OrderBy(s => s.Id).Select(s => new PackageServiceLine(s.Id, s.ServiceId, s.Price))],
+            [.. p.Services.Where(s => !s.IsDeleted).OrderBy(s => s.Id).Select(s => new PackageServiceLine(s.Id, s.ServiceId, s.Price, s.Service?.ServiceName))],
             p.RowVersion);
 
     protected override IReadOnlyList<string> Validate(PackageInput input)
@@ -82,6 +82,14 @@ public sealed class PackageCatalogService(IAppDbContext db, ICurrentUser user)
             errors.Add("The selected company no longer exists.");
 
         return errors;
+    }
+
+    // Newly added lines have no Service loaded yet; load them so the saved package can show service names.
+    protected override async Task AfterSaveAsync(Package package, PackageInput input, CancellationToken cancellationToken)
+    {
+        var missing = package.Services.Where(s => !s.IsDeleted && s.Service is null).Select(s => s.ServiceId).Distinct().ToList();
+        if (missing.Count > 0)
+            await Db.Services.Where(s => missing.Contains(s.Id)).ToListAsync(cancellationToken);
     }
 
     protected override void ApplyFields(Package package, PackageInput input)

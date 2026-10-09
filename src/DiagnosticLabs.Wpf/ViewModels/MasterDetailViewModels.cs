@@ -39,8 +39,9 @@ public partial class PackageServiceLineViewModel : ObservableObject
 {
     public long Id { get; init; }
 
-    [ObservableProperty]
-    private long _serviceId;
+    public long ServiceId { get; init; }
+
+    public string ServiceName { get; init; } = string.Empty;
 
     [ObservableProperty]
     private decimal _price;
@@ -205,7 +206,11 @@ public partial class DiscountsViewModel(
 // ------------------------------------------------------------------ packages
 
 public partial class PackagesViewModel(
-    IServiceRunner runner, IDialogService dialogs, ICurrentUser user, ILogger<PackagesViewModel> logger)
+    IServiceRunner runner,
+    IDialogService dialogs,
+    ICurrentUser user,
+    IServicePickerDialog servicePicker,
+    ILogger<PackagesViewModel> logger)
     : CrudViewModel<IPackageCatalogService, PackageListItem, PackageDetails, PackageInput>(
         runner, dialogs, user, ModuleIds.Packages, "Packages", "Package", hasActiveFlag: true, logger)
 {
@@ -227,9 +232,6 @@ public partial class PackagesViewModel(
 
     [ObservableProperty]
     private long _companyChoiceId;
-
-    [ObservableProperty]
-    private PackageServiceLineViewModel? _selectedService;
 
     public ObservableCollection<PackageServiceLineViewModel> Services { get; } = [];
 
@@ -278,7 +280,13 @@ public partial class PackagesViewModel(
             CompanyChoiceId = d.CompanyId ?? 0;
             IsActive = d.IsActive;
             RowVersion = d.RowVersion;
-            SetServices(d.Services.Select(s => new PackageServiceLineViewModel { Id = s.Id, ServiceId = s.ServiceId, Price = s.Price }));
+            SetServices(d.Services.Select(s => new PackageServiceLineViewModel
+            {
+                Id = s.Id,
+                ServiceId = s.ServiceId,
+                ServiceName = s.ServiceName ?? $"Service {s.ServiceId}",
+                Price = s.Price,
+            }));
             _priceEdited = d.Price != Services.Sum(s => s.Price);
         }
         finally
@@ -304,25 +312,45 @@ public partial class PackagesViewModel(
         }
     }
 
+    /// <summary>Opens the service picker with the current services ticked; Ok adds the newly ticked and removes the unticked.</summary>
     [RelayCommand]
-    private void AddService()
+    private void ChooseServices()
     {
-        var free = ServiceOptions.FirstOrDefault(s => Services.All(x => x.ServiceId != s.Id));
-        var line = new PackageServiceLineViewModel { ServiceId = free?.Id ?? 0, Price = free?.Price ?? 0 };
-        Attach(line);
-        Services.Add(line);
-        SelectedService = line;
+        if (servicePicker.Pick(ServiceOptions, Services.Select(s => s.ServiceId)) is { } chosen)
+            ApplyServiceSelection(chosen);
+    }
+
+    /// <summary>Services already in the package keep the price they were given; new ones come in at their standard price.</summary>
+    private void ApplyServiceSelection(IReadOnlyList<long> chosen)
+    {
+        var ticked = chosen.ToHashSet();
+        var offered = ServiceOptions.Select(o => o.Id).ToHashSet();
+
+        // A service that has since been switched off is not in the picker, so it can not have been unticked there.
+        foreach (var line in Services.Where(s => offered.Contains(s.ServiceId) && !ticked.Contains(s.ServiceId)).ToList())
+        {
+            Detach(line);
+            Services.Remove(line);
+        }
+
+        foreach (var option in ServiceOptions.Where(o => ticked.Contains(o.Id) && Services.All(s => s.ServiceId != o.Id)))
+        {
+            var line = new PackageServiceLineViewModel { ServiceId = option.Id, ServiceName = option.Name, Price = option.Price };
+            Attach(line);
+            Services.Add(line);
+        }
+
         Recalculate();
     }
 
     [RelayCommand]
-    private void RemoveService()
+    private void RemoveService(PackageServiceLineViewModel? line)
     {
-        if (SelectedService is null)
+        if (line is null)
             return;
 
-        Detach(SelectedService);
-        Services.Remove(SelectedService);
+        Detach(line);
+        Services.Remove(line);
         Recalculate();
     }
 
@@ -345,17 +373,8 @@ public partial class PackagesViewModel(
 
     private void OnServiceLineChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_loading || sender is not PackageServiceLineViewModel line)
-            return;
-
-        // Picking a different service prefills that service's standard price.
-        if (e.PropertyName == nameof(PackageServiceLineViewModel.ServiceId)
-            && ServiceOptions.FirstOrDefault(s => s.Id == line.ServiceId) is { } option)
-        {
-            line.Price = option.Price;
-        }
-
-        Recalculate();
+        if (!_loading && e.PropertyName == nameof(PackageServiceLineViewModel.Price))
+            Recalculate();
     }
 
     private void Recalculate()

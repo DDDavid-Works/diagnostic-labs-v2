@@ -27,7 +27,7 @@ public sealed class ReferenceLookups(IAppDbContext db) : IReferenceLookups
 
     public async Task<IReadOnlyList<ServiceOption>> GetServicesAsync(CancellationToken cancellationToken = default) =>
         await db.Services.AsNoTracking().Where(s => s.IsActive)
-            .OrderBy(s => s.ServiceName)
+            .OrderBy(s => s.Id) // the order the services were created in, which is the order the lab uses
             .Select(s => new ServiceOption(s.Id, s.ServiceName, s.Price))
             .ToListAsync(cancellationToken);
 

@@ -74,3 +74,7 @@ Lists such as Gender, Civil Status, Medical Technologist and the lab-result choi
 - Administrators can open everything, are the only ones who reach Management and Settings, and carry no permission rows. The last active administrator can not be removed, and nobody can deactivate or demote themselves.
 - New users and reset passwords get a temporary password; the user must replace it at the next sign-in (`PasswordPolicy`: at least 8 characters). Permission changes take effect at the user's next sign-in; an administrator editing their own record sees it at once.
 - The legacy data migration only copies permission rows that grant something (the old app stored a row per module per user, all-off meaning no access).
+
+## Service picker
+
+Services are added to a table (package services now, registration services next) through one point-of-sale style dialog: a single **+ Add services** button opens every service as a tile, in the order the lab uses, with the services already in the table ticked. Unticking removes one, a search box narrows the tiles, and the footer shows the running count and total. Services that stay keep the price already given to them; new ones come in at their standard price. `ServicePickerViewModel` / `IServicePickerDialog` are reused by the Patient Registration screen.

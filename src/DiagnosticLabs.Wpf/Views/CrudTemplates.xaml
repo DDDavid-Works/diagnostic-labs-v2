@@ -309,27 +309,38 @@
           <TextBox Text="{Binding Price, StringFormat=N2, UpdateSourceTrigger=LostFocus}"
                    ToolTip="Follows the total of the included services until you type a price" />
 
-          <TextBlock Text="Included services" Style="{StaticResource FieldLabel}" Margin="0,16,0,3" />
-          <DataGrid ItemsSource="{Binding Services}" SelectedItem="{Binding SelectedService}" IsReadOnly="False"
-                    Height="170" CanUserSortColumns="False">
+          <DockPanel Margin="0,16,0,4">
+            <Button DockPanel.Dock="Right" Content="+ Add services" Command="{Binding ChooseServicesCommand}"
+                    ToolTip="Open the list of services; tick the ones in this package" />
+            <TextBlock Text="Included services" Style="{StaticResource FieldLabel}" Margin="0" VerticalAlignment="Center" />
+          </DockPanel>
+          <DataGrid ItemsSource="{Binding Services}" IsReadOnly="False" Height="190" CanUserSortColumns="False">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="Service" Width="*">
+              <DataGridTextColumn Header="Service" Binding="{Binding ServiceName}" IsReadOnly="True" Width="*" />
+              <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat=N2, UpdateSourceTrigger=LostFocus}" Width="90" />
+              <DataGridTemplateColumn Width="42">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <ComboBox ItemsSource="{Binding DataContext.ServiceOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                              SelectedValuePath="Id" DisplayMemberPath="Name"
-                              SelectedValue="{Binding ServiceId, UpdateSourceTrigger=PropertyChanged}"
-                              BorderThickness="0" Background="Transparent" Padding="4,2" />
+                    <Button Content="&#x2715;" MinWidth="28" Padding="0,2" ToolTip="Remove this service"
+                            Command="{Binding DataContext.RemoveServiceCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                            CommandParameter="{Binding}" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat=N2, UpdateSourceTrigger=LostFocus}" Width="90" />
             </DataGrid.Columns>
           </DataGrid>
-          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-            <Button Content="+" MinWidth="36" Command="{Binding AddServiceCommand}" ToolTip="Add a service" />
-            <Button Content="-" MinWidth="36" Margin="6,0,0,0" Command="{Binding RemoveServiceCommand}" ToolTip="Remove the selected service" />
-          </StackPanel>
+          <TextBlock Text="No services yet. Press + Add services." Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Services.Count}" Value="0">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
         </StackPanel>
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>
