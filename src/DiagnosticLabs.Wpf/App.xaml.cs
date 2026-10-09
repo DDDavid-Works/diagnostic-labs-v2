@@ -109,11 +109,20 @@ public partial class App : System.Windows.Application
 
     private void ShowLogin()
     {
+        // The app uses explicit shutdown, so every way of leaving must end in Shutdown() unless the
+        // user is just moving between the sign-in and main windows. Local flags are used on purpose:
+        // WPF clears Application.MainWindow *before* a window's Closed event fires, so comparing it
+        // there is always false and the process would stay alive after the window is closed.
         var login = _host!.Services.GetRequiredService<LoginWindow>();
-        login.LoginSucceeded += (_, _) => ShowMain();
+        var signedIn = false;
+        login.LoginSucceeded += (_, _) =>
+        {
+            signedIn = true;
+            ShowMain();
+        };
         login.Closed += (_, _) =>
         {
-            if (MainWindow is null)
+            if (!signedIn)
                 Shutdown();
         };
         login.Show();
@@ -122,15 +131,16 @@ public partial class App : System.Windows.Application
     private void ShowMain()
     {
         var main = _host!.Services.GetRequiredService<MainWindow>();
+        var signedOut = false;
         MainWindow = main;
         main.SignedOut += (_, _) =>
         {
-            MainWindow = null;
+            signedOut = true;
             ShowLogin();
         };
         main.Closed += (_, _) =>
         {
-            if (MainWindow == main)
+            if (!signedOut)
                 Shutdown();
         };
         main.Show();

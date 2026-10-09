@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:DiagnosticLabs.Wpf.ViewModels"
         xmlns:views="clr-namespace:DiagnosticLabs.Wpf.Views"
-        Title="Diagnostic Labs" Width="1200" Height="740" MinWidth="900" MinHeight="560"
+        Title="Diagnostic Labs" Width="1280" Height="700" MinWidth="1024" MinHeight="600" WindowState="Maximized"
         WindowStartupLocation="CenterScreen" Loaded="OnLoaded">
   <Window.Resources>
     <ResourceDictionary>
@@ -27,7 +27,7 @@
       </DockPanel>
     </Border>
 
-    <Border DockPanel.Dock="Left" Width="230" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,1,0">
+    <Border DockPanel.Dock="Left" Width="232" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,1,0">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding Menu}">
           <ItemsControl.ItemTemplate>

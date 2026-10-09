@@ -55,6 +55,10 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     [ObservableProperty]
     private bool _includeInactive;
 
+    /// <summary>Whether the list of records is shown on the right. Hidden by default, like the old search popup.</summary>
+    [ObservableProperty]
+    private bool _isSearchVisible;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PageDisplay), nameof(CanGoPrevious), nameof(CanGoNext))]
     private int _page = 1;
@@ -170,6 +174,9 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         Page = 1;
         return LoadPageAsync();
     });
+
+    [RelayCommand]
+    private void ToggleSearch() => IsSearchVisible = !IsSearchVisible;
 
     [RelayCommand]
     private void NewRecord()

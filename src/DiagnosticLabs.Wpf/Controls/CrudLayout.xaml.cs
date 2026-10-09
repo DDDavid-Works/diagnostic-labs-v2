@@ -45,7 +45,34 @@ public partial class CrudLayout : UserControl
 
         _loaded = true;
         await Screen.InitializeCommand.ExecuteAsync(null);
-        SearchBox.Focus();
+        FocusFirstField();
+    }
+
+    private void SearchPanel_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        // Opening the list puts the cursor in the search box, ready to type.
+        if (e.NewValue is true)
+            Dispatcher.BeginInvoke(() => SearchBox.Focus(), System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void FocusFirstField() =>
+        Dispatcher.BeginInvoke(
+            () => FindFirst<TextBox>(FormHost, t => t.IsEnabled && !t.IsReadOnly)?.Focus(),
+            System.Windows.Threading.DispatcherPriority.Input);
+
+    private static T? FindFirst<T>(DependencyObject root, Func<T, bool> where) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match && where(match))
+                return match;
+
+            if (FindFirst(child, where) is { } nested)
+                return nested;
+        }
+
+        return null;
     }
 
     private void SearchBox_OnKeyDown(object sender, KeyEventArgs e)

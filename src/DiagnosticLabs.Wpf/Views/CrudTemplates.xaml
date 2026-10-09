@@ -13,8 +13,7 @@
           <DataGrid.Columns>
             <DataGridTextColumn Header="Code" Binding="{Binding PatientCode}" Width="115" />
             <DataGridTextColumn Header="Name" Binding="{Binding PatientName}" Width="*" />
-            <DataGridTextColumn Header="Birth date" Binding="{Binding DateOfBirth, StringFormat=d}" Width="90" />
-            <DataGridTextColumn Header="Age" Binding="{Binding Age}" Width="100" />
+            <DataGridTextColumn Header="Age" Binding="{Binding Age}" Width="105" />
             <DataGridTextColumn Header="Gender" Binding="{Binding Sex}" Width="70" />
           </DataGrid.Columns>
         </DataGrid>
@@ -78,7 +77,6 @@
           <DataGrid.Columns>
             <DataGridTextColumn Header="Name" Binding="{Binding CompanyName}" Width="*" />
             <DataGridTextColumn Header="Contact person" Binding="{Binding ContactPerson}" Width="150" />
-            <DataGridTextColumn Header="Contact numbers" Binding="{Binding ContactNumbers}" Width="130" />
             <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="55" />
           </DataGrid.Columns>
         </DataGrid>
@@ -166,7 +164,7 @@
       <ctl:CrudLayout.GridContent>
         <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
           <DataGrid.Columns>
-            <DataGridTextColumn Header="Name" Binding="{Binding ServiceName}" Width="170" />
+            <DataGridTextColumn Header="Name" Binding="{Binding ServiceName}" Width="140" />
             <DataGridTextColumn Header="Description" Binding="{Binding ServiceDescription}" Width="*" />
             <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat=N2}" Width="90">
               <DataGridTextColumn.ElementStyle>
