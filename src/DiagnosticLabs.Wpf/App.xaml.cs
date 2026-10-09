@@ -91,6 +91,7 @@ public partial class App : System.Windows.Application
 
         builder.Services.AddSingleton<IServiceRunner, ServiceRunner>();
         builder.Services.AddSingleton<IDialogService, DialogService>();
+        builder.Services.AddSingleton<IEntryBuilderDialog, EntryBuilderDialog>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<PatientsViewModel>();
         builder.Services.AddTransient<CompaniesViewModel>();

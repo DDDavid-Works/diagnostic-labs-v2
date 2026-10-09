@@ -37,6 +37,8 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     where TDetails : IHasId
     where TInput : ICrudInput
 {
+    protected ICurrentUser CurrentUser { get; } = currentUser;
+
     public string Title { get; } = title;
 
     /// <summary>Whether rows of this list can be switched off (reference lists) and so show the Active controls.</summary>
@@ -95,14 +97,14 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
 
     public bool IsNew => Id == 0;
 
-    public bool CanCreate => currentUser.Can(moduleId, ModuleAction.Create);
+    public bool CanCreate => CurrentUser.Can(moduleId, ModuleAction.Create);
 
     /// <summary>True for records that must not be changed from the UI (e.g. system rows).</summary>
     protected virtual bool IsLocked => false;
 
-    public bool CanSave => !IsLocked && (IsNew ? CanCreate : currentUser.Can(moduleId, ModuleAction.Edit));
+    public bool CanSave => !IsLocked && (IsNew ? CanCreate : CurrentUser.Can(moduleId, ModuleAction.Edit));
 
-    public bool CanDelete => !IsNew && !IsLocked && currentUser.Can(moduleId, ModuleAction.Delete);
+    public bool CanDelete => !IsNew && !IsLocked && CurrentUser.Can(moduleId, ModuleAction.Delete);
 
     // ----- what a concrete screen provides -----
     protected abstract TInput BuildInput();

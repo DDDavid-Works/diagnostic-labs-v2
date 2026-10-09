@@ -1,7 +1,7 @@
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Codes;
 using DiagnosticLabs.Application.Common;
-using DiagnosticLabs.Application.Lookups;
+using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Application.Patients;
 using DiagnosticLabs.Domain.Patients;
 using DiagnosticLabs.Infrastructure.Persistence;
@@ -14,7 +14,7 @@ public class PatientServiceTests
     private readonly TestEnvironment _env = new();
 
     private PatientService CreateService(AppDbContext db) =>
-        new(db, _env.Session, new CodeGenerator(db, _env.Clock), new LookupService(db), _env.Clock);
+        new(db, _env.Session, new CodeGenerator(db, _env.Clock), _env.Clock);
 
     private void SignIn(params ModuleAction[] allowed) =>
         _env.Session.SignIn(new AuthenticatedUser(
@@ -113,18 +113,19 @@ public class PatientServiceTests
     }
 
     [Fact]
-    public async Task New_gender_and_civil_status_values_are_remembered_for_the_dropdowns()
+    public async Task A_typed_gender_or_civil_status_stays_on_the_record_and_is_not_added_to_the_lists()
     {
         await using var db = _env.CreateDb();
         SignIn(ModuleAction.Create);
         var service = CreateService(db);
 
-        await service.SaveAsync(NewInput() with { Sex = "Non-binary", CivilStatus = "Widowed" });
-        await service.SaveAsync(NewInput("Other") with { Sex = "Non-binary", CivilStatus = "Widowed" });
+        var saved = await service.SaveAsync(NewInput() with { Sex = "Non-binary", CivilStatus = "Widowed" });
 
-        var lookups = new LookupService(db);
-        Assert.Equal(["Non-binary"], await lookups.GetChoicesAsync(LookupFields.Sex));
-        Assert.Equal(["Widowed"], await lookups.GetChoicesAsync(LookupFields.CivilStatus));
+        Assert.Equal("Non-binary", saved.Value.Sex);
+        Assert.Equal("Widowed", saved.Value.CivilStatus);
+        var entries = new EntryService(db, _env.Session);
+        Assert.Empty(await entries.GetChoicesAsync(EntryFields.Gender));
+        Assert.Empty(await entries.GetChoicesAsync(EntryFields.CivilStatus));
     }
 
     [Fact]

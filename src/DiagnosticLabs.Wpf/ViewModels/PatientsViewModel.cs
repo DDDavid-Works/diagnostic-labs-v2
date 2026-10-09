@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DiagnosticLabs.Application.Abstractions;
-using DiagnosticLabs.Application.Lookups;
+using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Application.Patients;
 using DiagnosticLabs.Domain.Patients;
 using DiagnosticLabs.Wpf.Services;
@@ -13,6 +14,7 @@ public partial class PatientsViewModel(
     IServiceRunner runner,
     IDialogService dialogs,
     ICurrentUser currentUser,
+    IEntryBuilderDialog entryBuilder,
     ILogger<PatientsViewModel> logger)
     : CrudViewModel<IPatientService, PatientListItem, PatientDetails, PatientInput>(
         runner, dialogs, currentUser, ModuleIds.Patients, "Patients", "Patient", hasActiveFlag: false, logger)
@@ -87,15 +89,27 @@ public partial class PatientsViewModel(
         Address = string.Empty;
         ContactNumbers = null;
     }
-
     protected override Task OnInitializeAsync() => LoadChoicesAsync();
 
-    protected override Task OnSavedAsync() => LoadChoicesAsync();
+
+    public bool CanEditLists => CurrentUser.Can(ModuleIds.Patients, ModuleAction.Edit);
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditGenderListAsync() => EditListAsync(EntryFields.Gender);
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditCivilStatusListAsync() => EditListAsync(EntryFields.CivilStatus);
+
+    private Task EditListAsync(EntryField field) => RunAsync(async () =>
+    {
+        if (entryBuilder.EditSingleLine(field, ModuleIds.Patients))
+            await LoadChoicesAsync();
+    });
 
     private async Task LoadChoicesAsync()
     {
-        var genders = await Call<ILookupService, IReadOnlyList<string>>(s => s.GetChoicesAsync(LookupFields.Sex));
-        var statuses = await Call<ILookupService, IReadOnlyList<string>>(s => s.GetChoicesAsync(LookupFields.CivilStatus));
+        var genders = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.Gender));
+        var statuses = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.CivilStatus));
         Replace(Genders, genders);
         Replace(CivilStatuses, statuses);
     }

@@ -50,11 +50,11 @@
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
               <TextBlock Text="Gender" Style="{StaticResource FieldLabel}" />
-              <ComboBox IsEditable="True" ItemsSource="{Binding Genders}" Text="{Binding Sex, UpdateSourceTrigger=LostFocus}" />
+              <ctl:ChoiceBox ItemsSource="{Binding Genders}" Text="{Binding Sex}" EditCommand="{Binding EditGenderListCommand}" />
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Text="Civil status" Style="{StaticResource FieldLabel}" />
-              <ComboBox IsEditable="True" ItemsSource="{Binding CivilStatuses}" Text="{Binding CivilStatus, UpdateSourceTrigger=LostFocus}" />
+              <ctl:ChoiceBox ItemsSource="{Binding CivilStatuses}" Text="{Binding CivilStatus}" EditCommand="{Binding EditCivilStatusListCommand}" />
             </StackPanel>
           </Grid>
 

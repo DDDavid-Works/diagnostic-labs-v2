@@ -1,0 +1,19 @@
+<UserControl x:Class="DiagnosticLabs.Wpf.Controls.ChoiceBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Editable on purpose: a value typed here belongs to this record only and is not added to the list. -->
+    <ComboBox IsEditable="True" ItemsSource="{Binding ItemsSource, ElementName=Root}"
+              Text="{Binding Text, ElementName=Root, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+
+    <Button Grid.Column="1" Content="&#x270E;" MinWidth="30" Padding="0,4" Margin="4,0,0,0" FontSize="14"
+            Command="{Binding EditCommand, ElementName=Root}"
+            ToolTip="Edit this list of choices" />
+  </Grid>
+</UserControl>

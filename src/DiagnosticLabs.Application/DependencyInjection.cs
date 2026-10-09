@@ -1,6 +1,7 @@
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Auth;
 using DiagnosticLabs.Application.Codes;
+using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Application.Lookups;
 using DiagnosticLabs.Application.Management;
 using DiagnosticLabs.Application.Menu;
@@ -20,7 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<ICodeGenerator, CodeGenerator>();
-        services.AddScoped<ILookupService, LookupService>();
+        services.AddScoped<IEntryService, EntryService>();
         services.AddScoped<IPatientService, PatientService>();
         services.AddScoped<IReferenceLookups, ReferenceLookups>();
         services.AddScoped<ICompanyService, CompanyService>();

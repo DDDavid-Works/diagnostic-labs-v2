@@ -1,7 +1,6 @@
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Codes;
 using DiagnosticLabs.Application.Common;
-using DiagnosticLabs.Application.Lookups;
 using DiagnosticLabs.Domain.Patients;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,7 +42,6 @@ public sealed class PatientService(
     IAppDbContext db,
     ICurrentUser currentUser,
     ICodeGenerator codes,
-    ILookupService lookups,
     IClock clock)
     : CrudService<Patient, PatientListItem, PatientDetails, PatientInput>(db, currentUser, ModuleIds.Patients, "Patient"),
       IPatientService
@@ -85,13 +83,6 @@ public sealed class PatientService(
         patient.CivilStatus = Clean(input.CivilStatus);
         patient.Address = input.Address?.Trim() ?? string.Empty;
         patient.ContactNumbers = Clean(input.ContactNumbers);
-    }
-
-    // Remember newly typed dropdown values for next time.
-    protected override async Task AfterSaveAsync(Patient patient, PatientInput input, CancellationToken cancellationToken)
-    {
-        await lookups.AddChoiceIfNewAsync(LookupFields.Sex, patient.Sex, cancellationToken);
-        await lookups.AddChoiceIfNewAsync(LookupFields.CivilStatus, patient.CivilStatus, cancellationToken);
     }
 
     public static IReadOnlyList<string> Validate(PatientInput input, DateOnly today)
