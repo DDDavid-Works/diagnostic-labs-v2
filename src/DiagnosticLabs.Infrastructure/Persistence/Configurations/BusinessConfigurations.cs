@@ -23,6 +23,7 @@ internal sealed class PatientConfiguration : IEntityTypeConfiguration<Patient>
     {
         builder.Property(p => p.PatientCode).HasMaxLength(200);
         builder.Property(p => p.PatientName).HasMaxLength(200);
+        builder.Property(p => p.Age).HasMaxLength(50);
         builder.Property(p => p.Sex).HasMaxLength(20);
         builder.Property(p => p.CivilStatus).HasMaxLength(20);
         builder.Property(p => p.Address).HasMaxLength(500);
@@ -157,6 +158,7 @@ internal sealed class PatientRegistrationConfiguration : IEntityTypeConfiguratio
         builder.HasOne(r => r.Patient).WithMany().HasForeignKey(r => r.PatientId);
         builder.HasOne(r => r.Company).WithMany().HasForeignKey(r => r.CompanyId);
         builder.HasOne(r => r.Package).WithMany().HasForeignKey(r => r.PackageId);
+        builder.HasOne(r => r.Discount).WithMany().HasForeignKey(r => r.DiscountId);
         builder.HasMany(r => r.Services).WithOne(s => s.PatientRegistration).HasForeignKey(s => s.PatientRegistrationId);
         builder.HasMany(r => r.Payments).WithOne(p => p.PatientRegistration).HasForeignKey(p => p.PatientRegistrationId);
         builder.HasIndex(r => r.RegistrationCode).IsUnique().HasFilter(Filters.NotDeleted);

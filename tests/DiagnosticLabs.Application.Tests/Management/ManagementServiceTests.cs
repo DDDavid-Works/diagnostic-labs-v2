@@ -102,22 +102,6 @@ public class ManagementServiceTests
 
     // ---------------------------------------------------------------- companies
 
-    [Fact]
-    public async Task System_companies_can_not_be_edited_or_removed()
-    {
-        await using var db = _env.CreateDb();
-        SignInAsAdmin();
-        db.Companies.Add(new Company { CompanyName = "WALK-IN", IsSystem = true });
-        await db.SaveChangesAsync();
-        var walkIn = await db.Companies.SingleAsync();
-        var service = new CompanyService(db, _env.Session);
-
-        var edit = await service.SaveAsync(new CompanyInput(walkIn.Id, "Renamed", null, null, null, true, null));
-        var delete = await service.DeleteAsync(walkIn.Id);
-
-        Assert.Equal("Company.System", edit.Error.Code);
-        Assert.Equal("Company.System", delete.Error.Code);
-    }
 
     [Fact]
     public async Task Departments_only_need_a_name()

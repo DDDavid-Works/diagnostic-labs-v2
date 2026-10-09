@@ -17,6 +17,13 @@ public interface ICrudScreen
     ICommand SearchCommand { get; }
 
     ICommand ChangePageSizeCommand { get; }
+
+    ICommand SaveCommand { get; }
+
+    ICommand NewRecordCommand { get; }
+
+    /// <summary>Raised when an empty form is shown again (New, or Save &amp; New), so the view can put the cursor back at the top.</summary>
+    event EventHandler? NewRecordStarted;
 }
 
 /// <summary>
@@ -126,6 +133,11 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
 
     protected virtual string SearchTextAfterCreate => CurrentName;
 
+    /// <summary>The search to run for the list; screens with extra filters return their own search record.</summary>
+    protected virtual CrudSearch CreateSearch() => new(SearchText, Page, PageSize, IncludeInactive);
+
+    public event EventHandler? NewRecordStarted;
+
     /// <summary>Called after the open record changed (a record was loaded or a new one started); raise change notices for derived state here.</summary>
     protected virtual void OnRecordChanged()
     {
@@ -196,15 +208,24 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     private void ToggleSearch() => IsSearchVisible = !IsSearchVisible;
 
     [RelayCommand]
-    private void NewRecord()
+    private void NewRecord() => BeginNewRecord();
+
+    /// <summary>Shows an empty form; <paramref name="keepMessage"/> leaves the last status line (e.g. "Saved") in place.</summary>
+    protected void BeginNewRecord(bool keepMessage = false)
     {
         StartNew();
         SelectInList(null);
-        ClearMessage();
+        if (!keepMessage)
+            ClearMessage();
+
+        NewRecordStarted?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
-    private Task SaveAsync() => RunAsync(async () =>
+    private Task SaveAsync() => RunAsync(() => SaveCoreAsync());
+
+    /// <summary>Saves the open record; <c>false</c> when it was refused (the reason is already on screen). Call inside <c>RunAsync</c>.</summary>
+    protected async Task<bool> SaveCoreAsync()
     {
         var wasNew = IsNew;
         var input = BuildInput();
@@ -213,7 +234,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         if (result.IsFailure)
         {
             ShowError(result.Error.Message);
-            return;
+            return false;
         }
 
         Show(result.Value);
@@ -229,7 +250,8 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         await OnSavedAsync();
         await LoadPageAsync();
         SelectInList(Id);
-    });
+        return true;
+    }
 
     [RelayCommand]
     private Task DeleteAsync() => RunAsync(async () =>
@@ -266,7 +288,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
 
     private async Task LoadPageAsync()
     {
-        var search = new CrudSearch(SearchText, Page, PageSize, IncludeInactive);
+        var search = CreateSearch();
         var result = await runner.RunAsync<TService, Result<PagedResult<TListItem>>>(s => s.SearchAsync(search));
         if (result.IsFailure)
         {
@@ -336,4 +358,8 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     ICommand ICrudScreen.SearchCommand => SearchCommand;
 
     ICommand ICrudScreen.ChangePageSizeCommand => ChangePageSizeCommand;
+
+    ICommand ICrudScreen.SaveCommand => SaveCommand;
+
+    ICommand ICrudScreen.NewRecordCommand => NewRecordCommand;
 }

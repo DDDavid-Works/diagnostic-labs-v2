@@ -19,9 +19,39 @@ public partial class CrudLayout : UserControl
     public static readonly DependencyProperty FormContentProperty =
         DependencyProperty.Register(nameof(FormContent), typeof(object), typeof(CrudLayout));
 
+    public static readonly DependencyProperty FooterContentProperty =
+        DependencyProperty.Register(nameof(FooterContent), typeof(object), typeof(CrudLayout));
+
+    public static readonly DependencyProperty SearchFiltersProperty =
+        DependencyProperty.Register(nameof(SearchFilters), typeof(object), typeof(CrudLayout));
+
+    public static readonly DependencyProperty FormMaxWidthProperty =
+        DependencyProperty.Register(nameof(FormMaxWidth), typeof(double), typeof(CrudLayout), new PropertyMetadata(680d));
+
     private bool _loaded;
 
     public CrudLayout() => InitializeComponent();
+
+    /// <summary>Extra buttons next to New / Save / Delete.</summary>
+    public object? FooterContent
+    {
+        get => GetValue(FooterContentProperty);
+        set => SetValue(FooterContentProperty, value);
+    }
+
+    /// <summary>Extra filters shown above the list (e.g. company and date on the registration screen).</summary>
+    public object? SearchFilters
+    {
+        get => GetValue(SearchFiltersProperty);
+        set => SetValue(SearchFiltersProperty, value);
+    }
+
+    /// <summary>Widest the form may grow; wide, wrapping forms raise it.</summary>
+    public double FormMaxWidth
+    {
+        get => (double)GetValue(FormMaxWidthProperty);
+        set => SetValue(FormMaxWidthProperty, value);
+    }
 
     public object? GridContent
     {
@@ -44,8 +74,24 @@ public partial class CrudLayout : UserControl
             return;
 
         _loaded = true;
+        Screen.NewRecordStarted += (_, _) => FocusFirstField();
         await Screen.InitializeCommand.ExecuteAsync(null);
         FocusFirstField();
+    }
+
+    // Ctrl+S saves from anywhere on the screen; like the Save button, it first commits a cell still being edited.
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control && Screen?.SaveCommand is { } save)
+        {
+            CommitGridEdits();
+            (Keyboard.FocusedElement as TextBox)?.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+            if (save.CanExecute(null))
+                save.Execute(null);
+
+            e.Handled = true;
+        }
     }
 
     private void SearchPanel_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -55,9 +101,11 @@ public partial class CrudLayout : UserControl
             Dispatcher.BeginInvoke(() => SearchBox.Focus(), System.Windows.Threading.DispatcherPriority.Input);
     }
 
+    // A field can claim the cursor with Tag="Autofocus"; otherwise the first editable text box gets it.
     private void FocusFirstField() =>
         Dispatcher.BeginInvoke(
-            () => FindFirst<TextBox>(FormHost, t => t.IsEnabled && !t.IsReadOnly)?.Focus(),
+            () => (FindFirst<FrameworkElement>(FormHost, e => e is TextBox && e.IsEnabled && Equals(e.Tag, "Autofocus"))
+                   ?? FindFirst<TextBox>(FormHost, t => t.IsEnabled && !t.IsReadOnly))?.Focus(),
             System.Windows.Threading.DispatcherPriority.Input);
 
     private static T? FindFirst<T>(DependencyObject root, Func<T, bool> where) where T : DependencyObject
@@ -95,7 +143,9 @@ public partial class CrudLayout : UserControl
     }
 
     // Click runs before the Save command, so a cell still being edited in a line grid is committed first.
-    private void Save_OnClick(object sender, RoutedEventArgs e)
+    private void Save_OnClick(object sender, RoutedEventArgs e) => CommitGridEdits();
+
+    private void CommitGridEdits()
     {
         foreach (var grid in FindGrids(FormHost))
         {

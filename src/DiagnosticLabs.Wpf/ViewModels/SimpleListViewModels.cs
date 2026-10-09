@@ -23,11 +23,6 @@ public partial class CompaniesViewModel(
     [ObservableProperty]
     private string _contactPerson = string.Empty;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanSave), nameof(CanDelete))]
-    private bool _isSystem;
-
-    protected override bool IsLocked => IsSystem;
 
     protected override string CurrentName => CompanyName;
 
@@ -40,14 +35,12 @@ public partial class CompaniesViewModel(
         ContactNumbers = d.ContactNumbers;
         ContactPerson = d.ContactPerson;
         IsActive = d.IsActive;
-        IsSystem = d.IsSystem;
         RowVersion = d.RowVersion;
     }
 
     protected override void ResetFields()
     {
         CompanyName = Address = ContactNumbers = ContactPerson = string.Empty;
-        IsSystem = false;
     }
 }
 

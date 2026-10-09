@@ -98,6 +98,8 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<IServicePickerDialog, ServicePickerDialog>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<PatientsViewModel>();
+        builder.Services.AddTransient<RegistrationsViewModel>();
+        builder.Services.AddTransient<PaymentsViewModel>();
         builder.Services.AddTransient<CompaniesViewModel>();
         builder.Services.AddTransient<DepartmentsViewModel>();
         builder.Services.AddTransient<ServicesViewModel>();

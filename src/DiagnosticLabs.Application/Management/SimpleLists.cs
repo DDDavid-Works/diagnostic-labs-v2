@@ -33,10 +33,10 @@ internal static class Rules
 
 // ---------------------------------------------------------------- Companies
 
-public sealed record CompanyListItem(long Id, string CompanyName, string ContactPerson, string ContactNumbers, bool IsActive, bool IsSystem) : IHasId;
+public sealed record CompanyListItem(long Id, string CompanyName, string ContactPerson, string ContactNumbers, bool IsActive) : IHasId;
 
 public sealed record CompanyDetails(
-    long Id, string CompanyName, string Address, string ContactNumbers, string ContactPerson, bool IsActive, bool IsSystem, byte[] RowVersion) : IHasId;
+    long Id, string CompanyName, string Address, string ContactNumbers, string ContactPerson, bool IsActive, byte[] RowVersion) : IHasId;
 
 public sealed record CompanyInput(
     long Id, string? CompanyName, string? Address, string? ContactNumbers, string? ContactPerson, bool IsActive, byte[]? RowVersion) : IReferenceInput;
@@ -54,10 +54,10 @@ public sealed class CompanyService(IAppDbContext db, ICurrentUser user)
 
     protected override IOrderedQueryable<Company> Order(IQueryable<Company> q) => q.OrderBy(c => c.CompanyName).ThenBy(c => c.Id);
 
-    protected override CompanyListItem ToListItem(Company c) => new(c.Id, c.CompanyName, c.ContactPerson, c.ContactNumbers, c.IsActive, c.IsSystem);
+    protected override CompanyListItem ToListItem(Company c) => new(c.Id, c.CompanyName, c.ContactPerson, c.ContactNumbers, c.IsActive);
 
     protected override CompanyDetails ToDetails(Company c) =>
-        new(c.Id, c.CompanyName, c.Address, c.ContactNumbers, c.ContactPerson, c.IsActive, c.IsSystem, c.RowVersion);
+        new(c.Id, c.CompanyName, c.Address, c.ContactNumbers, c.ContactPerson, c.IsActive, c.RowVersion);
 
     protected override IReadOnlyList<string> Validate(CompanyInput input)
     {
@@ -77,8 +77,6 @@ public sealed class CompanyService(IAppDbContext db, ICurrentUser user)
         c.ContactPerson = input.ContactPerson?.Trim() ?? string.Empty;
     }
 
-    protected override Error? CheckCanModify(Company company) =>
-        company.IsSystem ? new Error("Company.System", "This is a system record and can not be changed or removed.") : null;
 }
 
 // ---------------------------------------------------------------- Departments

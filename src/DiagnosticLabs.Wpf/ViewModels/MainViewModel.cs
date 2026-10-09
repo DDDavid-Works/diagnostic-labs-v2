@@ -20,6 +20,8 @@ public partial class MainViewModel(
     // Modules that exist in the new app. Everything else shows a "not migrated yet" page.
     private static readonly Dictionary<int, Func<IServiceProvider, object>> Pages = new()
     {
+        [ModuleIds.PatientRegistrations] = sp => sp.GetRequiredService<RegistrationsViewModel>(),
+        [ModuleIds.Payments] = sp => sp.GetRequiredService<PaymentsViewModel>(),
         [ModuleIds.Patients] = sp => sp.GetRequiredService<PatientsViewModel>(),
         [ModuleIds.Companies] = sp => sp.GetRequiredService<CompaniesViewModel>(),
         [ModuleIds.Departments] = sp => sp.GetRequiredService<DepartmentsViewModel>(),
@@ -38,6 +40,13 @@ public partial class MainViewModel(
 
     [ObservableProperty]
     private object _currentPage = new PlaceholderViewModel("Welcome", "Pick a module from the menu on the left.");
+
+    /// <summary>The left menu can be hidden to give the working screen the full width (small monitors).</summary>
+    [ObservableProperty]
+    private bool _isMenuVisible = true;
+
+    [RelayCommand]
+    private void ToggleMenu() => IsMenuVisible = !IsMenuVisible;
 
     public void SignOut() => session.SignOut();
 

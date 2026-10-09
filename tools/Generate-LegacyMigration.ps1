@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Generates db/migrate-from-legacy.sql and db/verify-migration.sql.
 
@@ -135,9 +135,8 @@ foreach ($a in 'AllowCreate', 'AllowEdit', 'AllowDelete', 'AllowPrint') { $perm[
 InsertSpec 'UserPermissions' 'UserPermissions' $perm 'audit' $true 's.ViewOnly = 1 OR s.AllowCreate = 1 OR s.AllowEdit = 1 OR s.AllowDelete = 1 OR s.AllowPrint = 1'
 
 # ---------- reference data ----------
-InsertSpec 'Companies' 'Companies' (WithId @('CompanyName', 'Address', 'ContactNumbers', 'ContactPerson', 'IsSystem')) 'ref' $true 's.Id <> 0'
-# The legacy WALK-IN row had Id 0; it gets a normal identity value in the new database.
-InsertSpec 'Companies' 'Companies' (Same @('CompanyName', 'Address', 'ContactNumbers', 'ContactPerson', 'IsSystem')) 'ref' $false 's.Id = 0'
+# The legacy WALK-IN row (Id 0) is not migrated: in the new app "no company" simply means no company (NULL).
+InsertSpec 'Companies' 'Companies' (WithId @('CompanyName', 'Address', 'ContactNumbers', 'ContactPerson')) 'ref' $true 's.Id <> 0'
 
 $setup = Same @('CompanyName', 'SubCompanyName', 'Tagline', 'Address', 'ContactNumbers', 'Email', 'Code', 'Logo')
 $setup = [ordered]@{ Id = 's.Id' } + $setup
@@ -168,6 +167,8 @@ InsertSpec 'ModuleDefaults' 'LabResultsDefaults' ([ordered]@{ ModuleId = 's.Modu
 # ---------- patients, registrations, payments ----------
 $pat = WithId @('PatientCode', 'PatientName')
 $pat['DateOfBirth'] = 'CAST(s.DateOfBirth AS date)'
+# the new model computes age from the birth date; the legacy text is only kept where there is no birth date
+$pat['Age'] = "NULLIF(LTRIM(RTRIM(CASE WHEN s.DateOfBirth IS NULL THEN s.Age END)), '')"
 $pat['Sex'] = 's.Gender'
 $pat['CivilStatus'] = 's.CivilStatus'
 $pat['Address'] = 's.Address'
@@ -350,7 +351,11 @@ $v = New-Object System.Text.StringBuilder
 [void]$v.AppendLine("CREATE TABLE #r (Item nvarchar(100), LegacyValue decimal(38,4), NewValue decimal(38,4));")
 foreach ($p in $pairs) {
     # Only legacy permission rows that grant access are migrated (see the UserPermissions insert above).
-    $legacyWhere = if ($p[0] -eq 'UserPermissions') { ' WHERE ViewOnly = 1 OR AllowCreate = 1 OR AllowEdit = 1 OR AllowDelete = 1 OR AllowPrint = 1' } else { '' }
+    $legacyWhere = switch ($p[0]) {
+        'UserPermissions' { ' WHERE ViewOnly = 1 OR AllowCreate = 1 OR AllowEdit = 1 OR AllowDelete = 1 OR AllowPrint = 1' }
+        'Companies' { ' WHERE Id <> 0' }   # the legacy WALK-IN row is not migrated
+        default { '' }
+    }
     [void]$v.AppendLine("INSERT #r SELECT '$($p[0]) rows', (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.[$($p[1])]$legacyWhere), (SELECT COUNT(*) FROM [$($p[0])] ) ;")
 }
 [void]$v.AppendLine("INSERT #r SELECT 'LookupValues rows', (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.DefaultValues) + (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.SingleLineEntries) + (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.MultiLineEntries), (SELECT COUNT(*) FROM LookupValues);")

@@ -27,13 +27,16 @@
           <Button Content="Change password" Command="{Binding ChangePasswordCommand}" />
           <Button Content="Sign out" Margin="8,0,0,0" Click="SignOut_OnClick" />
         </StackPanel>
+        <ToggleButton DockPanel.Dock="Left" Content="&#x2630;" MinWidth="0" Padding="9,4" Margin="0,0,12,0" Cursor="Hand"
+                      IsChecked="{Binding IsMenuVisible, Mode=TwoWay}" ToolTip="Show or hide the menu" VerticalAlignment="Center" />
         <TextBlock Text="Diagnostic Labs" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
         <TextBlock Text="{Binding Greeting}" VerticalAlignment="Center" Margin="18,0,0,0"
                    Foreground="{StaticResource MutedTextBrush}" />
       </DockPanel>
     </Border>
 
-    <Border DockPanel.Dock="Left" Width="232" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,1,0">
+    <Border DockPanel.Dock="Left" Width="232" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,1,0"
+            Visibility="{Binding IsMenuVisible, Converter={StaticResource BoolToVis}}">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding Menu}">
           <ItemsControl.ItemTemplate>

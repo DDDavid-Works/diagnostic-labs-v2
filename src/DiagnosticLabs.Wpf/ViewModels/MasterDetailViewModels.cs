@@ -28,11 +28,19 @@ public partial class DiscountLineViewModel : ObservableObject
 {
     public long Id { get; init; }
 
+    /// <summary>An option is either a fixed amount or a percentage (the radio buttons), never both.</summary>
     [ObservableProperty]
-    private decimal? _amount;
+    [NotifyPropertyChangedFor(nameof(Unit))]
+    private bool _isPercentage = true;
 
     [ObservableProperty]
-    private decimal? _percentage;
+    private decimal? _value;
+
+    public string Unit => IsPercentage ? "%" : string.Empty;
+
+    public decimal? Amount => IsPercentage ? null : Value;
+
+    public decimal? Percentage => IsPercentage ? Value : null;
 }
 
 public partial class PackageServiceLineViewModel : ObservableObject
@@ -158,9 +166,6 @@ public partial class DiscountsViewModel(
     [ObservableProperty]
     private string _discountDescription = string.Empty;
 
-    [ObservableProperty]
-    private DiscountLineViewModel? _selectedLine;
-
     public ObservableCollection<DiscountLineViewModel> Lines { get; } = [];
 
     protected override string CurrentName => DiscountName;
@@ -178,7 +183,7 @@ public partial class DiscountsViewModel(
         RowVersion = d.RowVersion;
         Lines.Clear();
         foreach (var line in d.Lines)
-            Lines.Add(new DiscountLineViewModel { Id = line.Id, Amount = line.Amount, Percentage = line.Percentage });
+            Lines.Add(new DiscountLineViewModel { Id = line.Id, IsPercentage = line.Percentage is not null, Value = line.Percentage ?? line.Amount });
     }
 
     protected override void ResetFields()
@@ -190,16 +195,15 @@ public partial class DiscountsViewModel(
     [RelayCommand]
     private void AddLine()
     {
-        var line = new DiscountLineViewModel { Percentage = 0 };
+        var line = new DiscountLineViewModel();
         Lines.Add(line);
-        SelectedLine = line;
     }
 
     [RelayCommand]
-    private void RemoveLine()
+    private void RemoveLine(DiscountLineViewModel? line)
     {
-        if (SelectedLine is not null)
-            Lines.Remove(SelectedLine);
+        if (line is not null)
+            Lines.Remove(line);
     }
 }
 

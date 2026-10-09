@@ -28,6 +28,11 @@ public class PatientRegistration : SoftDeletableEntity
 
     public decimal AmountDue { get; set; }
 
+    /// <summary>The maintained discount (PWD, Senior Citizen...) this one came from; null for a typed, one-off discount.</summary>
+    public long? DiscountId { get; set; }
+
+    public Discount? Discount { get; set; }
+
     public decimal? DiscountAmount { get; set; }
 
     public decimal? DiscountPercentage { get; set; }

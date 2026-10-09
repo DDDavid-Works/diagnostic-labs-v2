@@ -21,7 +21,8 @@ public interface IReferenceInput : ICrudInput
     bool IsActive { get; }
 }
 
-public sealed record CrudSearch(
+/// <summary>Plain text search with paging. Screens with extra filters derive from it (e.g. <c>RegistrationSearch</c>).</summary>
+public record CrudSearch(
     string? Text,
     int Page = 1,
     int PageSize = Paging.DefaultPageSize,
@@ -101,6 +102,9 @@ public abstract class CrudService<TEntity, TListItem, TDetails, TInput>(
     /// <summary>Return an error to block editing or deleting this particular row (e.g. system rows).</summary>
     protected virtual Error? CheckCanModify(TEntity entity) => null;
 
+    /// <summary>Applies filters beyond the search text; screens with extra filters override this.</summary>
+    protected virtual IQueryable<TEntity> Filter(IQueryable<TEntity> query, CrudSearch search) => query;
+
     /// <summary>Extra rules that only apply to removing a row (e.g. never remove the last administrator).</summary>
     protected virtual Task<Error?> CheckCanDeleteAsync(TEntity entity, CancellationToken cancellationToken) =>
         Task.FromResult<Error?>(null);
@@ -111,7 +115,7 @@ public abstract class CrudService<TEntity, TListItem, TDetails, TInput>(
             return Result<PagedResult<TListItem>>.Failure(Errors.Forbidden);
 
         var (page, pageSize) = Paging.Normalize(search.Page, search.PageSize);
-        var query = ApplyActiveFilter(ForListing(Set.AsNoTracking()), search.IncludeInactive);
+        var query = Filter(ApplyActiveFilter(ForListing(Set.AsNoTracking()), search.IncludeInactive), search);
 
         // Every word must match, so "juan 2026" narrows the list.
         foreach (var word in (search.Text ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))

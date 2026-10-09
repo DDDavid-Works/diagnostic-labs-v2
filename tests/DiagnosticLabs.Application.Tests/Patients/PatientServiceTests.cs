@@ -27,7 +27,7 @@ public class PatientServiceTests
                 false)]));
 
     private static PatientInput NewInput(string name = "Jane Roe") =>
-        new(0, name, new DateOnly(1990, 5, 17), "Female", "Single", "Somewhere", "0917", null);
+        new(0, name, new DateOnly(1990, 5, 17), null, "Female", "Single", "Somewhere", "0917", null);
 
     [Fact]
     public async Task Creating_a_patient_assigns_sequential_year_based_codes()
@@ -217,6 +217,63 @@ public class PatientServiceTests
         var item = Assert.Single(result.Items);
         Assert.Equal(kept.Id, item.Id);
         Assert.Equal("30 years old", item.Age);
+    }
+
+    [Fact]
+    public async Task A_typed_age_is_kept_when_the_birth_date_is_unknown_and_shown_in_the_list()
+    {
+        await using var db = _env.CreateDb();
+        SignIn(ModuleAction.Create);
+        var service = CreateService(db);
+
+        var saved = await service.SaveAsync(NewInput() with { DateOfBirth = null, Age = " 35 years old " });
+
+        Assert.Equal("35 years old", saved.Value.Age);
+        var row = (await service.SearchAsync(new CrudSearch(null))).Value.Items.Single();
+        Assert.Equal("35 years old", row.Age);
+    }
+
+    [Fact]
+    public async Task A_known_birth_date_wins_over_typed_age_text_and_clears_it()
+    {
+        await using var db = _env.CreateDb();
+        SignIn(ModuleAction.Create, ModuleAction.Edit);
+        var service = CreateService(db);
+        var created = (await service.SaveAsync(NewInput() with { DateOfBirth = null, Age = "35" })).Value;
+
+        var edited = (await service.SaveAsync(NewInput() with { Id = created.Id, Age = "99", RowVersion = created.RowVersion })).Value;
+
+        Assert.Null(edited.Age);
+        var today = DateOnly.FromDateTime(_env.Clock.UtcNow.ToLocalTime());
+        var expected = DiagnosticLabs.Domain.Patients.AgeCalculator.Describe(new DateOnly(1990, 5, 17), today);
+        Assert.Equal(expected, (await service.SearchAsync(new CrudSearch(null))).Value.Items.Single().Age);
+    }
+
+    [Fact]
+    public async Task An_over_long_age_text_is_refused()
+    {
+        await using var db = _env.CreateDb();
+        SignIn(ModuleAction.Create);
+
+        var result = await CreateService(db).SaveAsync(NewInput() with { DateOfBirth = null, Age = new string('9', 51) });
+
+        Assert.True(result.IsFailure);
+    }
+
+    [Fact]
+    public async Task A_patient_with_registrations_can_not_be_deleted()
+    {
+        await using var db = _env.CreateDb();
+        SignIn(ModuleAction.Create, ModuleAction.Delete);
+        var service = CreateService(db);
+        var patient = (await service.SaveAsync(NewInput())).Value;
+        db.PatientRegistrations.Add(new DiagnosticLabs.Domain.Registrations.PatientRegistration { RegistrationCode = "X-1", PatientId = patient.Id, InputDate = _env.Clock.UtcNow });
+        await db.SaveChangesAsync();
+
+        var result = await service.DeleteAsync(patient.Id);
+
+        Assert.Equal("Patient.HasRegistrations", result.Error.Code);
+        Assert.True((await service.GetAsync(patient.Id)).IsSuccess);
     }
 
     [Fact]

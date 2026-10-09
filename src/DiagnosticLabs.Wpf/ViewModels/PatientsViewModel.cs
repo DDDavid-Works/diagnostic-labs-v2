@@ -54,13 +54,23 @@ public partial class PatientsViewModel(
     // The code is what uniquely finds the new patient, even if the name is common.
     protected override string SearchTextAfterCreate => PatientCode;
 
-    partial void OnDateOfBirthChanged(DateTime? value) =>
-        Age = AgeCalculator.Describe(value is { } d ? DateOnly.FromDateTime(d) : null, DateOnly.FromDateTime(DateTime.Today)) ?? string.Empty;
+    /// <summary>The age box is computed (read-only) while a birth date is entered, and free text otherwise.</summary>
+    public bool IsAgeReadOnly => DateOfBirth is not null;
+
+    partial void OnDateOfBirthChanged(DateTime? value)
+    {
+        OnPropertyChanged(nameof(IsAgeReadOnly));
+
+        // With a birth date the age is computed; clearing it leaves the last text in place to be corrected by hand.
+        if (value is { } d)
+            Age = AgeCalculator.Describe(DateOnly.FromDateTime(d), DateOnly.FromDateTime(DateTime.Today)) ?? string.Empty;
+    }
 
     protected override PatientInput BuildInput() => new(
         Id,
         PatientName,
         DateOfBirth is { } d ? DateOnly.FromDateTime(d) : null,
+        Age,
         Sex,
         CivilStatus,
         Address,
@@ -72,6 +82,8 @@ public partial class PatientsViewModel(
         PatientCode = details.PatientCode;
         PatientName = details.PatientName;
         DateOfBirth = details.DateOfBirth?.ToDateTime(TimeOnly.MinValue);
+        if (DateOfBirth is null)
+            Age = details.Age ?? string.Empty;
         Sex = details.Sex;
         CivilStatus = details.CivilStatus;
         Address = details.Address;
@@ -84,6 +96,7 @@ public partial class PatientsViewModel(
         PatientCode = NewCodeText;
         PatientName = string.Empty;
         DateOfBirth = null;
+        Age = string.Empty;
         Sex = null;
         CivilStatus = null;
         Address = string.Empty;

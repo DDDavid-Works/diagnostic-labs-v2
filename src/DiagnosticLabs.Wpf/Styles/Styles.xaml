@@ -70,6 +70,28 @@
     </Setter>
   </Style>
 
+  <!-- A row in a type-ahead popup. Buttons click without taking focus, so the text box keeps the cursor (list items would not select). -->
+  <Style x:Key="SuggestionButton" TargetType="Button">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="8,5">
+            <ContentPresenter HorizontalAlignment="Stretch" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="#E6ECF9" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style x:Key="FieldLabel" TargetType="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
     <Setter Property="Margin" Value="0,10,0,3" />

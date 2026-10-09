@@ -4,6 +4,7 @@ using DiagnosticLabs.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261009132225_RegistrationGroundwork")]
+    partial class RegistrationGroundwork
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1943,9 +1946,6 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<long?>("DiscountId")
-                        .HasColumnType("bigint");
-
                     b.Property<decimal?>("DiscountPercentage")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -1988,8 +1988,6 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
-
-                    b.HasIndex("DiscountId");
 
                     b.HasIndex("InputDate");
 
@@ -2776,11 +2774,6 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasForeignKey("DeletedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("DiagnosticLabs.Domain.Catalog.Discount", "Discount")
-                        .WithMany()
-                        .HasForeignKey("DiscountId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("DiagnosticLabs.Domain.Catalog.Package", "Package")
                         .WithMany()
                         .HasForeignKey("PackageId")
@@ -2798,8 +2791,6 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Company");
-
-                    b.Navigation("Discount");
 
                     b.Navigation("Package");
 

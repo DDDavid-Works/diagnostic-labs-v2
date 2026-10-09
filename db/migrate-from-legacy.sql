@@ -120,13 +120,12 @@ SET IDENTITY_INSERT [UserPermissions] OFF;
 
 -- Companies -> Companies
 SET IDENTITY_INSERT [Companies] ON;
-INSERT INTO [Companies] ([Id], [CompanyName], [Address], [ContactNumbers], [ContactPerson], [IsSystem], [CreatedAtUtc], [CreatedByUserId], [UpdatedAtUtc], [UpdatedByUserId], [IsActive])
+INSERT INTO [Companies] ([Id], [CompanyName], [Address], [ContactNumbers], [ContactPerson], [CreatedAtUtc], [CreatedByUserId], [UpdatedAtUtc], [UpdatedByUserId], [IsActive])
 SELECT s.[Id],
         s.[CompanyName],
         s.[Address],
         s.[ContactNumbers],
         s.[ContactPerson],
-        s.[IsSystem],
         CAST(CAST(s.CreatedDate AS datetime2(3)) AT TIME ZONE '$(LegacyTimeZone)' AT TIME ZONE 'UTC' AS datetime2(3)),
         (SELECT u.Id FROM #u u WHERE u.Id = s.CreatedByUserId),
         CAST(CAST(s.UpdatedDate AS datetime2(3)) AT TIME ZONE '$(LegacyTimeZone)' AT TIME ZONE 'UTC' AS datetime2(3)),
@@ -136,22 +135,6 @@ FROM [$(Legacy)].dbo.[Companies] s
 WHERE s.Id <> 0
 ;
 SET IDENTITY_INSERT [Companies] OFF;
-
--- Companies -> Companies
-INSERT INTO [Companies] ([CompanyName], [Address], [ContactNumbers], [ContactPerson], [IsSystem], [CreatedAtUtc], [CreatedByUserId], [UpdatedAtUtc], [UpdatedByUserId], [IsActive])
-SELECT s.[CompanyName],
-        s.[Address],
-        s.[ContactNumbers],
-        s.[ContactPerson],
-        s.[IsSystem],
-        CAST(CAST(s.CreatedDate AS datetime2(3)) AT TIME ZONE '$(LegacyTimeZone)' AT TIME ZONE 'UTC' AS datetime2(3)),
-        (SELECT u.Id FROM #u u WHERE u.Id = s.CreatedByUserId),
-        CAST(CAST(s.UpdatedDate AS datetime2(3)) AT TIME ZONE '$(LegacyTimeZone)' AT TIME ZONE 'UTC' AS datetime2(3)),
-        (SELECT u.Id FROM #u u WHERE u.Id = s.UpdatedByUserId),
-        s.IsActive
-FROM [$(Legacy)].dbo.[Companies] s
-WHERE s.Id = 0
-;
 
 -- CompanySetups -> CompanySetups
 SET IDENTITY_INSERT [CompanySetups] ON;
@@ -380,11 +363,12 @@ FROM [$(Legacy)].dbo.[LabResultsDefaults] s
 
 -- Patients -> Patients
 SET IDENTITY_INSERT [Patients] ON;
-INSERT INTO [Patients] ([Id], [PatientCode], [PatientName], [DateOfBirth], [Sex], [CivilStatus], [Address], [ContactNumbers], [CreatedAtUtc], [CreatedByUserId], [UpdatedAtUtc], [UpdatedByUserId], [IsDeleted], [DeletedAtUtc], [DeletedByUserId])
+INSERT INTO [Patients] ([Id], [PatientCode], [PatientName], [DateOfBirth], [Age], [Sex], [CivilStatus], [Address], [ContactNumbers], [CreatedAtUtc], [CreatedByUserId], [UpdatedAtUtc], [UpdatedByUserId], [IsDeleted], [DeletedAtUtc], [DeletedByUserId])
 SELECT s.[Id],
         s.[PatientCode],
         s.[PatientName],
         CAST(s.DateOfBirth AS date),
+        NULLIF(LTRIM(RTRIM(CASE WHEN s.DateOfBirth IS NULL THEN s.Age END)), ''),
         s.Gender,
         s.CivilStatus,
         s.Address,

@@ -54,13 +54,15 @@ sqlcmd -S <server> -d DiagnosticLabsV2 -E -C -I -b -W -i db\verify-migration.sql
 | Module | Status |
 |---|---|
 | Sign in, permissions, navigation menu | Done |
-| Patients | Done (paged search, create/edit/soft-delete, concurrency check, audit log) |
+| Patients | Done (paged search, create/edit/soft-delete, concurrency check, audit log; a patient with registrations can not be deleted). Age is computed from the birth date, or typed as free text when the birth date is unknown. |
+| Patient Registrations | Done (see below) |
+| Payments | Done (see below) |
 | Companies, Departments, Services, Packages, Discounts | Done (shared list + editor screen; delete switches a row off, "Show inactive" brings it back) |
 | Items, Item Locations | Built and tested, but hidden: the legacy `Modules` table has them switched off (`IsActive = 0`, ids 21 and 22). Set `IsActive = 1` to show them in the menu |
 | Users and permissions | Done (per-user permission grid, temporary passwords, reset/unlock, last-admin safeguards) |
 | Change Password | Done (header button for every user; forced at sign-in when a temporary password is in use) |
 | Company Setup | Done (name, tagline, address, contacts, company code, logo; the name, tagline and logo also show on the sign-in window) |
-| Patient Registrations, Payments, Lab Results, Reports | Shown in the menu as "not migrated yet" |
+| Lab Results, Reports | Shown in the menu as "not migrated yet" |
 
 A new maintenance screen is: a service deriving from `CrudService`/`ReferenceCrudService` (Application), a view model deriving from `CrudViewModel` (Wpf), a `DataTemplate` in `Views/CrudTemplates.xaml` that fills the shared `CrudLayout`, and one line in `MainViewModel.Pages`. `Management/DiscountService` and `MasterDetailViewModels.cs` show the pattern with child rows.
 
@@ -77,4 +79,23 @@ Lists such as Gender, Civil Status, Medical Technologist and the lab-result choi
 
 ## Service picker
 
-Services are added to a table (package services now, registration services next) through one point-of-sale style dialog: a single **+ Add services** button opens every service as a tile, in the order the lab uses, with the services already in the table ticked. Unticking removes one, a search box narrows the tiles, and the footer shows the running count and total. Services that stay keep the price already given to them; new ones come in at their standard price. `ServicePickerViewModel` / `IServicePickerDialog` are reused by the Patient Registration screen.
+Services are added to a table (package services and registration services) through one point-of-sale style dialog: a single **+ Add services** button opens every service as a tile, in the order the lab uses, with the services already in the table ticked. Unticking removes one, a search box narrows the tiles, and the footer shows the running count and total. Services that stay keep the price already given to them; new ones come in at their standard price. `ServicePickerViewModel` / `IServicePickerDialog` are reused by the Patient Registration screen.
+
+## Patient Registration
+
+One form for the whole counter workflow: the registration (code, date, company, batch, package), the patient (new or existing) and the services, laid out as three blocks that fit a 1366x728 screen with the menu open and wrap on narrower windows. The left menu can be hidden with the hamburger button in the header.
+
+- **Codes.** The form previews the next registration code (`BADC-09OC26-00001`: company code, `ddMMyy` with a two-letter month, a counter that restarts every day) and patient code; the real ones are reserved atomically when saving, so two counters never hand out the same number. Without a company code (Settings > Company Setup) a new registration is refused with guidance.
+- **No company** is simply no company (the legacy WALK-IN placeholder was dropped by the migration). Packages are filtered by the selected company; with no company only general packages show. Picking a package replaces the services with its own at the package prices and sets the price; otherwise the price follows the services total until it is typed.
+- **Patients.** Typing a name offers matching existing patients (two letters or more); picking one reuses the patient and updates their details from the form, **Different patient** lets go of them. A new patient is created in the same save. Age is computed from the birth date, or typed when the birth date is unknown.
+- **Rules.** At least one service is required. A registration with payments or lab results can not be deleted, and a patient with registrations can not be deleted. A saved registration keeps its patient.
+- **Speed.** Ctrl+S saves, **Save & New** saves and starts the next patient, Ctrl+N starts a new registration, Ctrl+F toggles the list (filter by company or day). Print arrives with the reports slice.
+
+## Payments
+
+Find the registration by typing its code and pressing Enter, or by typing a patient name and picking a registration (the list shows each one's balance). The screen then shows the patient, the services and what is owed; the payment amount is pre-filled with the balance, **Pay balance** refills it, and the discount is picked from the maintained Discounts (PWD, Senior Citizen...; a discount with several options asks which one) or typed as a one-off amount or percentage. A picked discount locks the value, is remembered on the registration (`PatientRegistrations.DiscountId`, ready for reporting) and is saved with the payment.
+
+- **Balance** = price - discount - payments already made. A payment above the balance is refused, and a fully paid registration takes no more payments.
+- **Charge** records that a registration is billed to its company: it has no amount, settles the balance, and a registration can be charged once and then takes no payments.
+- Opening a saved payment shows its registration; the payment can be edited or deleted (it stays on file, hidden), but not moved to another registration.
+- The list on the right filters by company and day, like Patient Registration. Receipts print with the reports slice.

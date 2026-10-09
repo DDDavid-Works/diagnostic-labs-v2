@@ -15,11 +15,13 @@ public sealed record PatientListItem(
     string? Sex,
     string? ContactNumbers) : IHasId;
 
+/// <summary><see cref="Age"/> is the typed age text, only meaningful while <see cref="DateOfBirth"/> is empty.</summary>
 public sealed record PatientDetails(
     long Id,
     string PatientCode,
     string PatientName,
     DateOnly? DateOfBirth,
+    string? Age,
     string? Sex,
     string? CivilStatus,
     string Address,
@@ -30,6 +32,7 @@ public sealed record PatientInput(
     long Id,
     string? PatientName,
     DateOnly? DateOfBirth,
+    string? Age,
     string? Sex,
     string? CivilStatus,
     string? Address,
@@ -64,11 +67,17 @@ public sealed class PatientService(
 
     protected override void Remove(Patient entity) => Set.Remove(entity);
 
+    // Removing a patient would hide every registration made for them.
+    protected override async Task<Error?> CheckCanDeleteAsync(Patient entity, CancellationToken cancellationToken) =>
+        await Db.PatientRegistrations.AnyAsync(r => r.PatientId == entity.Id, cancellationToken)
+            ? new Error("Patient.HasRegistrations", "This patient has registrations, so they can not be deleted.")
+            : null;
+
     protected override PatientListItem ToListItem(Patient p) =>
-        new(p.Id, p.PatientCode, p.PatientName, p.DateOfBirth, AgeCalculator.Describe(p.DateOfBirth, Today), p.Sex, p.ContactNumbers);
+        new(p.Id, p.PatientCode, p.PatientName, p.DateOfBirth, AgeCalculator.Describe(p.DateOfBirth, Today) ?? p.Age, p.Sex, p.ContactNumbers);
 
     protected override PatientDetails ToDetails(Patient p) =>
-        new(p.Id, p.PatientCode, p.PatientName, p.DateOfBirth, p.Sex, p.CivilStatus, p.Address, p.ContactNumbers, p.RowVersion);
+        new(p.Id, p.PatientCode, p.PatientName, p.DateOfBirth, p.Age, p.Sex, p.CivilStatus, p.Address, p.ContactNumbers, p.RowVersion);
 
     protected override IReadOnlyList<string> Validate(PatientInput input) => Validate(input, Today);
 
@@ -79,6 +88,7 @@ public sealed class PatientService(
     {
         patient.PatientName = input.PatientName!.Trim();
         patient.DateOfBirth = input.DateOfBirth;
+        patient.Age = input.DateOfBirth is null ? Clean(input.Age) : null; // a known birth date wins over typed text
         patient.Sex = Clean(input.Sex);
         patient.CivilStatus = Clean(input.CivilStatus);
         patient.Address = input.Address?.Trim() ?? string.Empty;
@@ -97,6 +107,9 @@ public sealed class PatientService(
 
         if (input.DateOfBirth is { } birth && birth > today)
             errors.Add("Date of birth can not be in the future.");
+
+        if ((input.Age?.Trim().Length ?? 0) > 50)
+            errors.Add("Age can not be longer than 50 characters.");
 
         if ((input.Address?.Trim().Length ?? 0) > AddressMaxLength)
             errors.Add($"Address can not be longer than {AddressMaxLength} characters.");
