@@ -12,6 +12,16 @@ using Microsoft.Extensions.Logging;
 
 namespace DiagnosticLabs.Wpf.ViewModels;
 
+/// <summary>One field of a result form that can have a default value: its name in the saved defaults and how to read and set it.</summary>
+public sealed class DefaultField(string name, Func<string?> get, Action<string?> set)
+{
+    public string Name { get; } = name;
+
+    public string? Get() => get();
+
+    public void Set(string? value) => set(value);
+}
+
 /// <summary>A dropdown of reusable texts (the multi-line Entry Builder lists); picking one fills a text box.</summary>
 public sealed partial class TemplateOptions : ObservableObject
 {
@@ -123,6 +133,18 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     [ObservableProperty]
     private DateTime? _dateFilter;
 
+    // ----- defaults: the values a new result starts with (shared by everyone, set by administrators) -----
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotSettingDefaults), nameof(ShowDefaultsButton), nameof(CanResetToDefaults), nameof(CanPrint))]
+    private bool _isSettingDefaults;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanResetToDefaults))]
+    private bool _hasDefaults;
+
+    private IReadOnlyDictionary<string, string?> _defaults = new Dictionary<string, string?>();
+    private bool _enteringDefaults;
+
     public ObservableCollection<ResultRegistrationMatch> Suggestions { get; } = [];
 
     public ObservableCollection<string> Genders { get; } = [];
@@ -149,7 +171,22 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     public bool CanEditLists => CurrentUser.Can(_module, ModuleAction.Edit);
 
-    public bool CanPrint => CurrentUser.Can(_module, ModuleAction.Print);
+    public bool CanPrint => CurrentUser.Can(_module, ModuleAction.Print) && !IsSettingDefaults;
+
+    public bool IsNotSettingDefaults => !IsSettingDefaults;
+
+    /// <summary>Only administrators set the defaults.</summary>
+    public bool CanSetDefaults => CurrentUser.IsAdmin;
+
+    public bool ShowDefaultsButton => CanSetDefaults && !IsSettingDefaults;
+
+    /// <summary>Resetting is for a new, unsaved result; a saved one is being edited and keeps what it has.</summary>
+    public bool CanResetToDefaults => IsNew && !IsSettingDefaults && HasDefaults;
+
+    public string DefaultsBanner => $"Setting the defaults for {Title}. Registration and patient details are not part of the defaults.";
+
+    // The form does not save results while the defaults are being set.
+    protected override bool IsLocked => IsSettingDefaults;
 
     protected override string CurrentName => string.IsNullOrWhiteSpace(PatientName) ? "this result" : $"the result of {PatientName}";
 
@@ -157,6 +194,36 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     protected abstract EntryField RemarksField { get; }
 
     protected abstract Task<Result<PrintableReport>> GetPrintableAsync(long id);
+
+    /// <summary>The result fields of this screen that can have a default (Remarks and the signatories are added for every screen).</summary>
+    protected virtual IEnumerable<DefaultField> ExtraDefaultFields() => [];
+
+    protected abstract void ResetDetail();
+
+    private List<DefaultField> DefaultFields() =>
+    [
+        new("Remarks", () => Remarks, v => Remarks = v),
+        new("MedicalTechnologist", () => MedicalTechnologist, v => MedicalTechnologist = v),
+        new("Pathologist", () => Pathologist, v => Pathologist = v),
+        .. ExtraDefaultFields(),
+    ];
+
+    // A new form is the empty form plus the saved defaults.
+    protected sealed override void ResetFields()
+    {
+        ResetHeader();
+        ResetDetail();
+        ApplyDefaults();
+    }
+
+    private void ApplyDefaults()
+    {
+        foreach (var field in DefaultFields())
+        {
+            if (_defaults.TryGetValue(field.Name, out var value))
+                field.Set(value);
+        }
+    }
 
     protected ILogger Log => _log;
 
@@ -240,6 +307,16 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     {
         await LoadListsAsync();
         await LoadTemplatesAsync();
+        await LoadDefaultsAsync();
+    }
+
+    // Opening a record or starting a new one ends the "set defaults" mode (except when the mode itself starts the new form).
+    protected override void OnRecordChanged()
+    {
+        if (IsSettingDefaults && !_enteringDefaults)
+            ExitDefaultsMode();
+
+        OnPropertyChanged(nameof(CanResetToDefaults));
     }
 
     protected override Task<bool> OnSaveRefusedAsync(Error error)
@@ -454,6 +531,96 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     // ------------------------------------------------------------------ Save & New, Print, filters
 
+    // ------------------------------------------------------------------ defaults
+
+    private async Task LoadDefaultsAsync()
+    {
+        var result = await Call<IModuleDefaultsService, Result<IReadOnlyDictionary<string, string?>>>(s => s.GetAsync(_module));
+        _defaults = result.IsSuccess ? result.Value : new Dictionary<string, string?>();
+        HasDefaults = _defaults.Count > 0;
+    }
+
+    private void ExitDefaultsMode()
+    {
+        IsSettingDefaults = false;
+        OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CanDelete));
+        PrintCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Shows a new form carrying the current defaults to edit them; patient and registration are switched off.</summary>
+    [RelayCommand(CanExecute = nameof(CanSetDefaults))]
+    private void EnterDefaults()
+    {
+        _enteringDefaults = true;
+        try
+        {
+            IsSettingDefaults = true;
+            BeginNewRecord();
+        }
+        finally
+        {
+            _enteringDefaults = false;
+        }
+
+        OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CanDelete));
+        PrintCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand]
+    private Task SaveDefaultsAsync() => RunAsync(async () =>
+    {
+        var values = DefaultFields().ToDictionary(f => f.Name, f => f.Get());
+        var result = await Call<IModuleDefaultsService, Result>(s => s.SaveAsync(_module, values));
+        if (result.IsFailure)
+        {
+            ShowError(result.Error.Message);
+            return;
+        }
+
+        await LoadDefaultsAsync();
+        ExitDefaultsMode();
+        BeginNewRecord(keepMessage: true);
+        ShowInfo("Defaults saved. New results will start with them.");
+    });
+
+    [RelayCommand]
+    private Task ClearDefaultsAsync() => RunAsync(async () =>
+    {
+        if (!_dialogs.Confirm($"Remove the defaults of {Title}? New results will start empty.", "Clear defaults"))
+            return;
+
+        var result = await Call<IModuleDefaultsService, Result>(s => s.ClearAsync(_module));
+        if (result.IsFailure)
+        {
+            ShowError(result.Error.Message);
+            return;
+        }
+
+        await LoadDefaultsAsync();
+        ExitDefaultsMode();
+        BeginNewRecord(keepMessage: true);
+        ShowInfo("Defaults cleared.");
+    });
+
+    [RelayCommand]
+    private void CancelDefaults()
+    {
+        ExitDefaultsMode();
+        BeginNewRecord();
+    }
+
+    /// <summary>Puts the defaults back into the result fields of a new, unsaved result (patient and registration are left alone).</summary>
+    [RelayCommand(CanExecute = nameof(CanResetToDefaults))]
+    private void ResetToDefaults()
+    {
+        foreach (var field in DefaultFields())
+            field.Set(null);
+
+        ApplyDefaults();
+    }
+
     /// <summary>Saves, then shows an empty form ready for the next result.</summary>
     [RelayCommand]
     private Task SaveAndNewAsync() => RunAsync(async () =>
@@ -572,13 +739,19 @@ public partial class StoolFecalysisViewModel(
         RowVersion = d.RowVersion;
     }
 
-    protected override void ResetFields()
+    protected override void ResetDetail()
     {
-        ResetHeader();
         Color = null;
         Consistency = null;
         Result = null;
     }
+
+    protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
+    [
+        new("Color", () => Color, v => Color = v),
+        new("Consistency", () => Consistency, v => Consistency = v),
+        new("Result", () => Result, v => Result = v),
+    ];
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IStoolFecalysisService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));

@@ -7,7 +7,20 @@
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
   </UserControl.Resources>
   <StackPanel>
-    <Grid>
+    <!-- While an administrator sets the defaults, this banner replaces the registration box -->
+    <Border Background="#E6ECF9" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" Padding="12,8" Margin="0,2,0,0"
+            Visibility="{Binding IsSettingDefaults, Converter={StaticResource BoolToVis}}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+          <Button Content="Save defaults" Style="{StaticResource PrimaryButton}" Command="{Binding SaveDefaultsCommand}" />
+          <Button Content="Clear defaults" Margin="8,0,0,0" Command="{Binding ClearDefaultsCommand}" ToolTip="Remove the saved defaults; new results will start empty" />
+          <Button Content="Cancel" Margin="8,0,0,0" Command="{Binding CancelDefaultsCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding DefaultsBanner}" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Grid Visibility="{Binding IsNotSettingDefaults, Converter={StaticResource BoolToVis}}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
@@ -89,7 +102,7 @@
     <Border BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,1,0,0" Margin="0,10,0,10" />
 
     <!-- Patient block, laid out like the paper: code / age / sex, name / date requested, company or physician -->
-    <Grid Margin="0,0,0,12">
+    <Grid Margin="0,0,0,12" IsEnabled="{Binding IsNotSettingDefaults}">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />

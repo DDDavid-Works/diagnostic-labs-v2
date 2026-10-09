@@ -1321,3 +1321,32 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261009194643_ModuleDefaultsUnique'
+)
+BEGIN
+    DROP INDEX [IX_ModuleDefaults_ModuleId] ON [ModuleDefaults];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261009194643_ModuleDefaultsUnique'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [IX_ModuleDefaults_ModuleId] ON [ModuleDefaults] ([ModuleId]) WHERE [ModuleId] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261009194643_ModuleDefaultsUnique'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261009194643_ModuleDefaultsUnique', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

@@ -527,6 +527,12 @@
                   ToolTip="Save, then start the next result (Ctrl+S saves)" />
           <Button Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
                   ToolTip="Save, then open the print preview" />
+          <Button Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the values every new result starts with (administrators)" />
         </StackPanel>
       </ctl:CrudLayout.FooterContent>
 

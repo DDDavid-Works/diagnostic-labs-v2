@@ -32,9 +32,13 @@ public partial class CrudLayout : UserControl
             typeof(CrudLayout),
             new PropertyMetadata(680d, (d, e) => ((CrudLayout)d).FormColumn.MaxWidth = (double)e.NewValue));
 
-    private bool _loaded;
+    private ICrudScreen? _initializedFor;
 
-    public CrudLayout() => InitializeComponent();
+    public CrudLayout()
+    {
+        InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
 
     /// <summary>Extra buttons next to New / Save / Delete.</summary>
     public object? FooterContent
@@ -71,18 +75,22 @@ public partial class CrudLayout : UserControl
 
     private ICrudScreen? Screen => DataContext as ICrudScreen;
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e) => await InitializeScreenAsync();
+
+    // The same layout instance is reused when the main window switches to another view model of the same kind
+    // (e.g. clicking the open module in the menu again), so a new screen must be initialised whenever it arrives.
+    private async void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e) => await InitializeScreenAsync();
+
+    private async Task InitializeScreenAsync()
     {
-        // Loaded fires again if the control is re-parented; only initialise once.
-        if (_loaded || Screen is null)
+        if (!IsLoaded || Screen is not { } screen || ReferenceEquals(screen, _initializedFor))
             return;
 
-        _loaded = true;
-        Screen.NewRecordStarted += (_, _) => FocusFirstField();
-        await Screen.InitializeCommand.ExecuteAsync(null);
+        _initializedFor = screen;
+        screen.NewRecordStarted += (_, _) => FocusFirstField();
+        await screen.InitializeCommand.ExecuteAsync(null);
         FocusFirstField();
     }
-
     // Ctrl+S saves from anywhere on the screen; like the Save button, it first commits a cell still being edited.
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {

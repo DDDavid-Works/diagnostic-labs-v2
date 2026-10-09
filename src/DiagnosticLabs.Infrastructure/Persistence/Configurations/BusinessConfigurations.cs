@@ -213,8 +213,13 @@ internal sealed class LookupValueConfiguration : IEntityTypeConfiguration<Lookup
 
 internal sealed class ModuleDefaultConfiguration : IEntityTypeConfiguration<ModuleDefault>
 {
-    public void Configure(EntityTypeBuilder<ModuleDefault> builder) =>
+    public void Configure(EntityTypeBuilder<ModuleDefault> builder)
+    {
         builder.HasOne<Domain.Identity.Module>().WithMany().HasForeignKey(m => m.ModuleId);
+
+        // One set of defaults per screen.
+        builder.HasIndex(m => m.ModuleId).IsUnique();
+    }
 }
 
 internal sealed class CodeSequenceConfiguration : IEntityTypeConfiguration<CodeSequence>
