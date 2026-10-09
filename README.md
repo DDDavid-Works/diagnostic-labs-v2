@@ -57,6 +57,7 @@ sqlcmd -S <server> -d DiagnosticLabsV2 -E -C -I -b -W -i db\verify-migration.sql
 | Patients | Done (paged search, create/edit/soft-delete, concurrency check, audit log; a patient with registrations can not be deleted). Age is computed from the birth date, or typed as free text when the birth date is unknown. |
 | Patient Registrations | Done (see below) |
 | Payments | Done (see below) |
+| Lab Results | Stool/Fecalysis done (see below); the other 10 types follow the same pattern |
 | Companies, Departments, Services, Packages, Discounts | Done (shared list + editor screen; delete switches a row off, "Show inactive" brings it back) |
 | Items, Item Locations | Built and tested, but hidden: the legacy `Modules` table has them switched off (`IsActive = 0`, ids 21 and 22). Set `IsActive = 1` to show them in the menu |
 | Users and permissions | Done (per-user permission grid, temporary passwords, reset/unlock, last-admin safeguards) |
@@ -99,3 +100,13 @@ Find the registration by typing its code and pressing Enter, or by typing a pati
 - **Charge** records that a registration is billed to its company: it has no amount, settles the balance, and a registration can be charged once and then takes no payments.
 - Opening a saved payment shows its registration; the payment can be edited or deleted (it stays on file, hidden), but not moved to another registration.
 - The list on the right filters by company and day, like Patient Registration. Receipts print with the reports slice.
+
+## Lab results and printing
+
+The app exists to print the clients' result forms, so each result screen mirrors the paper form and is delivered together with its printout (see `docs/PRINTING-PROPOSAL.md`). Stool/Fecalysis is the first; the others reuse the same pieces.
+
+- **Registration is optional.** Type a registration code (or a patient name and pick it) and the patient block fills in: patient code, name, age, sex and company. **No registration** lets you type a result for someone who is not registered (no patient record is created; `LabReports.PatientId` and `PatientRegistrationId` are both nullable).
+- **A second result of the same type for one registration** is allowed, but the user is asked to confirm first.
+- **Lists and texts** (color, consistency, medical technologist, pathologist, sex, and the reusable Result and Remarks texts) are maintained with the Entry Builder from the pencil buttons, like Gender and Civil Status.
+- **Print** saves what is on the form and opens a preview of the US Letter page. The page is a copy of the client's printed form: every box, line, label and text was placed at coordinates measured from their PDF (yellow title bar, bordered result and remarks boxes, Arial 13 px, signatories under lines), and the on-screen form follows the same arrangement. Long Result or Remarks text makes its box grow and pushes what is below down. The viewer's printer list includes "Microsoft Print to PDF". What goes on paper is worked out in the Application layer (`PrintableReport`) and unit-tested; `Printing/ReportDocumentBuilder.cs` only lays it out.
+- **Adding the next result type** is a detail record and service deriving from `LabResultService`, a view model deriving from `LabResultViewModel`, a template that wraps its own fields between the shared `LabResultTop` and `LabResultBottom` controls, and a page design in `Printing/ReportDocumentBuilder.cs` measured from the client's printed PDF of that form (the PDFs are vector files, so every box, line and text position can be read out exactly).

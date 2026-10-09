@@ -131,6 +131,9 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     /// <summary>Called once the screen has loaded and shown its empty form (e.g. to open a record another screen asked for).</summary>
     protected virtual Task OnReadyAsync() => Task.CompletedTask;
 
+    /// <summary>Called when a save is refused; return <c>true</c> to save once more (after the screen changed its input, e.g. with the user's confirmation).</summary>
+    protected virtual Task<bool> OnSaveRefusedAsync(Error error) => Task.FromResult(false);
+
     /// <summary>Called after a successful save (e.g. refresh dropdowns that may have gained a value).</summary>
     protected virtual Task OnSavedAsync() => Task.CompletedTask;
 
@@ -235,6 +238,14 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         var input = BuildInput();
 
         var result = await runner.RunAsync<TService, Result<TDetails>>(s => s.SaveAsync(input));
+
+        // A screen may ask the user about a refusal (e.g. a likely duplicate) and, if they agree, save again once.
+        if (result.IsFailure && await OnSaveRefusedAsync(result.Error))
+        {
+            input = BuildInput();
+            result = await runner.RunAsync<TService, Result<TDetails>>(s => s.SaveAsync(input));
+        }
+
         if (result.IsFailure)
         {
             ShowError(result.Error.Message);

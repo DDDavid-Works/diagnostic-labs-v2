@@ -28,11 +28,12 @@ public class LabReport : SoftDeletableEntity
 {
     public LabReportType ReportType { get; set; }
 
-    public long PatientId { get; set; }
+    /// <summary>Null for a stray result printed for someone who is not a registered patient.</summary>
+    public long? PatientId { get; set; }
 
-    public Patient Patient { get; set; } = null!;
+    public Patient? Patient { get; set; }
 
-    /// <summary>Null for results recorded before the registration workflow existed (legacy data); new reports always have one.</summary>
+    /// <summary>Null when the result was not made from a registration (legacy data, or a stray result printed on request).</summary>
     public long? PatientRegistrationId { get; set; }
 
     public PatientRegistration? PatientRegistration { get; set; }

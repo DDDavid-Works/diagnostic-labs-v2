@@ -1,0 +1,32 @@
+<UserControl x:Class="DiagnosticLabs.Wpf.Controls.LabResultBottom"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctl="clr-namespace:DiagnosticLabs.Wpf.Controls">
+  <!-- The end of every lab result form, as on paper: the Remarks box, then the two signatories with their captions under a line. -->
+  <StackPanel>
+    <DockPanel Margin="0,4,0,2">
+      <ctl:TemplatePicker DockPanel.Dock="Right" Width="230" Options="{Binding RemarksTemplates}" EditCommand="{Binding EditRemarksTemplatesCommand}" />
+      <TextBlock Text="Remarks:" Style="{StaticResource PaperLabel}" />
+    </DockPanel>
+    <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White">
+      <TextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+               MinHeight="46" MaxHeight="76" VerticalScrollBarVisibility="Auto" />
+    </Border>
+
+    <Grid Margin="0,6,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="40" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <StackPanel Grid.Column="0">
+        <ctl:ChoiceBox ItemsSource="{Binding Technologists}" Text="{Binding MedicalTechnologist}" EditCommand="{Binding EditTechnologistListCommand}" />
+        <TextBlock Text="Medical Technologist" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+      </StackPanel>
+      <StackPanel Grid.Column="2">
+        <ctl:ChoiceBox ItemsSource="{Binding Pathologists}" Text="{Binding Pathologist}" EditCommand="{Binding EditPathologistListCommand}" />
+        <TextBlock Text="Pathologist" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+      </StackPanel>
+    </Grid>
+  </StackPanel>
+</UserControl>

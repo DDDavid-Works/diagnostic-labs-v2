@@ -27,6 +27,12 @@ public static class EntryFields
     public static readonly EntryField CivilStatus = new("Civil Status", EntryKind.SingleLine);
     public static readonly EntryField MedicalTechnologist = new("Medical Technologist", EntryKind.SingleLine);
     public static readonly EntryField Pathologist = new("Pathologist", EntryKind.SingleLine);
+
+    // Lists that belong to one result screen (the legacy screens kept them per module as well).
+    public static readonly EntryField StoolColor = new("Color", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolConsistency = new("Consistency", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolResult = new("Result", EntryKind.MultiLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.StoolFecalysis);
 }
 
 public sealed record SingleLineEntry(long Id, string Value);

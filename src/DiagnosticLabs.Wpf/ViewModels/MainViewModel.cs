@@ -22,6 +22,7 @@ public partial class MainViewModel(
     private static readonly Dictionary<int, Func<IServiceProvider, object>> Pages = new()
     {
         [ModuleIds.PatientRegistrations] = sp => sp.GetRequiredService<RegistrationsViewModel>(),
+        [ModuleIds.StoolFecalysis] = sp => sp.GetRequiredService<StoolFecalysisViewModel>(),
         [ModuleIds.Payments] = sp => sp.GetRequiredService<PaymentsViewModel>(),
         [ModuleIds.Patients] = sp => sp.GetRequiredService<PatientsViewModel>(),
         [ModuleIds.Companies] = sp => sp.GetRequiredService<CompaniesViewModel>(),

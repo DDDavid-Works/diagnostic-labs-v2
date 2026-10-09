@@ -137,12 +137,17 @@ public abstract class CrudService<TEntity, TListItem, TDetails, TInput>(
             return Result<TDetails>.Failure(Errors.Forbidden);
 
         var entity = await ForEditing(Set.AsNoTracking()).FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
-        return entity is null
-            ? Result<TDetails>.Failure(Errors.NotFound(EntityName))
-            : Result<TDetails>.Success(ToDetails(entity));
+        if (entity is null)
+            return Result<TDetails>.Failure(Errors.NotFound(EntityName));
+
+        await PrepareAsync(entity, cancellationToken);
+        return Result<TDetails>.Success(ToDetails(entity));
     }
 
-    public async Task<Result<TDetails>> SaveAsync(TInput input, CancellationToken cancellationToken = default)
+    /// <summary>Loads anything that lives outside the main row (e.g. a 1:1 detail table) before the entity is read into details or edited.</summary>
+    protected virtual Task PrepareAsync(TEntity entity, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public virtual async Task<Result<TDetails>> SaveAsync(TInput input, CancellationToken cancellationToken = default)
     {
         var isNew = input.Id == 0;
         if (!CurrentUser.Can(moduleId, isNew ? ModuleAction.Create : ModuleAction.Edit))
@@ -170,6 +175,7 @@ public abstract class CrudService<TEntity, TListItem, TDetails, TInput>(
                 return Result<TDetails>.Failure(blocked);
 
             entity = existing;
+            await PrepareAsync(entity, cancellationToken);
             if (input.RowVersion is { Length: > 0 })
                 Db.SetOriginalRowVersion(entity, input.RowVersion);
         }

@@ -92,6 +92,16 @@
     </Setter>
   </Style>
 
+  <!-- The lab result forms follow the clients' paper forms for where fields sit; fonts and lines are the app's own. -->
+  <Style x:Key="PaperLabel" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+  </Style>
+
+  <SolidColorBrush x:Key="PaperLineBrush" Color="#CBD0D8" />
+  <SolidColorBrush x:Key="PaperTitleBrush" Color="#E1E100" />
+
   <Style x:Key="FieldLabel" TargetType="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
     <Setter Property="Margin" Value="0,10,0,3" />

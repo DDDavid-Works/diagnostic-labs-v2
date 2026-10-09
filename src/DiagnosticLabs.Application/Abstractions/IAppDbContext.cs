@@ -67,6 +67,9 @@ public interface IAppDbContext
 
     DbSet<AuditLog> AuditLogs { get; }
 
+    /// <summary>Any mapped entity set, for the per-type lab result tables.</summary>
+    DbSet<TEntity> Set<TEntity>() where TEntity : class;
+
     ChangeTracker ChangeTracker { get; }
 
     /// <summary>Makes the next save fail with a concurrency error if the row changed since <paramref name="rowVersion"/> was read.</summary>

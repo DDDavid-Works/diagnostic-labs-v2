@@ -1294,3 +1294,30 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261009180119_LabReportsOptionalPatient'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[LabReports]') AND [c].[name] = N'PatientId');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [LabReports] DROP CONSTRAINT ' + @var1 + ';');
+    ALTER TABLE [LabReports] ALTER COLUMN [PatientId] bigint NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261009180119_LabReportsOptionalPatient'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261009180119_LabReportsOptionalPatient', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
