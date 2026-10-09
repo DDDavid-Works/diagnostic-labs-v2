@@ -4,8 +4,15 @@
         Title="Diagnostic Labs - Sign in"
         Width="380" SizeToContent="Height"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+  </Window.Resources>
   <StackPanel Margin="32">
-    <TextBlock Text="Diagnostic Labs" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,24" />
+    <Image Source="{Binding LogoImage}" MaxHeight="90" HorizontalAlignment="Left" Margin="0,0,0,12" RenderOptions.BitmapScalingMode="HighQuality"
+           Visibility="{Binding HasLogo, Converter={StaticResource BoolToVis}}" />
+    <TextBlock Text="{Binding BrandName}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding BrandTagline}" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
+    <Separator Margin="0,16,0,18" />
 
     <TextBlock Text="Username" Margin="0,0,0,4" />
     <TextBox x:Name="UsernameBox" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using DiagnosticLabs.Application;
+using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Infrastructure;
 using DiagnosticLabs.Wpf.Services;
 using DiagnosticLabs.Wpf.ViewModels;
@@ -92,6 +93,8 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<IServiceRunner, ServiceRunner>();
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<IEntryBuilderDialog, EntryBuilderDialog>();
+        builder.Services.AddSingleton<IPasswordChangeDialog, PasswordChangeDialog>();
+        builder.Services.AddSingleton<IFileDialogService, FileDialogService>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<PatientsViewModel>();
         builder.Services.AddTransient<CompaniesViewModel>();
@@ -101,6 +104,8 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<ItemsViewModel>();
         builder.Services.AddTransient<ItemLocationsViewModel>();
         builder.Services.AddTransient<DiscountsViewModel>();
+        builder.Services.AddTransient<UsersViewModel>();
+        builder.Services.AddTransient<CompanySetupViewModel>();
         builder.Services.AddTransient<LoginWindow>();
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<MainWindow>();
@@ -119,7 +124,7 @@ public partial class App : System.Windows.Application
         login.LoginSucceeded += (_, _) =>
         {
             signedIn = true;
-            ShowMain();
+            ContinueAfterSignIn();
         };
         login.Closed += (_, _) =>
         {
@@ -127,6 +132,20 @@ public partial class App : System.Windows.Application
                 Shutdown();
         };
         login.Show();
+    }
+
+    // A user holding a temporary password must replace it before seeing anything; backing out signs them out again.
+    private void ContinueAfterSignIn()
+    {
+        var session = _host!.Services.GetRequiredService<ICurrentUserSession>();
+        if (session.MustChangePassword && !_host.Services.GetRequiredService<IPasswordChangeDialog>().Show(forced: true))
+        {
+            session.SignOut();
+            ShowLogin();
+            return;
+        }
+
+        ShowMain();
     }
 
     private void ShowMain()

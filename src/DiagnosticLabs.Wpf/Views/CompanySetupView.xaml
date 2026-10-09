@@ -1,0 +1,110 @@
+<UserControl x:Class="DiagnosticLabs.Wpf.Views.CompanySetupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="OnLoaded">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+  </UserControl.Resources>
+
+  <Grid Margin="24,20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Text="Company Setup" Style="{StaticResource PageTitle}" Margin="0,0,0,14" />
+
+    <Border Grid.Row="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}"
+            BorderThickness="1" CornerRadius="4" Padding="22,8,22,16">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <Grid MaxWidth="900" HorizontalAlignment="Left">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="28" />
+              <ColumnDefinition Width="210" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Company name" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}" />
+
+              <TextBlock Text="Subcompany name" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding SubCompanyName, UpdateSourceTrigger=PropertyChanged}" />
+
+              <TextBlock Text="Tagline" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding Tagline, UpdateSourceTrigger=PropertyChanged}" />
+
+              <TextBlock Text="Address" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                       TextWrapping="Wrap" MinHeight="54" VerticalScrollBarVisibility="Auto" />
+
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="12" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                  <TextBlock Text="Contact numbers" Style="{StaticResource FieldLabel}" />
+                  <TextBox Text="{Binding ContactNumbers, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Text="Email address" Style="{StaticResource FieldLabel}" />
+                  <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+              </Grid>
+
+              <TextBlock Text="Company code" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="160" HorizontalAlignment="Left"
+                       CharacterCasing="Upper" MaxLength="20" />
+              <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"
+                         Text="Letters and numbers only. It starts every new registration code (for example BADC-12SE26-00001); existing codes are not changed." />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Logo" Style="{StaticResource FieldLabel}" />
+              <Border Height="170" Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="3">
+                <Grid>
+                  <Image Source="{Binding LogoImage}" Stretch="Uniform" Margin="8" RenderOptions.BitmapScalingMode="HighQuality" />
+                  <TextBlock Text="No logo" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             Foreground="{StaticResource MutedTextBrush}">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding HasLogo}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </Grid>
+              </Border>
+              <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="Choose..." Command="{Binding ChooseLogoCommand}" />
+                <Button Content="Remove" Margin="8,0,0,0" Command="{Binding RemoveLogoCommand}" IsEnabled="{Binding HasLogo}" />
+              </StackPanel>
+              <TextBlock Text="PNG, JPG, GIF or BMP, up to 2 MB. It is printed on reports." TextWrapping="Wrap"
+                         Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" />
+            </StackPanel>
+          </Grid>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="1" Margin="0,14,0,0">
+          <TextBlock Text="{Binding Message}" Style="{StaticResource StatusText}" Margin="0,0,0,10" />
+          <StackPanel Orientation="Horizontal">
+            <Button Content="Save" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" />
+            <Button Content="Discard changes" Margin="8,0,0,0" Command="{Binding RevertCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

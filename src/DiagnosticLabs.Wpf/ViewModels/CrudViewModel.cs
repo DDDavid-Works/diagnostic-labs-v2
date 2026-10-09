@@ -126,6 +126,21 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
 
     protected virtual string SearchTextAfterCreate => CurrentName;
 
+    /// <summary>Called after the open record changed (a record was loaded or a new one started); raise change notices for derived state here.</summary>
+    protected virtual void OnRecordChanged()
+    {
+    }
+
+    /// <summary>The message shown after a successful save; screens override it to add guidance.</summary>
+    protected virtual string SavedMessage(TDetails saved, bool wasNew) => "Saved successfully.";
+
+    /// <summary>Reloads the open record and the list (e.g. after an action that changed it outside the form).</summary>
+    protected async Task ReloadAsync()
+    {
+        await OpenAsync(Id);
+        await LoadPageAsync();
+    }
+
     /// <summary>Runs a service call in its own scope; screens use this for their dropdown lookups too.</summary>
     protected Task<TResult> Call<TOther, TResult>(Func<TOther, Task<TResult>> action) where TOther : notnull =>
         runner.RunAsync(action);
@@ -202,7 +217,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         }
 
         Show(result.Value);
-        ShowInfo("Saved successfully.");
+        ShowInfo(SavedMessage(result.Value, wasNew));
 
         // A new record may not match the current search; narrow the list to it so the user sees the result.
         if (wasNew)
@@ -305,6 +320,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         RowVersion = [];
         ResetFields();
         OnPropertyChanged(nameof(CanSave));
+        OnRecordChanged();
     }
 
     private void Show(TDetails details)
@@ -312,6 +328,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         Id = details.Id;
         ShowFields(details);
         OnPropertyChanged(nameof(CanSave));
+        OnRecordChanged();
     }
 
     IAsyncRelayCommand ICrudScreen.InitializeCommand => InitializeCommand;

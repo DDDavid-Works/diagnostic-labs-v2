@@ -101,6 +101,10 @@ public abstract class CrudService<TEntity, TListItem, TDetails, TInput>(
     /// <summary>Return an error to block editing or deleting this particular row (e.g. system rows).</summary>
     protected virtual Error? CheckCanModify(TEntity entity) => null;
 
+    /// <summary>Extra rules that only apply to removing a row (e.g. never remove the last administrator).</summary>
+    protected virtual Task<Error?> CheckCanDeleteAsync(TEntity entity, CancellationToken cancellationToken) =>
+        Task.FromResult<Error?>(null);
+
     public async Task<Result<PagedResult<TListItem>>> SearchAsync(CrudSearch search, CancellationToken cancellationToken = default)
     {
         if (!CurrentUser.Can(moduleId, ModuleAction.View))
@@ -192,6 +196,9 @@ public abstract class CrudService<TEntity, TListItem, TDetails, TInput>(
 
         if (CheckCanModify(entity) is { } blocked)
             return Result.Failure(blocked);
+
+        if (await CheckCanDeleteAsync(entity, cancellationToken) is { } notAllowed)
+            return Result.Failure(notAllowed);
 
         Remove(entity);
         await Db.SaveChangesAsync(cancellationToken);

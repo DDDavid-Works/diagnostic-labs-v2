@@ -6,6 +6,7 @@ using DiagnosticLabs.Application.Lookups;
 using DiagnosticLabs.Application.Management;
 using DiagnosticLabs.Application.Menu;
 using DiagnosticLabs.Application.Patients;
+using DiagnosticLabs.Application.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DiagnosticLabs.Application;
@@ -30,6 +31,9 @@ public static class DependencyInjection
         services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
         services.AddScoped<IItemService, ItemService>();
         services.AddScoped<IDiscountService, DiscountService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ICompanySetupService, CompanySetupService>();
+        services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IPackageCatalogService, PackageCatalogService>();
         return services;
     }

@@ -114,6 +114,7 @@ SELECT s.[Id],
         CAST(CAST(s.UpdatedDate AS datetime2(3)) AT TIME ZONE '$(LegacyTimeZone)' AT TIME ZONE 'UTC' AS datetime2(3)),
         (SELECT u.Id FROM #u u WHERE u.Id = s.UpdatedByUserId)
 FROM [$(Legacy)].dbo.[UserPermissions] s
+WHERE s.ViewOnly = 1 OR s.AllowCreate = 1 OR s.AllowEdit = 1 OR s.AllowDelete = 1 OR s.AllowPrint = 1
 ;
 SET IDENTITY_INSERT [UserPermissions] OFF;
 

@@ -57,10 +57,20 @@ sqlcmd -S <server> -d DiagnosticLabsV2 -E -C -I -b -W -i db\verify-migration.sql
 | Patients | Done (paged search, create/edit/soft-delete, concurrency check, audit log) |
 | Companies, Departments, Services, Packages, Discounts | Done (shared list + editor screen; delete switches a row off, "Show inactive" brings it back) |
 | Items, Item Locations | Built and tested, but hidden: the legacy `Modules` table has them switched off (`IsActive = 0`, ids 21 and 22). Set `IsActive = 1` to show them in the menu |
-| Patient Registrations, Payments, Lab Results, Reports, Settings | Shown in the menu as "not migrated yet" |
+| Users and permissions | Done (per-user permission grid, temporary passwords, reset/unlock, last-admin safeguards) |
+| Change Password | Done (header button for every user; forced at sign-in when a temporary password is in use) |
+| Company Setup | Done (name, tagline, address, contacts, company code, logo; the name, tagline and logo also show on the sign-in window) |
+| Patient Registrations, Payments, Lab Results, Reports | Shown in the menu as "not migrated yet" |
 
 A new maintenance screen is: a service deriving from `CrudService`/`ReferenceCrudService` (Application), a view model deriving from `CrudViewModel` (Wpf), a `DataTemplate` in `Views/CrudTemplates.xaml` that fills the shared `CrudLayout`, and one line in `MainViewModel.Pages`. `Management/DiscountService` and `MasterDetailViewModels.cs` show the pattern with child rows.
 
 ## Dropdown and template lists (Entry Builder)
 
 Lists such as Gender, Civil Status, Medical Technologist and the lab-result choices are maintained through one shared **Entry Builder** dialog, not a screen per list. A list is declared once in `Application/Entries/EntryService.cs` (`EntryFields`: field name, single- or multi-line, general or per-module). A screen shows it with `<ctl:ChoiceBox ItemsSource=... Text=... EditCommand=.../>`, whose pencil button opens the builder. Entries keep the order they were added in; removing one switches it off; a value typed into a choice box belongs to that record only and is never added to the list.
+
+## Users and permissions
+
+- A user row in `UserPermissions` means the user can open that module; the Create / Edit / Delete / Print flags add actions, and a row with none is view-only. A module only offers the actions it supports (`Modules.HasCreate` etc.).
+- Administrators can open everything, are the only ones who reach Management and Settings, and carry no permission rows. The last active administrator can not be removed, and nobody can deactivate or demote themselves.
+- New users and reset passwords get a temporary password; the user must replace it at the next sign-in (`PasswordPolicy`: at least 8 characters). Permission changes take effect at the user's next sign-in; an administrator editing their own record sees it at once.
+- The legacy data migration only copies permission rows that grant something (the old app stored a row per module per user, all-off meaning no access).

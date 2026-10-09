@@ -6,7 +6,7 @@ INSERT #r SELECT 'ModuleTypes rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[Modu
 INSERT #r SELECT 'Modules rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[Modules]), (SELECT COUNT(*) FROM [Modules] ) ;
 INSERT #r SELECT 'Services rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[Services]), (SELECT COUNT(*) FROM [Services] ) ;
 INSERT #r SELECT 'Users rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[Users]), (SELECT COUNT(*) FROM [Users] ) ;
-INSERT #r SELECT 'UserPermissions rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[UserPermissions]), (SELECT COUNT(*) FROM [UserPermissions] ) ;
+INSERT #r SELECT 'UserPermissions rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[UserPermissions] WHERE ViewOnly = 1 OR AllowCreate = 1 OR AllowEdit = 1 OR AllowDelete = 1 OR AllowPrint = 1), (SELECT COUNT(*) FROM [UserPermissions] ) ;
 INSERT #r SELECT 'Companies rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[Companies]), (SELECT COUNT(*) FROM [Companies] ) ;
 INSERT #r SELECT 'CompanySetups rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[CompanySetups]), (SELECT COUNT(*) FROM [CompanySetups] ) ;
 INSERT #r SELECT 'Departments rows', (SELECT COUNT(*) FROM [$(Legacy)].dbo.[Departments]), (SELECT COUNT(*) FROM [Departments] ) ;

@@ -3,6 +3,8 @@
                     xmlns:vm="clr-namespace:DiagnosticLabs.Wpf.ViewModels"
                     xmlns:ctl="clr-namespace:DiagnosticLabs.Wpf.Controls">
 
+  <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
   <!-- Every maintenance screen is the shared CrudLayout plus its own list columns and form fields. -->
 
   <!-- ===================================================== Patients -->
@@ -327,6 +329,144 @@
           <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
             <Button Content="+" MinWidth="36" Command="{Binding AddServiceCommand}" ToolTip="Add a service" />
             <Button Content="-" MinWidth="36" Margin="6,0,0,0" Command="{Binding RemoveServiceCommand}" ToolTip="Remove the selected service" />
+          </StackPanel>
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
+
+  <!-- ===================================================== Users (with the permission grid) -->
+  <DataTemplate DataType="{x:Type vm:UsersViewModel}">
+    <ctl:CrudLayout>
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="User name" Binding="{Binding Username}" Width="110" />
+            <DataGridTextColumn Header="Full name" Binding="{Binding FullName}" Width="*" />
+            <DataGridCheckBoxColumn Header="Admin" Binding="{Binding IsAdmin}" Width="55" />
+            <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="55" />
+            <DataGridCheckBoxColumn Header="Locked" Binding="{Binding IsLocked}" Width="55" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <TextBlock Text="User name" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+
+          <TextBlock Text="Full name" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" />
+
+          <CheckBox Content="Administrator (can open everything, including Management and Settings)"
+                    IsChecked="{Binding IsAdmin}" Margin="0,14,0,0" />
+
+          <!-- New user: the first, temporary password -->
+          <StackPanel Visibility="{Binding CanSetTemporaryPassword, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="Temporary password" Style="{StaticResource FieldLabel}" Margin="0,14,0,3" />
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBox Text="{Binding TemporaryPassword, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" />
+              <Button Grid.Column="1" Content="Generate" Margin="6,0,0,0" Command="{Binding GeneratePasswordCommand}" />
+            </Grid>
+            <TextBlock Text="The user must choose their own password the first time they sign in."
+                       Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+          </StackPanel>
+
+          <!-- Existing user: status, unlock and password reset -->
+          <Border Margin="0,16,0,0" Padding="12,8,12,12" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1"
+                  CornerRadius="3" Background="White"
+                  Visibility="{Binding CanManageExisting, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+              <TextBlock Text="Account" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding AccountStatus}" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" />
+              <Button Content="Unlock account" HorizontalAlignment="Left" Margin="0,8,0,0" Command="{Binding UnlockCommand}"
+                      Visibility="{Binding IsLocked, Converter={StaticResource BoolToVis}}" />
+
+              <TextBlock Text="Reset password" Style="{StaticResource FieldLabel}" Margin="0,12,0,3" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding TemporaryPassword, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" />
+                <Button Grid.Column="1" Content="Generate" Margin="6,0,0,0" Command="{Binding GeneratePasswordCommand}" />
+                <Button Grid.Column="2" Content="Reset" Margin="6,0,0,0" Command="{Binding ResetPasswordCommand}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <!-- Permissions: one row per module -->
+          <StackPanel Margin="0,18,0,0" Visibility="{Binding ShowPermissions, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="Permissions" FontWeight="SemiBold" FontSize="15" />
+            <TextBlock Text="Tick Access to let the user open a module; Access alone means view only."
+                       Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,2,0,8" />
+
+            <Grid Margin="0,0,0,6">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <ComboBox ItemsSource="{Binding UserOptions}" DisplayMemberPath="Name" SelectedItem="{Binding CopyFromUser}" />
+              <Button Grid.Column="1" Content="Copy from this user" Margin="6,0,0,0" Command="{Binding CopyPermissionsCommand}"
+                      ToolTip="Fill the grid with another user's permissions (press Save to keep them)" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding PermissionGroups}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,10,0,0">
+                    <Grid Background="#E9EDF3">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="52" />
+                        <ColumnDefinition Width="52" />
+                        <ColumnDefinition Width="52" />
+                        <ColumnDefinition Width="52" />
+                        <ColumnDefinition Width="52" />
+                      </Grid.ColumnDefinitions>
+                      <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button Content="All" Padding="8,1" MinWidth="0" Margin="10,0,0,0" Command="{Binding SelectAllCommand}"
+                                ToolTip="Give access to every module in this group" />
+                        <Button Content="None" Padding="8,1" MinWidth="0" Margin="4,0,0,0" Command="{Binding ClearAllCommand}"
+                                ToolTip="Remove access to every module in this group" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Text="Access" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Column="2" Text="Create" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Column="3" Text="Edit" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Column="4" Text="Delete" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Column="5" Text="Print" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Grid Background="White" Height="28">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="52" />
+                              <ColumnDefinition Width="52" />
+                              <ColumnDefinition Width="52" />
+                              <ColumnDefinition Width="52" />
+                              <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding ModuleName}" Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <CheckBox Grid.Column="1" IsChecked="{Binding HasAccess}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <CheckBox Grid.Column="2" IsChecked="{Binding AllowCreate}" IsEnabled="{Binding SupportsCreate}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <CheckBox Grid.Column="3" IsChecked="{Binding AllowEdit}" IsEnabled="{Binding SupportsEdit}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <CheckBox Grid.Column="4" IsChecked="{Binding AllowDelete}" IsEnabled="{Binding SupportsDelete}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <CheckBox Grid.Column="5" IsChecked="{Binding AllowPrint}" IsEnabled="{Binding SupportsPrint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </StackPanel>
         </StackPanel>
       </ctl:CrudLayout.FormContent>

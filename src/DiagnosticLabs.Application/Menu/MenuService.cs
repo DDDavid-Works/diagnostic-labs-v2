@@ -19,7 +19,7 @@ public sealed class MenuService(IAppDbContext db, ICurrentUser currentUser) : IM
     {
         var modules = await db.Modules
             .AsNoTracking()
-            .Where(m => m.IsActive && m.ModuleType.IsActive)
+            .Where(m => m.IsActive && m.ModuleType.IsActive && m.Id != ModuleIds.ChangePassword)
             .OrderBy(m => m.ModuleType.SortOrder).ThenBy(m => m.SortOrder)
             .Select(m => new { m.Id, m.ModuleName, GroupId = m.ModuleType.Id, Group = m.ModuleType.ModuleTypeName, m.ModuleType.IsAdmin })
             .ToListAsync(cancellationToken);

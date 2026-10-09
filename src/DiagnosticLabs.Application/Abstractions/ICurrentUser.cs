@@ -21,6 +21,9 @@ public interface ICurrentUser
 
     bool IsAdmin { get; }
 
+    /// <summary>True until the user has replaced a temporary password; the app asks for a new one before showing anything else.</summary>
+    bool MustChangePassword { get; }
+
     bool CanAccess(int moduleId);
 
     /// <summary>Whether the user may perform <paramref name="action"/> in the module. Administrators may do everything.</summary>
@@ -32,6 +35,11 @@ public interface ICurrentUser
 public interface ICurrentUserSession : ICurrentUser
 {
     void SignIn(AuthenticatedUser user);
+
+    /// <summary>Replaces the signed-in user's cached details (e.g. after an administrator edits their own permissions).</summary>
+    void Refresh(AuthenticatedUser user);
+
+    void MarkPasswordChanged();
 
     void SignOut();
 }

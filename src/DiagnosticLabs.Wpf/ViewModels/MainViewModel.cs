@@ -13,6 +13,8 @@ public partial class MainViewModel(
     ICurrentUserSession session,
     IServiceRunner runner,
     IServiceProvider services,
+    IPasswordChangeDialog passwordDialog,
+    IDialogService dialogs,
     ILogger<MainViewModel> logger) : ViewModelBase(logger)
 {
     // Modules that exist in the new app. Everything else shows a "not migrated yet" page.
@@ -26,6 +28,8 @@ public partial class MainViewModel(
         [ModuleIds.Items] = sp => sp.GetRequiredService<ItemsViewModel>(),
         [ModuleIds.ItemLocations] = sp => sp.GetRequiredService<ItemLocationsViewModel>(),
         [ModuleIds.Discounts] = sp => sp.GetRequiredService<DiscountsViewModel>(),
+        [ModuleIds.Users] = sp => sp.GetRequiredService<UsersViewModel>(),
+        [ModuleIds.CompanySetup] = sp => sp.GetRequiredService<CompanySetupViewModel>(),
     };
 
     public string Greeting => $"Signed in as {session.FullName}";
@@ -36,6 +40,14 @@ public partial class MainViewModel(
     private object _currentPage = new PlaceholderViewModel("Welcome", "Pick a module from the menu on the left.");
 
     public void SignOut() => session.SignOut();
+
+    /// <summary>Available to every signed-in user from the header; it is not a permission module.</summary>
+    [RelayCommand]
+    private void ChangePassword()
+    {
+        if (passwordDialog.Show(forced: false))
+            dialogs.Inform("Your password was changed.", "Change password");
+    }
 
     [RelayCommand]
     private Task LoadMenuAsync() => RunAsync(async () =>

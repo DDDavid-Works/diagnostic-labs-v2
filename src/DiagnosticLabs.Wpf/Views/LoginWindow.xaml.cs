@@ -17,7 +17,11 @@ public partial class LoginWindow : Window
             LoginSucceeded?.Invoke(this, EventArgs.Empty);
             Close();
         };
-        Loaded += (_, _) => UsernameBox.Focus();
+        Loaded += async (_, _) =>
+        {
+            UsernameBox.Focus();
+            await viewModel.LoadBrandingAsync();
+        };
     }
 
     public event EventHandler? LoginSucceeded;

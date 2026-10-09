@@ -10,6 +10,9 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="CrudTemplates.xaml" />
       </ResourceDictionary.MergedDictionaries>
+    <DataTemplate DataType="{x:Type vm:CompanySetupViewModel}">
+      <views:CompanySetupView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
       <views:PlaceholderView />
     </DataTemplate>
@@ -20,7 +23,10 @@
     <Border DockPanel.Dock="Top" Padding="16,10" Background="{StaticResource PanelBrush}"
             BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,0,1">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="Sign out" Click="SignOut_OnClick" />
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Change password" Command="{Binding ChangePasswordCommand}" />
+          <Button Content="Sign out" Margin="8,0,0,0" Click="SignOut_OnClick" />
+        </StackPanel>
         <TextBlock Text="Diagnostic Labs" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
         <TextBlock Text="{Binding Greeting}" VerticalAlignment="Center" Margin="18,0,0,0"
                    Foreground="{StaticResource MutedTextBrush}" />

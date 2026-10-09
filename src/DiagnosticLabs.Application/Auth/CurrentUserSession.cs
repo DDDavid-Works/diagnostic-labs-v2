@@ -14,6 +14,8 @@ public sealed class CurrentUserSession : ICurrentUserSession
 
     public bool IsAdmin => _user?.IsAdmin ?? false;
 
+    public bool MustChangePassword => _user?.MustChangePassword ?? false;
+
     public bool CanAccess(int moduleId) => IsAdmin || GetPermission(moduleId) is not null;
 
     public bool Can(int moduleId, ModuleAction action)
@@ -40,6 +42,10 @@ public sealed class CurrentUserSession : ICurrentUserSession
         _user?.Permissions.FirstOrDefault(p => p.ModuleId == moduleId);
 
     public void SignIn(AuthenticatedUser user) => _user = user;
+
+    public void Refresh(AuthenticatedUser user) => _user = user;
+
+    public void MarkPasswordChanged() => _user = _user is null ? null : _user with { MustChangePassword = false };
 
     public void SignOut() => _user = null;
 }

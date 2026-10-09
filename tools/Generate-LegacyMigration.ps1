@@ -130,7 +130,9 @@ InsertSpec 'Modules' 'Modules' (WithId @('ModuleTypeId', 'ModuleName', 'HasView'
 
 $perm =WithId @('UserId', 'ModuleId')
 foreach ($a in 'AllowCreate', 'AllowEdit', 'AllowDelete', 'AllowPrint') { $perm[$a] = "CASE WHEN s.ViewOnly = 1 THEN 0 ELSE s.[$a] END" }
-InsertSpec 'UserPermissions' 'UserPermissions' $perm 'audit' $true
+# A legacy row existed for EVERY module per user (all flags off = no access). In the new model a row means access,
+# so only rows that grant something are migrated: View Only becomes a row with no actions.
+InsertSpec 'UserPermissions' 'UserPermissions' $perm 'audit' $true 's.ViewOnly = 1 OR s.AllowCreate = 1 OR s.AllowEdit = 1 OR s.AllowDelete = 1 OR s.AllowPrint = 1'
 
 # ---------- reference data ----------
 InsertSpec 'Companies' 'Companies' (WithId @('CompanyName', 'Address', 'ContactNumbers', 'ContactPerson', 'IsSystem')) 'ref' $true 's.Id <> 0'
@@ -347,7 +349,9 @@ $v = New-Object System.Text.StringBuilder
 [void]$v.AppendLine("SET NOCOUNT ON;")
 [void]$v.AppendLine("CREATE TABLE #r (Item nvarchar(100), LegacyValue decimal(38,4), NewValue decimal(38,4));")
 foreach ($p in $pairs) {
-    [void]$v.AppendLine("INSERT #r SELECT '$($p[0]) rows', (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.[$($p[1])]), (SELECT COUNT(*) FROM [$($p[0])] ) ;")
+    # Only legacy permission rows that grant access are migrated (see the UserPermissions insert above).
+    $legacyWhere = if ($p[0] -eq 'UserPermissions') { ' WHERE ViewOnly = 1 OR AllowCreate = 1 OR AllowEdit = 1 OR AllowDelete = 1 OR AllowPrint = 1' } else { '' }
+    [void]$v.AppendLine("INSERT #r SELECT '$($p[0]) rows', (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.[$($p[1])]$legacyWhere), (SELECT COUNT(*) FROM [$($p[0])] ) ;")
 }
 [void]$v.AppendLine("INSERT #r SELECT 'LookupValues rows', (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.DefaultValues) + (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.SingleLineEntries) + (SELECT COUNT(*) FROM [${dollar}(Legacy)].dbo.MultiLineEntries), (SELECT COUNT(*) FROM LookupValues);")
 [void]$v.AppendLine("INSERT #r SELECT 'Payments amount (sum)', (SELECT SUM(PaymentAmount) FROM [${dollar}(Legacy)].dbo.Payments), (SELECT SUM(PaymentAmount) FROM Payments);")
