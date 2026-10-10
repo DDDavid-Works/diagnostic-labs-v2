@@ -18,6 +18,7 @@ public sealed record StoolFecalysisDetails(
     string? FatGlobules,
     string? OvaParasite,
     string? MedicalTechnologist2,
+    string? MedicalTechnologist2License,
     byte[]? Photo,
     byte[] RowVersion) : IHasId;
 
@@ -35,7 +36,8 @@ public sealed record StoolFecalysisInput(
     string? YeastCells = null,
     string? FatGlobules = null,
     string? OvaParasite = null,
-    string? MedicalTechnologist2 = null) : ICrudInput;
+    string? MedicalTechnologist2 = null,
+    string? MedicalTechnologist2License = null) : ICrudInput;
 
 public interface IStoolFecalysisService : ICrudService<LabResultListItem, StoolFecalysisDetails, StoolFecalysisInput>, ILabResultPrinting;
 
@@ -73,6 +75,7 @@ public sealed class StoolFecalysisService(IAppDbContext db, ICurrentUser current
         Max(errors, input.OvaParasite, OvaParasiteMaxLength, "Ova/Parasite");
         Max(errors, input.Others, OthersMaxLength, "Others");
         Max(errors, input.MedicalTechnologist2, 100, "Second medical technologist");
+        Max(errors, input.MedicalTechnologist2License, 50, "Second medical technologist license number");
         return errors;
     }
 
@@ -88,11 +91,12 @@ public sealed class StoolFecalysisService(IAppDbContext db, ICurrentUser current
         detail.FatGlobules = Clean(input.FatGlobules);
         detail.OvaParasite = Clean(input.OvaParasite);
         detail.MedicalTechnologist2 = Clean(input.MedicalTechnologist2);
+        detail.MedicalTechnologist2License = Clean(input.MedicalTechnologist2License);
     }
 
     protected override StoolFecalysisDetails BuildDetails(LabReport report, LabResultHeader header, StoolFecalysisReport detail) => new(
         report.Id, header, detail.Color, detail.Consistency, detail.Others, detail.Wbc, detail.Rbc, detail.Bacteria, detail.YeastCells,
-        detail.FatGlobules, detail.OvaParasite, detail.MedicalTechnologist2, report.Photo?.Content, report.RowVersion);
+        detail.FatGlobules, detail.OvaParasite, detail.MedicalTechnologist2, detail.MedicalTechnologist2License, report.Photo?.Content, report.RowVersion);
 
     // Macroscopic findings first (left half of the page), then microscopic findings (right half), in the order of the printed form.
     protected override IReadOnlyList<PrintLine> ResultLines(StoolFecalysisReport detail) =>
@@ -107,8 +111,8 @@ public sealed class StoolFecalysisService(IAppDbContext db, ICurrentUser current
     // Three people sign this form: two medical technologists and the pathologist.
     protected override IReadOnlyList<PrintSignatory> Signatories(LabReport report, StoolFecalysisReport detail) =>
     [
-        new PrintSignatory("Medical Technologist", report.MedicalTechnologist),
-        new PrintSignatory("Medical Technologist", detail.MedicalTechnologist2),
-        new PrintSignatory("Pathologist", report.Pathologist),
+        new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense),
+        new PrintSignatory("Medical Technologist", detail.MedicalTechnologist2, detail.MedicalTechnologist2License),
+        new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense),
     ];
 }

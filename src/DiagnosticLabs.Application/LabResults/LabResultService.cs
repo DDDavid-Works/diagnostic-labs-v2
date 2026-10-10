@@ -23,7 +23,9 @@ public sealed record LabResultHeader(
     string? MedicalTechnologist,
     string? Pathologist,
     bool ConfirmedDuplicate = false,
-    long? PatientId = null);
+    long? PatientId = null,
+    string? MedicalTechnologistLicense = null,
+    string? PathologistLicense = null);
 
 public sealed record LabResultListItem(
     long Id, DateOnly Date, string PatientName, string? RegistrationCode, string? CompanyOrPhysician) : IHasId;
@@ -86,7 +88,10 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
     /// <summary>The names printed under lines at the foot of the page (the medical technologist and the pathologist unless a form says otherwise).</summary>
     protected virtual IReadOnlyList<PrintSignatory> Signatories(LabReport report, TDetail detail) =>
-        [new PrintSignatory("Medical Technologist", report.MedicalTechnologist), new PrintSignatory("Pathologist", report.Pathologist)];
+        [
+            new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense),
+            new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense),
+        ];
 
     /// <summary>Every value by name, for page designs (like the annual physical exam) that place each one at its own spot.</summary>
     protected virtual IReadOnlyDictionary<string, string?> PrintFields(LabReport report, TDetail detail) => new Dictionary<string, string?>();
@@ -132,7 +137,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         var header = new LabResultHeader(
             r.PatientRegistrationId, r.PatientRegistration?.RegistrationCode, r.PatientCode, r.PatientName, r.Age, r.Sex,
             r.CompanyOrPhysician, LocalTime.ToLocalDate(r.DateRequested), r.Remarks, r.MedicalTechnologist, r.Pathologist,
-            PatientId: r.PatientId);
+            PatientId: r.PatientId, MedicalTechnologistLicense: r.MedicalTechnologistLicense, PathologistLicense: r.PathologistLicense);
         return BuildDetails(r, header, detail);
     }
 
@@ -165,6 +170,8 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         Max(errors, header.Remarks, 500, "Remarks");
         Max(errors, header.MedicalTechnologist, 100, "Medical technologist");
         Max(errors, header.Pathologist, 100, "Pathologist");
+        Max(errors, header.MedicalTechnologistLicense, 50, "Medical technologist license number");
+        Max(errors, header.PathologistLicense, 50, "Pathologist license number");
 
         errors.AddRange(ValidateDetail(input));
         return errors;
@@ -246,6 +253,8 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         report.Remarks = Clean(header.Remarks);
         report.MedicalTechnologist = Clean(header.MedicalTechnologist);
         report.Pathologist = Clean(header.Pathologist);
+        report.MedicalTechnologistLicense = Clean(header.MedicalTechnologistLicense);
+        report.PathologistLicense = Clean(header.PathologistLicense);
 
         if (_details.TryGetValue(report, out var detail))
             ApplyDetail(detail, input);

@@ -22,7 +22,7 @@ public sealed record PrintLine(string Label, string? Value);
 /// <summary>A label with a block of text under it (Result, Remarks).</summary>
 public sealed record PrintText(string Label, string? Text);
 
-public sealed record PrintSignatory(string Role, string? Name);
+public sealed record PrintSignatory(string Role, string? Name, string? LicenseNo = null);
 
 /// <summary>
 /// Everything a printout needs, already worked out and free of any UI, so what appears on paper is covered by tests.

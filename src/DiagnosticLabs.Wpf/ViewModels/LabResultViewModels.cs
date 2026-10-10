@@ -157,6 +157,16 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     [ObservableProperty]
     private string? _pathologist;
 
+    // The licence number of each signatory is copied from the entry list when a name is picked (free text gets none) and saved with the result.
+    [ObservableProperty]
+    private string? _medicalTechnologistLicense;
+
+    [ObservableProperty]
+    private string? _pathologistLicense;
+
+    private readonly Dictionary<string, string?> _technologistLicenses = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string?> _pathologistLicenses = new(StringComparer.OrdinalIgnoreCase);
+
     [ObservableProperty]
     private ImageSource? _photo;
 
@@ -286,6 +296,24 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     // ------------------------------------------------------------------ header <-> service
 
+    partial void OnMedicalTechnologistChanged(string? value)
+    {
+        if (!_loading)
+            MedicalTechnologistLicense = TechnologistLicenseOf(value);
+    }
+
+    partial void OnPathologistChanged(string? value)
+    {
+        if (!_loading)
+            PathologistLicense = LicenseOf(_pathologistLicenses, value);
+    }
+
+    /// <summary>The licence number of a medical technologist picked from the list; none for a name that is not in it.</summary>
+    protected string? TechnologistLicenseOf(string? name) => LicenseOf(_technologistLicenses, name);
+
+    private static string? LicenseOf(Dictionary<string, string?> licenses, string? name) =>
+        name is not null && licenses.TryGetValue(name.Trim(), out var license) ? license : null;
+
     protected LabResultHeader BuildHeader() => new(
         Registration?.RegistrationId,
         Registration?.RegistrationCode,
@@ -299,7 +327,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         MedicalTechnologist,
         Pathologist,
         _confirmedDuplicate,
-        HasRegistration ? null : PatientId);
+        HasRegistration ? null : PatientId,
+        MedicalTechnologistLicense,
+        PathologistLicense);
 
     /// <summary>Shows a loaded result's header; the registration's own details are fetched in the background.</summary>
     protected void ShowHeader(LabResultHeader header, byte[]? photo)
@@ -320,6 +350,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             Remarks = header.Remarks;
             MedicalTechnologist = header.MedicalTechnologist;
             Pathologist = header.Pathologist;
+            MedicalTechnologistLicense = header.MedicalTechnologistLicense;
+            PathologistLicense = header.PathologistLicense;
             Photo = ImageLoader.FromBytes(photo);
             _confirmedDuplicate = false;
             ClearSuggestions();
@@ -352,6 +384,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             Remarks = null;
             MedicalTechnologist = null;
             Pathologist = null;
+            MedicalTechnologistLicense = null;
+            PathologistLicense = null;
             Photo = null;
             _confirmedDuplicate = false;
             ClearSuggestions();
@@ -656,13 +690,21 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     protected async Task LoadListsAsync()
     {
         var genders = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.Gender));
-        var technologists = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.MedicalTechnologist));
-        var pathologists = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.Pathologist));
+        var technologists = await Call<IEntryService, IReadOnlyList<SingleLineEntry>>(s => s.GetEntriesAsync(EntryFields.MedicalTechnologist));
+        var pathologists = await Call<IEntryService, IReadOnlyList<SingleLineEntry>>(s => s.GetEntriesAsync(EntryFields.Pathologist));
         var companies = await Call<IReferenceLookups, IReadOnlyList<LookupOption>>(s => s.GetCompaniesAsync());
 
         Replace(Genders, genders);
-        Replace(Technologists, technologists);
-        Replace(Pathologists, pathologists);
+        Replace(Technologists, technologists.Select(t => t.Value));
+        Replace(Pathologists, pathologists.Select(p => p.Value));
+        Fill(_technologistLicenses, technologists);
+        Fill(_pathologistLicenses, pathologists);
+
+        // A licence added in the entry builder for the person already picked shows up without picking them again.
+        if (string.IsNullOrEmpty(MedicalTechnologistLicense))
+            MedicalTechnologistLicense = TechnologistLicenseOf(MedicalTechnologist);
+        if (string.IsNullOrEmpty(PathologistLicense))
+            PathologistLicense = LicenseOf(_pathologistLicenses, Pathologist);
         Replace(CompanyNames, companies.Select(c => c.Name));
 
         foreach (var choice in ChoiceFields)
@@ -671,6 +713,13 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             field.EditCommand ??= new AsyncRelayCommand(() => EditSingleLineAsync(field.Entry), () => CanEditLists);
             Replace(field.Items, await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(field.Entry)));
         }
+    }
+
+    private static void Fill(Dictionary<string, string?> target, IEnumerable<SingleLineEntry> entries)
+    {
+        target.Clear();
+        foreach (var entry in entries)
+            target[entry.Value.Trim()] = entry.LicenseNo;
     }
 
     protected async Task LoadTemplatesAsync()
@@ -919,6 +968,18 @@ public partial class StoolFecalysisViewModel(
     [ObservableProperty]
     private string? _medicalTechnologist2;
 
+    [ObservableProperty]
+    private string? _medicalTechnologist2License;
+
+    // True while a saved result is being shown or cleared, so putting its name on screen does not look its licence up again.
+    private bool _showing;
+
+    partial void OnMedicalTechnologist2Changed(string? value)
+    {
+        if (!_showing)
+            MedicalTechnologist2License = TechnologistLicenseOf(value);
+    }
+
     protected override IEnumerable<ChoiceField> ChoiceFields => [Color, Consistency, Wbc, Rbc, Bacteria, YeastCells, FatGlobules, OvaParasite];
 
     protected override EntryField RemarksField => EntryFields.StoolRemarks;
@@ -945,7 +1006,7 @@ public partial class StoolFecalysisViewModel(
     protected override StoolFecalysisInput BuildInput() => new(
         Id, BuildHeader(), Color.Value, Consistency.Value, Others, RowVersion,
         Wbc: Wbc.Value, Rbc: Rbc.Value, Bacteria: Bacteria.Value, YeastCells: YeastCells.Value, FatGlobules: FatGlobules.Value,
-        OvaParasite: OvaParasite.Value, MedicalTechnologist2: MedicalTechnologist2);
+        OvaParasite: OvaParasite.Value, MedicalTechnologist2: MedicalTechnologist2, MedicalTechnologist2License: MedicalTechnologist2License);
 
     protected override void ShowFields(StoolFecalysisDetails d)
     {
@@ -959,7 +1020,10 @@ public partial class StoolFecalysisViewModel(
         YeastCells.Value = d.YeastCells;
         FatGlobules.Value = d.FatGlobules;
         OvaParasite.Value = d.OvaParasite;
+        _showing = true;
         MedicalTechnologist2 = d.MedicalTechnologist2;
+        MedicalTechnologist2License = d.MedicalTechnologist2License;
+        _showing = false;
         RowVersion = d.RowVersion;
     }
 
@@ -967,6 +1031,7 @@ public partial class StoolFecalysisViewModel(
     {
         Others = null;
         MedicalTechnologist2 = null;
+        MedicalTechnologist2License = null;
     }
 
     protected override IEnumerable<DefaultField> ExtraDefaultFields() =>

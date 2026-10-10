@@ -47,6 +47,9 @@ public class LookupValue : ReferenceEntity
     public string? Title { get; set; }
 
     public string Value { get; set; } = string.Empty;
+
+    /// <summary>The licence number of a signatory entry (medical technologist, pathologist...); empty for every other list.</summary>
+    public string? LicenseNo { get; set; }
 }
 
 /// <summary>Per-module defaults blob (legacy LabResultsDefaults).</summary>

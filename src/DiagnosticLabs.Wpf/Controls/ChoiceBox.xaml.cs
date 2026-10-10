@@ -15,7 +15,8 @@ public partial class ChoiceBox : UserControl
 {
     public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
         nameof(Text), typeof(string), typeof(ChoiceBox),
-        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+        new FrameworkPropertyMetadata(
+            null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, (d, e) => ((ChoiceBox)d).ShowText((string?)e.NewValue)));
 
     public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(
         nameof(ItemsSource), typeof(IEnumerable), typeof(ChoiceBox), new PropertyMetadata(null, (d, e) => ((ChoiceBox)d).Watch(e.NewValue as IEnumerable)));
@@ -28,11 +29,13 @@ public partial class ChoiceBox : UserControl
     private readonly ObservableCollection<object> _entries = [];
     private INotifyCollectionChanged? _watched;
     private string? _textBeforePicking;
+    private bool _rebuilding;
 
     public ChoiceBox()
     {
         InitializeComponent();
         Combo.ItemsSource = _entries;
+        Combo.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler(OnComboTextChanged));
         Loaded += (_, _) => Rebuild();
     }
 
@@ -84,19 +87,47 @@ public partial class ChoiceBox : UserControl
     /// <summary>The dropdown shows the choices, then "Edit entries..." when the user is allowed to edit the list.</summary>
     private void Rebuild()
     {
-        // Swapping the items can blank an editable combo, so put the text back afterwards.
+        // Swapping the items can blank an editable combo, so put the text back afterwards (without telling the form it was ever blank).
         var text = Text;
-        _entries.Clear();
-        if (ItemsSource is not null)
+        _rebuilding = true;
+        try
         {
-            foreach (var item in ItemsSource)
-                _entries.Add(item);
+            _entries.Clear();
+            if (ItemsSource is not null)
+            {
+                foreach (var item in ItemsSource)
+                    _entries.Add(item);
+            }
+
+            if (EditCommand?.CanExecute(null) == true)
+                _entries.Add(EditRow);
+
+            Combo.Text = text ?? string.Empty;
         }
+        finally
+        {
+            _rebuilding = false;
+        }
+    }
 
-        if (EditCommand?.CanExecute(null) == true)
-            _entries.Add(EditRow);
+    /// <summary>A value set from the form (a loaded record, a default) is shown in the box.</summary>
+    private void ShowText(string? value)
+    {
+        if (!_rebuilding && Combo.Text != (value ?? string.Empty))
+            Combo.Text = value ?? string.Empty;
+    }
 
-        Combo.Text = text ?? string.Empty;
+    /// <summary>Typing or picking a value reaches the form straight away, not when the box loses focus.</summary>
+    private void OnComboTextChanged(object sender, TextChangedEventArgs e)
+    {
+        // Choosing the "Edit entries..." row shows empty text for a moment; that is not the user clearing the field.
+        var choosingEditRow = Combo.SelectedItem is EditEntriesItem || (Combo.IsDropDownOpen && Combo.Text.Length == 0 && Text is { Length: > 0 });
+        if (_rebuilding || choosingEditRow)
+            return;
+
+        var text = Combo.Text.Length == 0 ? null : Combo.Text;
+        if (Text != text)
+            Text = text;
     }
 
     private void OnDropDownOpened(object? sender, EventArgs e) => _textBeforePicking = Combo.Text;

@@ -43,6 +43,9 @@ public partial class MainWindow : Window
 
         // Closing the window is decided after the question has been answered, so hold it back for now.
         e.Cancel = true;
+
+        // Let this closing request finish first: with nothing to ask the answer is ready at once, and a window cannot be closed again from inside its own closing.
+        await System.Windows.Threading.Dispatcher.Yield();
         if (await _viewModel.CanLeaveAsync())
         {
             _leaveConfirmed = true;

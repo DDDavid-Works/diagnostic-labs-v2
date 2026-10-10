@@ -22,6 +22,7 @@ internal sealed class StoolFecalysisReportConfiguration : IEntityTypeConfigurati
         builder.Property(e => e.FatGlobules).HasMaxLength(50);
         builder.Property(e => e.OvaParasite).HasMaxLength(100);
         builder.Property(e => e.MedicalTechnologist2).HasMaxLength(100);
+        builder.Property(e => e.MedicalTechnologist2License).HasMaxLength(50);
         builder.Property(e => e.Result).HasMaxLength(500);
     }
 }

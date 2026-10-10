@@ -15,6 +15,11 @@ public partial class LabResultBottom : UserControl
         nameof(ShowSecondTechnologist), typeof(bool), typeof(LabResultBottom),
         new PropertyMetadata(false, (d, e) => ((LabResultBottom)d).ApplySecondTechnologist((bool)e.NewValue)));
 
+    /// <summary>True for a form that prints the licence numbers of its signatories: a box for each appears under the names.</summary>
+    public static readonly DependencyProperty ShowLicensesProperty = DependencyProperty.Register(
+        nameof(ShowLicenses), typeof(bool), typeof(LabResultBottom),
+        new PropertyMetadata(false, (d, e) => ((LabResultBottom)d).ApplyLicenses((bool)e.NewValue)));
+
     public LabResultBottom() => InitializeComponent();
 
     public bool ShowRemarks
@@ -23,10 +28,24 @@ public partial class LabResultBottom : UserControl
         set => SetValue(ShowRemarksProperty, value);
     }
 
+    public bool ShowLicenses
+    {
+        get => (bool)GetValue(ShowLicensesProperty);
+        set => SetValue(ShowLicensesProperty, value);
+    }
+
     public bool ShowSecondTechnologist
     {
         get => (bool)GetValue(ShowSecondTechnologistProperty);
         set => SetValue(ShowSecondTechnologistProperty, value);
+    }
+
+    private void ApplyLicenses(bool show)
+    {
+        var visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        LicenseFirst.Visibility = visibility;
+        LicenseSecond.Visibility = visibility;
+        LicensePathologist.Visibility = visibility;
     }
 
     private void ApplySecondTechnologist(bool show)

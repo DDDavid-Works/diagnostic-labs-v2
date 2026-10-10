@@ -14,19 +14,28 @@ public enum EntryKind
     MultiLine,
 }
 
+/// <summary>What else an entry of a single-line list carries besides its text.</summary>
+public enum EntryDetail
+{
+    None,
+
+    /// <summary>A person who signs results (medical technologist, pathologist...): each entry also has a licence number.</summary>
+    Signatory,
+}
+
 /// <summary>
 /// Identifies one maintained list of entries. <see cref="ModuleId"/> is <c>null</c> for general lists shared by
 /// several screens (Gender, Medical Technologist...) and the module's id for lists that belong to one screen.
 /// </summary>
-public sealed record EntryField(string Name, EntryKind Kind, int? ModuleId = null);
+public sealed record EntryField(string Name, EntryKind Kind, int? ModuleId = null, EntryDetail Detail = EntryDetail.None);
 
 /// <summary>Every list the app maintains through the entry builder, declared once.</summary>
 public static class EntryFields
 {
     public static readonly EntryField Gender = new("Gender", EntryKind.SingleLine);
     public static readonly EntryField CivilStatus = new("Civil Status", EntryKind.SingleLine);
-    public static readonly EntryField MedicalTechnologist = new("Medical Technologist", EntryKind.SingleLine);
-    public static readonly EntryField Pathologist = new("Pathologist", EntryKind.SingleLine);
+    public static readonly EntryField MedicalTechnologist = new("Medical Technologist", EntryKind.SingleLine, Detail: EntryDetail.Signatory);
+    public static readonly EntryField Pathologist = new("Pathologist", EntryKind.SingleLine, Detail: EntryDetail.Signatory);
 
     // Lists that belong to one result screen (the legacy screens kept them per module as well).
     public static readonly EntryField StoolColor = new("Color", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
@@ -103,11 +112,12 @@ public static class EntryFields
     public static readonly EntryField ApeFindings = new("Findings", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExam);
 }
 
-public sealed record SingleLineEntry(long Id, string Value);
+/// <summary>One row of a single-line list; <paramref name="LicenseNo"/> is only kept for lists whose entries are signatories.</summary>
+public sealed record SingleLineEntry(long Id, string Value, string? LicenseNo = null);
 
 public sealed record MultiLineEntry(long Id, string Title, string Text);
 
-public sealed record SingleLineEntryList(string FieldName, string ScopeName, IReadOnlyList<SingleLineEntry> Items);
+public sealed record SingleLineEntryList(string FieldName, string ScopeName, IReadOnlyList<SingleLineEntry> Items, bool HasLicense = false);
 
 public sealed record MultiLineEntryList(string FieldName, string ScopeName, IReadOnlyList<MultiLineEntry> Items);
 
@@ -115,6 +125,9 @@ public interface IEntryService
 {
     /// <summary>The dropdown values of a single-line list, in the order they were added.</summary>
     Task<IReadOnlyList<string>> GetChoicesAsync(EntryField field, CancellationToken cancellationToken = default);
+
+    /// <summary>The same list with each entry's licence number (for a signatory list), so a screen can fill the licence when a name is picked.</summary>
+    Task<IReadOnlyList<SingleLineEntry>> GetEntriesAsync(EntryField field, CancellationToken cancellationToken = default);
 
     Task<Result<SingleLineEntryList>> GetSingleLineAsync(EntryField field, int hostModuleId, CancellationToken cancellationToken = default);
 
@@ -136,12 +149,16 @@ public sealed class EntryService(IAppDbContext db, ICurrentUser currentUser) : I
 {
     public const int ValueMaxLength = 200;
     public const int TitleMaxLength = 100;
+    public const int LicenseMaxLength = 50;
 
     public async Task<IReadOnlyList<string>> GetChoicesAsync(EntryField field, CancellationToken cancellationToken = default) =>
         await Query(field, LookupKind.SingleLine)
             .AsNoTracking()
             .Select(l => l.Value)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<SingleLineEntry>> GetEntriesAsync(EntryField field, CancellationToken cancellationToken = default) =>
+        [.. (await Query(field, LookupKind.SingleLine).AsNoTracking().ToListAsync(cancellationToken)).Select(l => new SingleLineEntry(l.Id, l.Value, l.LicenseNo))];
 
     public async Task<Result<SingleLineEntryList>> GetSingleLineAsync(
         EntryField field, int hostModuleId, CancellationToken cancellationToken = default)
@@ -166,6 +183,9 @@ public sealed class EntryService(IAppDbContext db, ICurrentUser currentUser) : I
                 errors.Add("An entry can not be empty.");
             else if (value.Length > ValueMaxLength)
                 errors.Add($"An entry can not be longer than {ValueMaxLength} characters.");
+
+            if (field.Detail == EntryDetail.Signatory && (item.LicenseNo?.Trim().Length ?? 0) > LicenseMaxLength)
+                errors.Add($"A license number can not be longer than {LicenseMaxLength} characters.");
         }
 
         AddDuplicateError(errors, items.Select(i => i.Value), "entry");
@@ -173,7 +193,12 @@ public sealed class EntryService(IAppDbContext db, ICurrentUser currentUser) : I
             return Result<SingleLineEntryList>.Failure(Errors.Invalid(errors.Distinct()));
 
         var existing = await Query(field, LookupKind.SingleLine).ToListAsync(cancellationToken);
-        Sync(existing, items, i => i.Id, e => e.Id, (e, i) => e.Value = i.Value.Trim(), () => New(field, LookupKind.SingleLine));
+        Sync(existing, items, i => i.Id, e => e.Id, (e, i) =>
+            {
+                e.Value = i.Value.Trim();
+                e.LicenseNo = field.Detail == EntryDetail.Signatory && !string.IsNullOrWhiteSpace(i.LicenseNo) ? i.LicenseNo.Trim() : null;
+            },
+            () => New(field, LookupKind.SingleLine));
         await db.SaveChangesAsync(cancellationToken);
 
         return Result<SingleLineEntryList>.Success(await LoadSingleAsync(field, cancellationToken));
@@ -235,7 +260,7 @@ public sealed class EntryService(IAppDbContext db, ICurrentUser currentUser) : I
     private async Task<SingleLineEntryList> LoadSingleAsync(EntryField field, CancellationToken cancellationToken)
     {
         var rows = await Query(field, LookupKind.SingleLine).AsNoTracking().ToListAsync(cancellationToken);
-        return new SingleLineEntryList(field.Name, await ScopeNameAsync(field, cancellationToken), [.. rows.Select(r => new SingleLineEntry(r.Id, r.Value))]);
+        return new SingleLineEntryList(field.Name, await ScopeNameAsync(field, cancellationToken), [.. rows.Select(r => new SingleLineEntry(r.Id, r.Value, r.LicenseNo))], field.Detail == EntryDetail.Signatory);
     }
 
     private async Task<MultiLineEntryList> LoadMultiAsync(EntryField field, CancellationToken cancellationToken)

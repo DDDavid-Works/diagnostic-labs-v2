@@ -328,9 +328,12 @@ internal static class StoolFecalysisLayout
             PutFit(canvas, report.Signatories[i].Name, x, top + 48.7, width, size, bold: true, center: true);
             PageDrawing.PutRule(canvas, x, top + 54.4, width);
             PageDrawing.PutText(canvas, report.Signatories[i].Role.ToUpperInvariant(), x, top + 68.9, size, bold: false, width: width, alignment: TextAlignment.Center);
+            if (!string.IsNullOrWhiteSpace(report.Signatories[i].LicenseNo))
+                PutFit(canvas, $"LICENSE NO: {report.Signatories[i].LicenseNo}", x, top + 83.9, width, size, bold: false, center: true);
         }
 
-        var y = top + 91.0;
+        // The note moves down only when a licence line was printed under the names.
+        var y = top + (report.Signatories.Any(s => !string.IsNullOrWhiteSpace(s.LicenseNo)) ? 106.0 : 91.0);
         foreach (var line in report.FooterNote.Split('\n'))
         {
             PageDrawing.PutText(canvas, line, 50.3, y, Size, bold: false, width: 712.4, alignment: TextAlignment.Center);

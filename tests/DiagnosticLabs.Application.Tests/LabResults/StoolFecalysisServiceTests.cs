@@ -318,4 +318,33 @@ public class StoolFecalysisServiceTests
         Assert.Equal("Auth.Forbidden", (await lookup.SuggestAsync(ModuleIds.StoolFecalysis, "Mill")).Error.Code);
         Assert.Equal("Auth.Forbidden", (await lookup.FindAsync(ModuleIds.StoolFecalysis, "x")).Error.Code);
     }
+    [Fact]
+    public async Task The_licence_numbers_of_the_signatories_are_saved_and_printed()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+        var header = Header(null) with { MedicalTechnologistLicense = "0133304", PathologistLicense = "095300" };
+
+        var saved = (await service.SaveAsync(Input(header) with { MedicalTechnologist2License = "031026" })).Value;
+        var reopened = (await service.GetAsync(saved.Id)).Value;
+        var print = (await service.GetPrintableAsync(saved.Id)).Value;
+
+        Assert.Equal(("0133304", "095300", "031026"), (reopened.Header.MedicalTechnologistLicense, reopened.Header.PathologistLicense, reopened.MedicalTechnologist2License));
+        Assert.Equal(["0133304", "031026", "095300"], print.Signatories.Select(s => s.LicenseNo));
+    }
+
+    [Fact]
+    public async Task A_name_without_a_licence_prints_without_one()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+
+        var saved = (await service.SaveAsync(Input(Header(null)) with { MedicalTechnologist2License = null })).Value;
+        var print = (await service.GetPrintableAsync(saved.Id)).Value;
+
+        Assert.All(print.Signatories, s => Assert.Null(s.LicenseNo));
+        Assert.True((await service.SaveAsync(Input(Header(null) with { PathologistLicense = new string('1', 51) }))).IsFailure);
+    }
 }

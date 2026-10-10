@@ -37,6 +37,9 @@ public partial class SingleLineRowViewModel : ObservableObject
     [ObservableProperty]
     private string _value = string.Empty;
 
+    [ObservableProperty]
+    private string? _licenseNo;
+
     /// <summary>Set on a freshly added row so its box takes the cursor once it appears.</summary>
     public bool FocusRequested { get; set; }
 }
@@ -46,6 +49,10 @@ public partial class SingleLineEntryBuilderViewModel(
     : EntryBuilderViewModel(logger)
 {
     public ObservableCollection<SingleLineRowViewModel> Rows { get; } = [];
+
+    /// <summary>True for a list of signatories: each row then also has a licence number.</summary>
+    [ObservableProperty]
+    private bool _hasLicense = field.Detail == EntryDetail.Signatory;
 
     public override IAsyncRelayCommand InitializeCommand => LoadCommand;
 
@@ -78,7 +85,7 @@ public partial class SingleLineEntryBuilderViewModel(
         // A row that was added but never typed in is simply dropped.
         var items = Rows
             .Where(r => r.Id != 0 || !string.IsNullOrWhiteSpace(r.Value))
-            .Select(r => new SingleLineEntry(r.Id, r.Value))
+            .Select(r => new SingleLineEntry(r.Id, r.Value, r.LicenseNo))
             .ToList();
 
         var result = await runner.RunAsync<IEntryService, Result<SingleLineEntryList>>(s => s.SaveSingleLineAsync(field, hostModuleId, items));
@@ -97,7 +104,7 @@ public partial class SingleLineEntryBuilderViewModel(
         ScopeName = list.ScopeName;
         Rows.Clear();
         foreach (var item in list.Items)
-            Rows.Add(new SingleLineRowViewModel { Id = item.Id, Value = item.Value });
+            Rows.Add(new SingleLineRowViewModel { Id = item.Id, Value = item.Value, LicenseNo = item.LicenseNo });
     }
 }
 

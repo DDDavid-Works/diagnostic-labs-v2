@@ -1492,3 +1492,48 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010094453_SignatoryLicenseNumbers'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [MedicalTechnologist2License] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010094453_SignatoryLicenseNumbers'
+)
+BEGIN
+    ALTER TABLE [LookupValues] ADD [LicenseNo] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010094453_SignatoryLicenseNumbers'
+)
+BEGIN
+    ALTER TABLE [LabReports] ADD [MedicalTechnologistLicense] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010094453_SignatoryLicenseNumbers'
+)
+BEGIN
+    ALTER TABLE [LabReports] ADD [PathologistLicense] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010094453_SignatoryLicenseNumbers'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010094453_SignatoryLicenseNumbers', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

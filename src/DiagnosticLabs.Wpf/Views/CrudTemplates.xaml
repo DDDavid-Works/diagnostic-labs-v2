@@ -637,7 +637,7 @@
               </Border>
             </Grid>
           </Border>
-          <ctl:LabResultBottom ShowSecondTechnologist="True" />
+          <ctl:LabResultBottom ShowSecondTechnologist="True" ShowLicenses="True" />
         </StackPanel>
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>

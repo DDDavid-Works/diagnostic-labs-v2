@@ -11,7 +11,7 @@
     </DataTemplate>
   </UserControl.Resources>
 
-  <!-- Editable on purpose: a value typed here belongs to this record only and is not added to the list. -->
-  <ComboBox x:Name="Combo" IsEditable="True" SelectionChanged="OnSelectionChanged" DropDownOpened="OnDropDownOpened"
-            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=local:ChoiceBox}, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+  <!-- Editable on purpose: a value typed here belongs to this record only and is not added to the list.
+       The text is passed on as it changes (see ChoiceBox.xaml.cs), so whatever depends on the name, like a licence number, follows at once. -->
+  <ComboBox x:Name="Combo" IsEditable="True" SelectionChanged="OnSelectionChanged" DropDownOpened="OnDropDownOpened" />
 </UserControl>

@@ -221,6 +221,7 @@ internal sealed class LookupValueConfiguration : IEntityTypeConfiguration<Lookup
         builder.Property(l => l.Kind).HasConversion<int>();
         builder.Property(l => l.FieldName).HasMaxLength(50);
         builder.Property(l => l.Title).HasMaxLength(100);
+        builder.Property(l => l.LicenseNo).HasMaxLength(50);
         builder.HasOne<Domain.Identity.Module>().WithMany().HasForeignKey(l => l.ModuleId);
         builder.HasIndex(l => new { l.ModuleId, l.Kind, l.FieldName });
     }
@@ -274,6 +275,8 @@ internal sealed class LabReportConfiguration : IEntityTypeConfiguration<LabRepor
         builder.Property(r => r.Remarks).HasMaxLength(500);
         builder.Property(r => r.MedicalTechnologist).HasMaxLength(100);
         builder.Property(r => r.Pathologist).HasMaxLength(100);
+        builder.Property(r => r.MedicalTechnologistLicense).HasMaxLength(50);
+        builder.Property(r => r.PathologistLicense).HasMaxLength(50);
         builder.HasOne(r => r.Patient).WithMany().HasForeignKey(r => r.PatientId);
         builder.HasOne(r => r.PatientRegistration).WithMany().HasForeignKey(r => r.PatientRegistrationId);
         builder.HasOne(r => r.Photo).WithOne().HasForeignKey<LabReportPhoto>(p => p.LabReportId);

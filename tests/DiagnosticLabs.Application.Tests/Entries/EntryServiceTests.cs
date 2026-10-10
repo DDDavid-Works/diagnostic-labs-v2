@@ -205,4 +205,65 @@ public class EntryServiceTests
         Assert.Equal("all ok", only.Text);
         Assert.Equal(1, await db.LookupValues.CountAsync(l => l.IsActive));
     }
+    // ---------------------------------------------------------------- signatories (entries with a licence number)
+
+    [Fact]
+    public async Task A_signatory_list_keeps_the_licence_number_of_each_entry()
+    {
+        await using var db = _env.CreateDb();
+        SignIn();
+        var service = new EntryService(db, _env.Session);
+
+        var saved = (await service.SaveSingleLineAsync(EntryFields.MedicalTechnologist, Patients,
+            [new SingleLineEntry(0, "Lianne Dizon, RMT", " 0133304 "), new SingleLineEntry(0, "Free Name")])).Value;
+        var entries = await service.GetEntriesAsync(EntryFields.MedicalTechnologist);
+
+        Assert.True(saved.HasLicense);
+        Assert.Equal(["0133304", null], saved.Items.Select(i => i.LicenseNo));
+        Assert.Equal(["Lianne Dizon, RMT", "Free Name"], entries.Select(e => e.Value));
+        Assert.Equal("0133304", entries[0].LicenseNo);
+        Assert.Equal(["Lianne Dizon, RMT", "Free Name"], await service.GetChoicesAsync(EntryFields.MedicalTechnologist));
+    }
+
+    [Fact]
+    public async Task A_licence_can_be_changed_or_cleared_on_an_existing_entry()
+    {
+        await using var db = _env.CreateDb();
+        SignIn();
+        var service = new EntryService(db, _env.Session);
+        var saved = (await service.SaveSingleLineAsync(EntryFields.Pathologist, Patients,
+            [new SingleLineEntry(0, "Dr. Gutierrez", "095300"), new SingleLineEntry(0, "Dr. Other", "111")])).Value;
+
+        var result = (await service.SaveSingleLineAsync(EntryFields.Pathologist, Patients,
+            [saved.Items[0] with { LicenseNo = "095301" }, saved.Items[1] with { LicenseNo = "  " }])).Value;
+
+        Assert.Equal(["095301", null], result.Items.Select(i => i.LicenseNo));
+    }
+
+    [Fact]
+    public async Task Only_a_signatory_list_stores_licence_numbers()
+    {
+        await using var db = _env.CreateDb();
+        SignIn();
+        var service = new EntryService(db, _env.Session);
+
+        var saved = (await service.SaveSingleLineAsync(EntryFields.Gender, Patients, [new SingleLineEntry(0, "Male", "123")])).Value;
+
+        Assert.False(saved.HasLicense);
+        Assert.Null(Assert.Single(saved.Items).LicenseNo);
+    }
+
+    [Fact]
+    public async Task A_licence_number_has_a_length_limit()
+    {
+        await using var db = _env.CreateDb();
+        SignIn();
+        var service = new EntryService(db, _env.Session);
+
+        var result = await service.SaveSingleLineAsync(EntryFields.Pathologist, Patients, [new SingleLineEntry(0, "Dr. X", new string('9', 51))]);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("license number", result.Error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(await db.LookupValues.ToListAsync());
+    }
 }

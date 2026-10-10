@@ -21,14 +21,26 @@
       <StackPanel Grid.Column="0">
         <ctl:ChoiceBox ItemsSource="{Binding Technologists}" Text="{Binding MedicalTechnologist}" EditCommand="{Binding EditTechnologistListCommand}" />
         <TextBlock Text="Medical Technologist" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+        <DockPanel x:Name="LicenseFirst" Margin="0,4,0,0" Visibility="Collapsed">
+          <TextBlock DockPanel.Dock="Left" Text="License No:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox Text="{Binding MedicalTechnologistLicense, UpdateSourceTrigger=PropertyChanged}" />
+        </DockPanel>
       </StackPanel>
       <StackPanel x:Name="SecondPanel" Grid.Column="2" Visibility="Collapsed">
         <ctl:ChoiceBox ItemsSource="{Binding Technologists}" Text="{Binding MedicalTechnologist2}" EditCommand="{Binding EditTechnologistListCommand}" />
         <TextBlock Text="Medical Technologist" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+        <DockPanel x:Name="LicenseSecond" Margin="0,4,0,0" Visibility="Collapsed">
+          <TextBlock DockPanel.Dock="Left" Text="License No:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox Text="{Binding MedicalTechnologist2License, UpdateSourceTrigger=PropertyChanged}" />
+        </DockPanel>
       </StackPanel>
       <StackPanel Grid.Column="4">
         <ctl:ChoiceBox ItemsSource="{Binding Pathologists}" Text="{Binding Pathologist}" EditCommand="{Binding EditPathologistListCommand}" />
         <TextBlock Text="Pathologist" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+        <DockPanel x:Name="LicensePathologist" Margin="0,4,0,0" Visibility="Collapsed">
+          <TextBlock DockPanel.Dock="Left" Text="License No:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox Text="{Binding PathologistLicense, UpdateSourceTrigger=PropertyChanged}" />
+        </DockPanel>
       </StackPanel>
     </Grid>
   </StackPanel>

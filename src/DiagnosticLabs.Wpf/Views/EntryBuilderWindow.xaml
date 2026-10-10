@@ -6,6 +6,8 @@
         WindowStartupLocation="CenterOwner" MinWidth="360" MinHeight="360"
         Loaded="OnLoaded">
   <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
 
     <!-- Heading shared by both builders -->
     <DataTemplate x:Key="BuilderHeader">
@@ -32,6 +34,17 @@
         </StackPanel>
 
         <Border BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Background="White">
+          <DockPanel>
+          <!-- Column captions, only for a list of signatories (each entry also has a licence number) -->
+          <Grid DockPanel.Dock="Top" Margin="6,4,6,0" Visibility="{Binding HasLicense, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="136" />
+              <ColumnDefinition Width="36" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="1" Text="License No" Style="{StaticResource FieldLabel}" Margin="6,0,0,0" />
+          </Grid>
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Rows}">
               <ItemsControl.ItemTemplate>
@@ -40,9 +53,13 @@
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="*" />
                       <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Loaded="RowTextBox_OnLoaded" />
-                    <Button Grid.Column="1" Content="&#x2715;" MinWidth="30" Margin="6,0,0,0" ToolTip="Remove this entry"
+                    <TextBox Grid.Column="1" Width="130" Margin="6,0,0,0" ToolTip="License number"
+                             Text="{Binding LicenseNo, UpdateSourceTrigger=PropertyChanged}"
+                             Visibility="{Binding DataContext.HasLicense, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource BoolToVis}}" />
+                    <Button Grid.Column="2" Content="&#x2715;" MinWidth="30" Margin="6,0,0,0" ToolTip="Remove this entry"
                             Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                             CommandParameter="{Binding}" />
                   </Grid>
@@ -50,6 +67,7 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </ScrollViewer>
+          </DockPanel>
         </Border>
       </DockPanel>
     </DataTemplate>

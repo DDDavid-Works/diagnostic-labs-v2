@@ -56,6 +56,11 @@ public class LabReport : SoftDeletableEntity
 
     public string? Pathologist { get; set; }
 
+    /// <summary>The licence numbers of the two signatories, copied when they were picked so a printout never changes later.</summary>
+    public string? MedicalTechnologistLicense { get; set; }
+
+    public string? PathologistLicense { get; set; }
+
     public LabReportPhoto? Photo { get; set; }
 }
 
