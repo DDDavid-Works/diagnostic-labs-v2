@@ -36,6 +36,12 @@ public static class ReportDocumentBuilder
             case ReportLayout.TestResult:
                 TestResultLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.ClinicalChemistry:
+                ClinicalChemistryLayout.Draw(canvas, report);
+                break;
+            case ReportLayout.ClinicalChemistry2:
+                ClinicalChemistry2Layout.Draw(canvas, report);
+                break;
             case ReportLayout.AnnualPhysicalExam:
                 AnnualPhysicalExamLayout.Draw(canvas, report);
                 break;
@@ -378,6 +384,115 @@ internal static class TestResultLayout
         PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, Style.Line);
 
         PageDrawing.PutFooter(canvas, report, remarksBottom, Style);
+    }
+}
+/// <summary>
+/// Clinical Chemistry: a table of nine tests (test, normal values, result; the last two centred) in the finer report design, with no Remarks.
+/// Positions are measured from the client's printed form; the lines are not evenly spaced there, so each is placed on its own.
+/// </summary>
+internal static class ClinicalChemistryLayout
+{
+    private static readonly PageStyle Style = PageStyle.Fine;
+    private static readonly PageDrawing.PatientValues PatientValues = new(186.5, 513.5, 685.5, 564.0);
+
+    private static readonly double[] Rules = [265.5, 286.7, 306.7, 326.7, 345.7, 365.3, 384.0, 404.0, 423.0];
+    private static readonly double[] LabelBaselines = [281.0, 301.7, 321.0, 341.0, 360.3, 379.7, 399.3, 419.3, 438.5];
+    private static readonly double[] ValueBaselines = [280.6, 301.3, 320.6, 340.6, 359.9, 379.3, 398.9, 418.9, 438.1];
+
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        PageDrawing.PutHeader(canvas, report.Letterhead, Style);
+        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant(), Style);
+        PageDrawing.PutPatientBlock(canvas, report, PatientValues, Style);
+
+        const double top = 246.5, bottom = 444.3;
+        PageDrawing.PutRect(canvas, 51.3, top, 712.0, bottom - top, null, Brushes.Black, Style.Line);
+        foreach (var y in Rules)
+            PageDrawing.PutRule(canvas, 51.7, y, 711.0, Style.Line);
+
+        foreach (var x in new[] { 261.9, 531.2 })
+            PageDrawing.PutVerticalRule(canvas, x, top, bottom - top, Style.Line);
+
+        const double normalLeft = 262.9, normalWidth = 268.3, resultLeft = 532.2, resultWidth = 231.1;
+        var size = Style.Body;
+        PageDrawing.PutText(canvas, "Test", 54.7, 260.3, size, bold: true);
+        PageDrawing.PutText(canvas, "Normal Values", normalLeft, 260.3, size, bold: true, width: normalWidth, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "Result", resultLeft, 260.3, size, bold: true, width: resultWidth, alignment: TextAlignment.Center);
+
+        var fields = report.Fields ?? new Dictionary<string, string?>();
+        for (var i = 0; i < ClinicalChemistryService.Tests.Length; i++)
+        {
+            var (name, label) = ClinicalChemistryService.Tests[i];
+            PageDrawing.PutText(canvas, label, 54.7, LabelBaselines[i], size, bold: true);
+
+            fields.TryGetValue(name + "NormalValue", out var normal);
+            fields.TryGetValue(name + "Result", out var result);
+            PageDrawing.PutText(canvas, normal, normalLeft, ValueBaselines[i], size, bold: false, width: normalWidth, alignment: TextAlignment.Center);
+            PageDrawing.PutText(canvas, result, resultLeft, ValueBaselines[i], size, bold: false, width: resultWidth, alignment: TextAlignment.Center);
+        }
+
+        PageDrawing.PutFooter(canvas, report, bottom + 1.5, Style);
+    }
+}
+/// <summary>
+/// Clinical Chemistry 2: alkaline phosphatase and SGOT, each with normal values, unit and results in conventional and in system units.
+/// The client's printed form is titled "CLINICAL CHEMISTRY" (without the 2), so that is what is printed. Positions are measured from it.
+/// </summary>
+internal static class ClinicalChemistry2Layout
+{
+    private static readonly PageStyle Style = PageStyle.Fine;
+    private static readonly PageDrawing.PatientValues PatientValues = new(186.5, 513.5, 685.5, 564.0);
+
+    // The left edge of the text in each of the six cells (normal value, unit, results; conventional, then system units).
+    private static readonly double[] CellX = [203.5, 301.7, 360.9, 485.9, 584.0, 643.2];
+    private static readonly string[] Suffix = ["CNValue", "CUnit", "CResults", "SNValue", "SUnit", "SResults"];
+
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        PageDrawing.PutHeader(canvas, report.Letterhead, Style);
+        PageDrawing.PutTitleBar(canvas, "CLINICAL CHEMISTRY", Style);
+        PageDrawing.PutPatientBlock(canvas, report, PatientValues, Style);
+
+        const double top = 246.5, bottom = 329.9;
+        var line = Style.Line;
+        PageDrawing.PutRect(canvas, 51.3, top, 712.0, bottom - top, null, Brushes.Black, line);
+
+        // Rules: under "Conventional" / "System Unit", under the column names, between the two tests.
+        PageDrawing.PutRule(canvas, 199.2, 265.5, 564.0, line);
+        PageDrawing.PutRule(canvas, 51.7, 285.9, 711.0, line);
+        PageDrawing.PutRule(canvas, 51.7, 308.7, 711.0, line);
+        PageDrawing.PutVerticalRule(canvas, 198.9, top, bottom - top, line);
+        PageDrawing.PutVerticalRule(canvas, 480.7, top, bottom - top, line);
+        foreach (var x in new[] { 298.0, 357.2, 581.7, 639.5 })
+            PageDrawing.PutVerticalRule(canvas, x, 265.7, bottom - 265.7, line);
+
+        var size = Style.Body;
+        PageDrawing.PutText(canvas, "Test", 51.3, 270.4, size, bold: true, width: 147.6, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "Conventional", 198.9, 260.3, size, bold: true, width: 281.8, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "System Unit", 480.7, 260.3, size, bold: true, width: 282.6, alignment: TextAlignment.Center);
+
+        string[] names = ["Normal Values", "Unit", "Results", "Normal Values", "Unit", "Results"];
+        for (var i = 0; i < names.Length; i++)
+            PageDrawing.PutText(canvas, names[i], CellX[i], 281.5, size, bold: true);
+
+        var fields = report.Fields ?? new Dictionary<string, string?>();
+        (string Name, string Label, double LabelBaseline, double ValueBaseline)[] tests =
+        [
+            ("AlkalinePhosphatase", "Alkaline Phosphatase", 302.0, 301.9),
+            ("SGOT", "SGOT", 324.7, 324.3),
+        ];
+        foreach (var (name, label, labelBaseline, valueBaseline) in tests)
+        {
+            PageDrawing.PutText(canvas, label, 54.3, labelBaseline, size, bold: true);
+            for (var i = 0; i < CellX.Length; i++)
+            {
+                fields.TryGetValue(name + Suffix[i], out var value);
+                var width = i switch { 0 or 3 => 94.0, 1 or 4 => 56.0, _ => 120.0 };
+                PageDrawing.PutText(canvas, value, CellX[i], valueBaseline, size, bold: false, width: width);
+            }
+        }
+
+        PageDrawing.PutFooter(canvas, report, bottom, Style);
     }
 }
 /// <summary>

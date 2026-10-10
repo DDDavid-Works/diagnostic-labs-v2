@@ -98,4 +98,20 @@ public class TestResultServicesTests
         Assert.Empty(printable.ResultLines);
         Assert.Equal("NEGATIVE", printable.ResultTexts.Single(t => t.Label == "Result").Text);
     }
+
+    [Fact]
+    public async Task Clinical_chemistry_1_saves_the_test_and_result_apart_from_the_other_forms()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = new ClinicalChemistry1Service(db, _env.Session, _env.Clock);
+
+        var saved = (await service.SaveAsync(Input("Uric acid", "5.2"))).Value;
+        var reopened = (await service.GetAsync(saved.Id)).Value;
+
+        Assert.Equal("Uric acid", reopened.Test);
+        Assert.Equal("5.2", reopened.Result);
+        Assert.Equal(LabReportType.ClinicalChemistry1, (await db.LabReports.AsNoTracking().SingleAsync()).ReportType);
+        Assert.Equal("Clinical Chemistry 1", (await service.GetPrintableAsync(saved.Id)).Value.Title);
+    }
 }

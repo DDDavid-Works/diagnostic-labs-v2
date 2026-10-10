@@ -14,6 +14,8 @@ public interface ISerologyService : ICrudService<LabResultListItem, TestResultDe
 
 public interface IImmunologyService : ICrudService<LabResultListItem, TestResultDetails, TestResultInput>, ILabResultPrinting;
 
+public interface IClinicalChemistry1Service : ICrudService<LabResultListItem, TestResultDetails, TestResultInput>, ILabResultPrinting;
+
 public interface IPregnancyTestService : ICrudService<LabResultListItem, TestResultDetails, TestResultInput>, ILabResultPrinting;
 
 /// <summary>The part Serology and Immunology share. The two differ only in their table, module and title.</summary>
@@ -104,4 +106,21 @@ public sealed class PregnancyTestService(IAppDbContext db, ICurrentUser currentU
     protected override string ResultOf(PregnancyTestReport detail) => detail.Result;
 
     protected override void Assign(PregnancyTestReport detail, string? test, string result) => detail.Result = result;
+}
+
+public sealed class ClinicalChemistry1Service(IAppDbContext db, ICurrentUser currentUser, IClock clock)
+    : TestResultService<ClinicalChemistry1Report>(
+        db, currentUser, clock, ModuleIds.ClinicalChemistry1, "Clinical Chemistry 1", LabReportType.ClinicalChemistry1), IClinicalChemistry1Service
+{
+    protected override string Title => "Clinical Chemistry 1";
+
+    protected override string? TestOf(ClinicalChemistry1Report detail) => detail.Test;
+
+    protected override string ResultOf(ClinicalChemistry1Report detail) => detail.Result;
+
+    protected override void Assign(ClinicalChemistry1Report detail, string? test, string result)
+    {
+        detail.Test = test;
+        detail.Result = result;
+    }
 }

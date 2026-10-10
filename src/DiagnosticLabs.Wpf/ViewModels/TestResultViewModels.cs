@@ -124,3 +124,18 @@ public sealed class PregnancyTestViewModel(
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IPregnancyTestService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));
 }
+
+public sealed class ClinicalChemistry1ViewModel(
+    IServiceRunner runner,
+    IDialogService dialogs,
+    ICurrentUser user,
+    IEntryBuilderDialog entryBuilder,
+    IReportPreviewDialog preview,
+    ILogger<ClinicalChemistry1ViewModel> logger)
+    : TestResultViewModel<IClinicalChemistry1Service>(
+        runner, dialogs, user, entryBuilder, preview, ModuleIds.ClinicalChemistry1, "Clinical Chemistry 1",
+        EntryFields.ClinicalChemistry1Test, EntryFields.ClinicalChemistry1Result, EntryFields.ClinicalChemistry1Remarks, logger)
+{
+    protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
+        Call<IClinicalChemistry1Service, Result<PrintableReport>>(s => s.GetPrintableAsync(id));
+}

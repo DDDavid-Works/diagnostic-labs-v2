@@ -1,4 +1,4 @@
-﻿using DiagnosticLabs.Application.Abstractions;
+using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.LabResults;
 using DiagnosticLabs.Domain.Lab;
@@ -62,7 +62,7 @@ public class HematologyServiceTests
 
         Assert.Null(saved.Data.Hematocrit.NormalValue);
         Assert.Null(saved.Data.Hematocrit.Result);
-        Assert.Equal(new HematologyEntry(null, "3"), saved.Data.Stab);
+        Assert.Equal(new NormalResultEntry(null, "3"), saved.Data.Stab);
     }
 
     [Fact]

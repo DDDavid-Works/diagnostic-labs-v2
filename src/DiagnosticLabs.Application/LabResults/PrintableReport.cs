@@ -7,6 +7,8 @@ public enum ReportLayout
     Urinalysis,
     Hematology,
     TestResult,
+    ClinicalChemistry,
+    ClinicalChemistry2,
     AnnualPhysicalExam,
 }
 

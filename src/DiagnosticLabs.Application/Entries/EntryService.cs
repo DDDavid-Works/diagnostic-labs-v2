@@ -57,6 +57,11 @@ public static class EntryFields
     public static readonly EntryField ImmunologyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Immunology);
     public static readonly EntryField PregnancyResult = new("Result", EntryKind.MultiLine, ModuleIds.PregnancyTest);
     public static readonly EntryField PregnancyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.PregnancyTest);
+    public static readonly EntryField ClinicalChemistryRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalChemistry);
+    public static readonly EntryField ClinicalChemistry1Test = new("Test", EntryKind.SingleLine, ModuleIds.ClinicalChemistry1);
+    public static readonly EntryField ClinicalChemistry1Result = new("Result", EntryKind.MultiLine, ModuleIds.ClinicalChemistry1);
+    public static readonly EntryField ClinicalChemistry1Remarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalChemistry1);
+    public static readonly EntryField ClinicalChemistry2Remarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalChemistry2);
     public static readonly EntryField HematologyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Hematology);
     public static readonly EntryField UrinalysisRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Urinalysis);
 

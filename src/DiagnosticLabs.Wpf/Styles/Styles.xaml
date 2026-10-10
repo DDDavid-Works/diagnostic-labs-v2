@@ -77,7 +77,7 @@
               </ToggleButton.Template>
             </ToggleButton>
             <ContentPresenter x:Name="Shown" IsHitTestVisible="False" Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center"
-                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                               ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
 
             <!-- Editable: the text is typed into this box; only the arrow end opens the list -->

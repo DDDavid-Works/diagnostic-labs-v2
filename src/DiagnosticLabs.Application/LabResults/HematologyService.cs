@@ -1,35 +1,35 @@
-﻿using DiagnosticLabs.Application.Abstractions;
+using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Domain.Lab;
 using DiagnosticLabs.Domain.Lab.Reports;
 
 namespace DiagnosticLabs.Application.LabResults;
 
-/// <summary>One line of the hematology table: the normal values printed for it and the result.</summary>
-public sealed record HematologyEntry(string? NormalValue, string? Result);
+/// <summary>One line of a "test, normal values, result" table (Hematology, Clinical Chemistry): the normal values printed for it and the result.</summary>
+public sealed record NormalResultEntry(string? NormalValue, string? Result);
 
 /// <summary>The ten lines of the hematology table, in the order of the printed form.</summary>
 public sealed record HematologyData
 {
-    public HematologyEntry Hematocrit { get; init; } = new(null, null);
+    public NormalResultEntry Hematocrit { get; init; } = new(null, null);
 
-    public HematologyEntry Hemoglobin { get; init; } = new(null, null);
+    public NormalResultEntry Hemoglobin { get; init; } = new(null, null);
 
-    public HematologyEntry WBCCount { get; init; } = new(null, null);
+    public NormalResultEntry WBCCount { get; init; } = new(null, null);
 
-    public HematologyEntry Segmenters { get; init; } = new(null, null);
+    public NormalResultEntry Segmenters { get; init; } = new(null, null);
 
-    public HematologyEntry Lymphocytes { get; init; } = new(null, null);
+    public NormalResultEntry Lymphocytes { get; init; } = new(null, null);
 
-    public HematologyEntry Eosinophils { get; init; } = new(null, null);
+    public NormalResultEntry Eosinophils { get; init; } = new(null, null);
 
-    public HematologyEntry Monocytes { get; init; } = new(null, null);
+    public NormalResultEntry Monocytes { get; init; } = new(null, null);
 
-    public HematologyEntry Basophils { get; init; } = new(null, null);
+    public NormalResultEntry Basophils { get; init; } = new(null, null);
 
-    public HematologyEntry Stab { get; init; } = new(null, null);
+    public NormalResultEntry Stab { get; init; } = new(null, null);
 
-    public HematologyEntry PlateletCount { get; init; } = new(null, null);
+    public NormalResultEntry PlateletCount { get; init; } = new(null, null);
 }
 
 public sealed record HematologyDetails(long Id, LabResultHeader Header, HematologyData Data, byte[]? Photo, byte[] RowVersion) : IHasId;
@@ -59,7 +59,7 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
 
     protected override LabResultHeader HeaderOf(HematologyInput input) => input.Header;
 
-    private static IEnumerable<(string Name, HematologyEntry Entry)> Entries(HematologyData d) =>
+    private static IEnumerable<(string Name, NormalResultEntry Entry)> Entries(HematologyData d) =>
     [
         ("Hematocrit", d.Hematocrit), ("Hemoglobin", d.Hemoglobin), ("WBCCount", d.WBCCount), ("Segmenters", d.Segmenters),
         ("Lymphocytes", d.Lymphocytes), ("Eosinophils", d.Eosinophils), ("Monocytes", d.Monocytes), ("Basophils", d.Basophils),

@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.Entries;
@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 
 namespace DiagnosticLabs.Wpf.ViewModels;
 
-/// <summary>One line of the hematology table: what it is called, its normal values and its result.</summary>
-public sealed partial class HematologyRow(string name, string label, bool indented) : ObservableObject
+/// <summary>One line of a "test, normal values, result" table: what it is called, its normal values and its result.</summary>
+public sealed partial class NormalResultRow(string name, string label, bool indented) : ObservableObject
 {
     public string Name { get; } = name;
 
@@ -24,9 +24,9 @@ public sealed partial class HematologyRow(string name, string label, bool indent
     [ObservableProperty]
     private string? _result;
 
-    public HematologyEntry ToEntry() => new(NormalValue, Result);
+    public NormalResultEntry ToEntry() => new(NormalValue, Result);
 
-    public void Show(HematologyEntry entry)
+    public void Show(NormalResultEntry entry)
     {
         NormalValue = entry.NormalValue;
         Result = entry.Result;
@@ -43,8 +43,13 @@ public partial class HematologyViewModel(
     : LabResultViewModel<IHematologyService, HematologyDetails, HematologyInput>(
         runner, dialogs, user, entryBuilder, preview, ModuleIds.Hematology, "Hematology", logger)
 {
+    /// <summary>The first cell of the table's header.</summary>
+    public string TableTitle => "Complete Blood Count";
+
+    public bool ShowRemarks => true;
+
     /// <summary>The table of the form, in the order of the printed form.</summary>
-    public IReadOnlyList<HematologyRow> Rows { get; } =
+    public IReadOnlyList<NormalResultRow> Rows { get; } =
     [
         new("Hematocrit", "Hematocrit", false), new("Hemoglobin", "Hemoglobin", false), new("WBCCount", "White Blood Cell Count", false),
         new("Segmenters", "Segmenters", true), new("Lymphocytes", "Lymphocytes", true), new("Eosinophils", "Eosinophils", true),
@@ -54,7 +59,7 @@ public partial class HematologyViewModel(
 
     protected override EntryField RemarksField => EntryFields.HematologyRemarks;
 
-    private HematologyRow Row(string name) => Rows.First(r => r.Name == name);
+    private NormalResultRow Row(string name) => Rows.First(r => r.Name == name);
 
     protected override HematologyInput BuildInput() => new(
         Id,
@@ -93,7 +98,7 @@ public partial class HematologyViewModel(
     protected override void ResetDetail()
     {
         foreach (var row in Rows)
-            row.Show(new HematologyEntry(null, null));
+            row.Show(new NormalResultEntry(null, null));
     }
 
     // The normal values are what a new form starts with (the results are per person).
