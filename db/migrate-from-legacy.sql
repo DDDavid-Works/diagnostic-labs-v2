@@ -491,6 +491,15 @@ INSERT INTO [StoolFecalysisReports] ([LabReportId], [Color], [Consistency], [Res
 SELECT m.NewId, s.[Color], s.[Consistency], s.[Result]
 FROM [$(Legacy)].dbo.[StoolFecalyses] s JOIN #map m ON m.LegacyId = s.Id;
 
+-- The old Fecalysis form had one free-text Result; the new form has Remarks. Move that text across (into Remarks when the report has none, otherwise into Others).
+UPDATE r SET r.Remarks = s.Result
+FROM [LabReports] r JOIN [StoolFecalysisReports] s ON s.LabReportId = r.Id
+WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND LTRIM(RTRIM(ISNULL(r.Remarks, N''))) = N'';
+
+UPDATE s SET s.Others = s.Result
+FROM [StoolFecalysisReports] s JOIN [LabReports] r ON r.Id = s.LabReportId
+WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND r.Remarks <> s.Result AND s.Others = N'';
+
 -- Urinalyses -> LabReports (Urinalysis) + UrinalysisReports
 TRUNCATE TABLE #map;
 MERGE [LabReports] AS t

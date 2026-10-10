@@ -215,53 +215,127 @@ internal static class PageDrawing
     }
 }
 
-/// <summary>Stool/Fecalysis, copied from the client's printed form.</summary>
+/// <summary>
+/// Fecalysis. The header, title bar, patient block and Remarks box are the same as on the other forms; the findings box follows the client's
+/// hand-drawn form (macroscopic findings on the left, microscopic findings on the right). Three people sign, side by side, and the note
+/// that the report is validated and electronically signed goes under them.
+/// </summary>
 internal static class StoolFecalysisLayout
 {
     private const double Left = 51.3;
     private const double Right = 763.3;
+    private const double Divider = 407.3;
+    private const double Top = 246.5;
+    private const double Size = PageDrawing.Body;
 
     public static void Draw(Canvas canvas, PrintableReport report)
     {
         PageDrawing.PutHeader(canvas, report.Letterhead);
-        PageDrawing.PutTitleBar(canvas, report.Title);
+        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
         PageDrawing.PutPatientBlock(canvas, report);
 
-        // Color and Consistency share the top row of the result box, in four cells.
-        PageDrawing.PutLabel(canvas, "Color", 54.7, 260.3);
-        PageDrawing.PutText(canvas, report.ResultLines.FirstOrDefault(l => l.Label == "Color")?.Value, 218.0, 260.0, PageDrawing.Body, bold: false, width: 185);
-        PageDrawing.PutLabel(canvas, "Consistency", 412.0, 260.3);
-        PageDrawing.PutText(canvas, report.ResultLines.FirstOrDefault(l => l.Label == "Consistency")?.Value, 603.3, 260.0, PageDrawing.Body, bold: false, width: 158);
+        PageDrawing.PutText(canvas, "MACROSCOPIC FINDINGS", Left, 261.5, Size, bold: true, width: Divider - Left, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "MICROSCOPIC FINDINGS", Divider, 261.5, Size, bold: true, width: Right - Divider, alignment: TextAlignment.Center);
 
-        // The Result text grows the box when it is long, and everything below moves down with it.
-        PageDrawing.PutLabel(canvas, "Result", 54.7, 281.7);
-        var result = report.ResultTexts.FirstOrDefault(t => t.Label == "Result")?.Text;
-        var resultText = Wrapped(result, 54.7, 287.9, 700);
-        canvas.Children.Add(resultText);
-        var boxBottom = Math.Max(371.5, Canvas.GetTop(resultText) + resultText.DesiredSize.Height + 6);
+        // Six rows, 22 px apart; the last row of each half (Others, Ova/Parasite) holds text that may run on to more lines.
+        static double Row(int i) => 290.0 + (22.0 * i);
+        var bottom = Row(5) + 12.0;
 
-        PageDrawing.PutRect(canvas, Left, 246.5, Right - Left, boxBottom - 246.5, null, Brushes.Black, 1.33);
-        PageDrawing.PutRule(canvas, 51.7, 264.9, 711.0);
-        foreach (var x in new[] { 214.5, 407.0, 598.5 })
-            PageDrawing.PutVerticalRule(canvas, x, 246.5, 18.7);
+        Field(canvas, report, "Color", 56.0, 150.0, Row(0), 245);
+        Field(canvas, report, "Consistency", 56.0, 150.0, Row(1), 245);
+        PageDrawing.PutLabel(canvas, "Others", 56.0, Row(5));
+        var others = report.ResultTexts.FirstOrDefault(t => t.Label == "Others")?.Text;
+        bottom = Math.Max(bottom, Below(canvas, others, 110.0, Row(5), 285));
 
-        var shift = boxBottom - 371.5;
-        PageDrawing.PutLabel(canvas, "Remarks", 52.0, 395.7 + shift);
+        Field(canvas, report, "WBC", 420.0, 528.0, Row(0), 90, "/hpf");
+        Field(canvas, report, "RBC", 420.0, 528.0, Row(1), 90, "/hpf");
+        Field(canvas, report, "Bacteria", 420.0, 528.0, Row(2), 228);
+        Field(canvas, report, "Yeast Cells", 420.0, 528.0, Row(3), 228);
+        Field(canvas, report, "Fat Globules", 420.0, 528.0, Row(4), 228);
+        PageDrawing.PutLabel(canvas, "Ova/Parasite", 420.0, Row(5));
+        var ova = report.ResultLines.FirstOrDefault(l => l.Label == "Ova/Parasite")?.Value;
+        bottom = Math.Max(bottom, Below(canvas, ova, 528.0, Row(5), 228));
+
+        PageDrawing.PutRect(canvas, Left, Top, Right - Left, bottom - Top, null, Brushes.Black, 1.33);
+        PageDrawing.PutRule(canvas, Left, 268.5, Right - Left);
+        PageDrawing.PutVerticalRule(canvas, Divider, Top, bottom - Top);
+
+        // Remarks, as on the other forms: a box under the findings that grows with its text.
+        PageDrawing.PutLabel(canvas, "Remarks", 52.0, bottom + 24.2);
         var remarks = report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text;
-        var remarksText = Wrapped(remarks, 54.7, 404.2 + shift, 700);
+        var remarksText = PageDrawing.Text(remarks, Size, bold: false, width: 700);
+        Canvas.SetLeft(remarksText, 54.7);
+        Canvas.SetTop(remarksText, bottom + 32.7);
         canvas.Children.Add(remarksText);
-        var remarksBottom = Math.Max(443.3 + shift, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
-        PageDrawing.PutRect(canvas, 51.7, 401.2 + shift, 712.0, remarksBottom - (401.2 + shift), null, Brushes.Black, 1.4);
+        var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
+        PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
 
-        PageDrawing.PutFooter(canvas, report, remarksBottom);
+        PutSignatories(canvas, report, remarksBottom);
     }
 
-    private static TextBlock Wrapped(string? text, double x, double top, double width)
+    /// <summary>A label, its value on the same line and an optional unit printed after the value ("WBC: 2-4 /hpf").</summary>
+    private static void Field(Canvas canvas, PrintableReport report, string label, double labelX, double valueX, double baseline, double width, string? unit = null)
     {
-        var block = PageDrawing.Text(text, PageDrawing.Body, bold: false, width: width);
+        PageDrawing.PutLabel(canvas, label, labelX, baseline);
+        var value = report.ResultLines.FirstOrDefault(l => l.Label == label)?.Value;
+        PutFit(canvas, value, valueX, baseline, width);
+        if (unit is not null)
+            PageDrawing.PutText(canvas, unit, valueX + width + 8.0, baseline, Size, bold: false);
+    }
+
+    /// <summary>
+    /// Text whose first line sits on <paramref name="firstBaseline"/> and that runs on below it. (A wrapped text block reports the baseline of its
+    /// last line, so placing it by that would push long text up over the line above.)
+    /// </summary>
+    private static TextBlock PutFlow(Canvas canvas, string? text, double x, double firstBaseline, double width, double size, bool bold = false, bool center = false)
+    {
+        var block = PageDrawing.Text(text, size, bold, width, center ? TextAlignment.Center : TextAlignment.Left);
+        var oneLine = PageDrawing.Text("Ag", size, bold, width);
         Canvas.SetLeft(block, x);
-        Canvas.SetTop(block, top);
+        Canvas.SetTop(block, firstBaseline - oneLine.BaselineOffset);
+        canvas.Children.Add(block);
         return block;
+    }
+
+    /// <summary>A value that has to stay on its line: it is set smaller (down to 9 px) until it fits, and only wraps when even that is too wide.</summary>
+    private static void PutFit(Canvas canvas, string? text, double x, double baseline, double width, double size = Size, bool bold = false, bool center = false)
+    {
+        while (size > 9.0 && PageDrawing.Text(text, size, bold).DesiredSize.Width > width)
+            size -= 0.5;
+
+        PutFlow(canvas, text, x, baseline, width, size, bold, center);
+    }
+
+    /// <summary>Text that starts on <paramref name="baseline"/> and may run on below it; returns the page y a box around it must reach.</summary>
+    private static double Below(Canvas canvas, string? text, double x, double baseline, double width)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return 0;
+
+        var block = PutFlow(canvas, text, x, baseline, width, Size);
+        return Canvas.GetTop(block) + block.DesiredSize.Height + 8.0;
+    }
+
+    /// <summary>Three signatories in equal columns under <paramref name="top"/>, then the two lines of the electronic-document note under them.</summary>
+    private static void PutSignatories(Canvas canvas, PrintableReport report, double top)
+    {
+        const double gap = 10.0;
+        const double width = ((Right - Left) - (2 * gap)) / 3;
+        const double size = 11.7;
+        for (var i = 0; i < report.Signatories.Count && i < 3; i++)
+        {
+            var x = Left + (i * (width + gap));
+            PutFit(canvas, report.Signatories[i].Name, x, top + 48.7, width, size, bold: true, center: true);
+            PageDrawing.PutRule(canvas, x, top + 54.4, width);
+            PageDrawing.PutText(canvas, report.Signatories[i].Role.ToUpperInvariant(), x, top + 68.9, size, bold: false, width: width, alignment: TextAlignment.Center);
+        }
+
+        var y = top + 91.0;
+        foreach (var line in report.FooterNote.Split('\n'))
+        {
+            PageDrawing.PutText(canvas, line, 50.3, y, Size, bold: false, width: 712.4, alignment: TextAlignment.Center);
+            y += 17.0;
+        }
     }
 }
 

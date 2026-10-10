@@ -81,7 +81,10 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
     protected abstract IReadOnlyList<PrintText> ResultTexts(TDetail detail);
 
-    /// <summary>The two names printed under lines at the foot of the page (the medical technologist and the pathologist unless a form says otherwise).</summary>
+    /// <summary>The note under the signatories (a form may print its own wording; a line break starts a new line).</summary>
+    protected virtual string FooterText => FooterNote;
+
+    /// <summary>The names printed under lines at the foot of the page (the medical technologist and the pathologist unless a form says otherwise).</summary>
     protected virtual IReadOnlyList<PrintSignatory> Signatories(LabReport report, TDetail detail) =>
         [new PrintSignatory("Medical Technologist", report.MedicalTechnologist), new PrintSignatory("Pathologist", report.Pathologist)];
 
@@ -286,7 +289,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
             ResultLines(detail),
             texts,
             Signatories(report, detail),
-            FooterNote,
+            FooterText,
             PrintFields(report, detail)));
     }
 }

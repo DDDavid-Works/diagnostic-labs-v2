@@ -31,7 +31,15 @@ public static class EntryFields
     // Lists that belong to one result screen (the legacy screens kept them per module as well).
     public static readonly EntryField StoolColor = new("Color", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
     public static readonly EntryField StoolConsistency = new("Consistency", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    // The old single "Result" templates are not used by the new form; the entries stay in the database.
     public static readonly EntryField StoolResult = new("Result", EntryKind.MultiLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolOthers = new("Others", EntryKind.MultiLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolWbc = new("WBC", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolRbc = new("RBC", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolBacteria = new("Bacteria", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolYeastCells = new("Yeast Cells", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolFatGlobules = new("Fat Globules", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
+    public static readonly EntryField StoolOvaParasite = new("Ova/Parasite", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
     public static readonly EntryField StoolRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.StoolFecalysis);
 
     public static readonly EntryField UrinalysisColor = new("Color", EntryKind.SingleLine, ModuleIds.Urinalysis);

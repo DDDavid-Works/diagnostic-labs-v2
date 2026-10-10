@@ -563,40 +563,81 @@
         <StackPanel>
           <ctl:LabResultTop />
 
-          <!-- The result box of the paper form: Color and Consistency in four cells, then Result under a line -->
+          <!-- The findings box of the paper form: macroscopic findings on the left, microscopic findings on the right -->
           <Border Margin="0,6,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White">
             <Grid>
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
               </Grid.RowDefinitions>
-              <Grid Grid.Row="0">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3,14,3">
-                  <TextBlock Text="Color:" Style="{StaticResource PaperLabel}" />
-                </Border>
-                <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
-                  <ctl:ChoiceBox ItemsSource="{Binding Colors}" Text="{Binding Color}" EditCommand="{Binding EditColorListCommand}" />
-                </Border>
-                <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3,14,3">
-                  <TextBlock Text="Consistency:" Style="{StaticResource PaperLabel}" />
-                </Border>
-                <Border Grid.Column="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2">
-                  <ctl:ChoiceBox ItemsSource="{Binding Consistencies}" Text="{Binding Consistency}" EditCommand="{Binding EditConsistencyListCommand}" />
-                </Border>
-              </Grid>
-              <DockPanel Grid.Row="1" Margin="6,3,6,6">
-                <TextBlock DockPanel.Dock="Top" Text="Result:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
-                <ctl:TemplateTextBox Text="{Binding Result, UpdateSourceTrigger=PropertyChanged}" Options="{Binding ResultTemplates}" EditCommand="{Binding EditResultTemplatesCommand}" MinHeight="46" MaxHeight="90" />
-              </DockPanel>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+
+              <Border Grid.Row="0" Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                <TextBlock Text="MACROSCOPIC FINDINGS" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
+              </Border>
+              <Border Grid.Row="0" Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="6,4">
+                <TextBlock Text="MICROSCOPIC FINDINGS" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
+              </Border>
+
+              <!-- Left half: Color, Consistency, then Others (text) -->
+              <Border Grid.Row="1" Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,0" Padding="6,6,8,6">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <TextBlock Grid.Row="0" Text="Color:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="0" Grid.Column="1" Margin="0,2" ItemsSource="{Binding Color.Items}" Text="{Binding Color.Value}" EditCommand="{Binding Color.EditCommand}" />
+                  <TextBlock Grid.Row="1" Text="Consistency:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="1" Grid.Column="1" Margin="0,2" ItemsSource="{Binding Consistency.Items}" Text="{Binding Consistency.Value}" EditCommand="{Binding Consistency.EditCommand}" />
+                  <TextBlock Grid.Row="2" Text="Others:" Style="{StaticResource PaperLabel}" Margin="0,8,0,0" />
+                  <ctl:TemplateTextBox Grid.Row="2" Grid.Column="1" Margin="0,4,0,0" Text="{Binding Others, UpdateSourceTrigger=PropertyChanged}" Options="{Binding OthersTemplates}" EditCommand="{Binding EditOthersTemplatesCommand}" MinHeight="46" MaxHeight="90" />
+                </Grid>
+              </Border>
+
+              <!-- Right half: WBC and RBC are per high power field (/hpf is printed), then the rest -->
+              <Border Grid.Row="1" Grid.Column="1" Padding="8,6,6,6">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <TextBlock Grid.Row="0" Text="WBC:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="0" Grid.Column="1" Margin="0,2" ItemsSource="{Binding Wbc.Items}" Text="{Binding Wbc.Value}" EditCommand="{Binding Wbc.EditCommand}" />
+                  <TextBlock Grid.Row="0" Grid.Column="2" Text="/hpf" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="6,0,0,0" />
+                  <TextBlock Grid.Row="1" Text="RBC:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="1" Grid.Column="1" Margin="0,2" ItemsSource="{Binding Rbc.Items}" Text="{Binding Rbc.Value}" EditCommand="{Binding Rbc.EditCommand}" />
+                  <TextBlock Grid.Row="1" Grid.Column="2" Text="/hpf" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="6,0,0,0" />
+                  <TextBlock Grid.Row="2" Text="Bacteria:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,2" ItemsSource="{Binding Bacteria.Items}" Text="{Binding Bacteria.Value}" EditCommand="{Binding Bacteria.EditCommand}" />
+                  <TextBlock Grid.Row="3" Text="Yeast Cells:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,2" ItemsSource="{Binding YeastCells.Items}" Text="{Binding YeastCells.Value}" EditCommand="{Binding YeastCells.EditCommand}" />
+                  <TextBlock Grid.Row="4" Text="Fat Globules:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,2" ItemsSource="{Binding FatGlobules.Items}" Text="{Binding FatGlobules.Value}" EditCommand="{Binding FatGlobules.EditCommand}" />
+                  <TextBlock Grid.Row="5" Text="Ova/Parasite:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                  <ctl:ChoiceBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,2" ItemsSource="{Binding OvaParasite.Items}" Text="{Binding OvaParasite.Value}" EditCommand="{Binding OvaParasite.EditCommand}" />
+                </Grid>
+              </Border>
             </Grid>
           </Border>
-          <ctl:LabResultBottom />
+          <ctl:LabResultBottom ShowSecondTechnologist="True" />
         </StackPanel>
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>

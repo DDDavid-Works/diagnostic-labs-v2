@@ -230,6 +230,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     protected override string CurrentName => string.IsNullOrWhiteSpace(PatientName) ? "this result" : $"the result of {PatientName}";
 
+    // After a new result is saved the list is narrowed to it; the list searches by patient name, not by the wording used in messages.
+    protected override string SearchTextAfterCreate => PatientName;
+
     /// <summary>The list that holds the reusable Remarks texts of this screen.</summary>
     protected abstract EntryField RemarksField { get; }
 
@@ -889,83 +892,94 @@ public partial class StoolFecalysisViewModel(
     : LabResultViewModel<IStoolFecalysisService, StoolFecalysisDetails, StoolFecalysisInput>(
         runner, dialogs, user, entryBuilder, preview, ModuleIds.StoolFecalysis, "Stool/Fecalysis", logger)
 {
-    [ObservableProperty]
-    private string? _color;
+    // Macroscopic findings (left half of the form)
+    public ChoiceField Color { get; } = new("Color", "Color", EntryFields.StoolColor);
+
+    public ChoiceField Consistency { get; } = new("Consistency", "Consistency", EntryFields.StoolConsistency);
 
     [ObservableProperty]
-    private string? _consistency;
+    private string? _others;
 
+    public TemplateOptions OthersTemplates { get; } = new();
+
+    // Microscopic findings (right half); WBC and RBC are counted per high power field, which the form prints beside the box.
+    public ChoiceField Wbc { get; } = new("Wbc", "WBC", EntryFields.StoolWbc);
+
+    public ChoiceField Rbc { get; } = new("Rbc", "RBC", EntryFields.StoolRbc);
+
+    public ChoiceField Bacteria { get; } = new("Bacteria", "Bacteria", EntryFields.StoolBacteria);
+
+    public ChoiceField YeastCells { get; } = new("YeastCells", "Yeast Cells", EntryFields.StoolYeastCells);
+
+    public ChoiceField FatGlobules { get; } = new("FatGlobules", "Fat Globules", EntryFields.StoolFatGlobules);
+
+    public ChoiceField OvaParasite { get; } = new("OvaParasite", "Ova/Parasite", EntryFields.StoolOvaParasite);
+
+    /// <summary>The second medical technologist who signs the form (the first is on the shared header); both pick from the same list.</summary>
     [ObservableProperty]
-    private string? _result;
+    private string? _medicalTechnologist2;
 
-    public ObservableCollection<string> Colors { get; } = [];
-
-    public ObservableCollection<string> Consistencies { get; } = [];
-
-    public TemplateOptions ResultTemplates { get; } = new();
+    protected override IEnumerable<ChoiceField> ChoiceFields => [Color, Consistency, Wbc, Rbc, Bacteria, YeastCells, FatGlobules, OvaParasite];
 
     protected override EntryField RemarksField => EntryFields.StoolRemarks;
 
     protected override async Task OnInitializeAsync()
     {
         await base.OnInitializeAsync();
-        await LoadStoolListsAsync();
+        await LoadOthersTemplatesAsync();
     }
 
     protected override async Task ReloadChoicesAsync()
     {
         await base.ReloadChoicesAsync();
-        await LoadStoolListsAsync();
+        await LoadOthersTemplatesAsync();
     }
 
-    private async Task LoadStoolListsAsync()
+    private async Task LoadOthersTemplatesAsync()
     {
-        var colors = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.StoolColor));
-        var consistencies = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.StoolConsistency));
-        var results = await Call<IEntryService, Result<MultiLineEntryList>>(s => s.GetMultiLineAsync(EntryFields.StoolResult, ModuleId));
-
-        Replace(Colors, colors);
-        Replace(Consistencies, consistencies);
-        ResultTemplates.Apply ??= text => Result = text;
-        ResultTemplates.Replace(results.IsSuccess ? results.Value.Items : []);
+        var others = await Call<IEntryService, Result<MultiLineEntryList>>(s => s.GetMultiLineAsync(EntryFields.StoolOthers, ModuleId));
+        OthersTemplates.Apply ??= text => Others = text;
+        OthersTemplates.Replace(others.IsSuccess ? others.Value.Items : []);
     }
 
-    protected override StoolFecalysisInput BuildInput() => new(Id, BuildHeader(), Color, Consistency, Result, RowVersion);
+    protected override StoolFecalysisInput BuildInput() => new(
+        Id, BuildHeader(), Color.Value, Consistency.Value, Others, RowVersion,
+        Wbc: Wbc.Value, Rbc: Rbc.Value, Bacteria: Bacteria.Value, YeastCells: YeastCells.Value, FatGlobules: FatGlobules.Value,
+        OvaParasite: OvaParasite.Value, MedicalTechnologist2: MedicalTechnologist2);
 
     protected override void ShowFields(StoolFecalysisDetails d)
     {
         ShowHeader(d.Header, d.Photo);
-        Color = d.Color;
-        Consistency = d.Consistency;
-        Result = d.Result;
+        Color.Value = d.Color;
+        Consistency.Value = d.Consistency;
+        Others = d.Others;
+        Wbc.Value = d.Wbc;
+        Rbc.Value = d.Rbc;
+        Bacteria.Value = d.Bacteria;
+        YeastCells.Value = d.YeastCells;
+        FatGlobules.Value = d.FatGlobules;
+        OvaParasite.Value = d.OvaParasite;
+        MedicalTechnologist2 = d.MedicalTechnologist2;
         RowVersion = d.RowVersion;
     }
 
     protected override void ResetDetail()
     {
-        Color = null;
-        Consistency = null;
-        Result = null;
+        Others = null;
+        MedicalTechnologist2 = null;
     }
 
     protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
     [
-        new("Color", () => Color, v => Color = v),
-        new("Consistency", () => Consistency, v => Consistency = v),
-        new("Result", () => Result, v => Result = v),
+        new("Others", () => Others, v => Others = v),
+        new("MedicalTechnologist2", () => MedicalTechnologist2, v => MedicalTechnologist2 = v),
     ];
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IStoolFecalysisService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
-    private Task EditColorListAsync() => EditSingleLineAsync(EntryFields.StoolColor);
-
-    [RelayCommand(CanExecute = nameof(CanEditLists))]
-    private Task EditConsistencyListAsync() => EditSingleLineAsync(EntryFields.StoolConsistency);
-
-    [RelayCommand(CanExecute = nameof(CanEditLists))]
-    private Task EditResultTemplatesAsync() => EditMultiLineAsync(EntryFields.StoolResult);
+    private Task EditOthersTemplatesAsync() => EditMultiLineAsync(EntryFields.StoolOthers);
 }
 
 public partial class UrinalysisViewModel(

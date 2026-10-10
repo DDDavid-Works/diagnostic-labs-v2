@@ -14,6 +14,14 @@ internal sealed class StoolFecalysisReportConfiguration : IEntityTypeConfigurati
         builder.HasOne(e => e.LabReport).WithOne().HasForeignKey<StoolFecalysisReport>(e => e.LabReportId);
         builder.Property(e => e.Color).HasMaxLength(50);
         builder.Property(e => e.Consistency).HasMaxLength(50);
+        builder.Property(e => e.Others).HasMaxLength(500);
+        builder.Property(e => e.Wbc).HasMaxLength(50);
+        builder.Property(e => e.Rbc).HasMaxLength(50);
+        builder.Property(e => e.Bacteria).HasMaxLength(50);
+        builder.Property(e => e.YeastCells).HasMaxLength(50);
+        builder.Property(e => e.FatGlobules).HasMaxLength(50);
+        builder.Property(e => e.OvaParasite).HasMaxLength(100);
+        builder.Property(e => e.MedicalTechnologist2).HasMaxLength(100);
         builder.Property(e => e.Result).HasMaxLength(500);
     }
 }

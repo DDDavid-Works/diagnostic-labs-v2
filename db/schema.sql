@@ -1400,3 +1400,95 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [Bacteria] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [FatGlobules] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [MedicalTechnologist2] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [Others] nvarchar(500) NOT NULL DEFAULT N'';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [OvaParasite] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [Rbc] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [Wbc] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    ALTER TABLE [StoolFecalysisReports] ADD [YeastCells] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+
+                    UPDATE r SET r.Remarks = s.Result
+                    FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id
+                    WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND LTRIM(RTRIM(ISNULL(r.Remarks, N''))) = N'';
+
+                    UPDATE s SET s.Others = s.Result
+                    FROM StoolFecalysisReports s JOIN LabReports r ON r.Id = s.LabReportId
+                    WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND r.Remarks <> s.Result AND s.Others = N'';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010084446_FecalysisRework'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010084446_FecalysisRework', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

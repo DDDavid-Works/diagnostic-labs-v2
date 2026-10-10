@@ -321,6 +321,17 @@ foreach ($lab in $labs) {
     Emit "SELECT $($dv -join ', ')"
     Emit "FROM $legacy.[$src] s JOIN #map m ON m.LegacyId = s.Id;"
     Emit ''
+    if ($src -eq 'StoolFecalyses') {
+        Emit '-- The old Fecalysis form had one free-text Result; the new form has Remarks. Move that text across (into Remarks when the report has none, otherwise into Others).'
+        Emit 'UPDATE r SET r.Remarks = s.Result'
+        Emit 'FROM [LabReports] r JOIN [StoolFecalysisReports] s ON s.LabReportId = r.Id'
+        Emit 'WHERE LTRIM(RTRIM(ISNULL(s.Result, N''''))) <> N'''' AND LTRIM(RTRIM(ISNULL(r.Remarks, N''''))) = N'''';'
+        Emit ''
+        Emit 'UPDATE s SET s.Others = s.Result'
+        Emit 'FROM [StoolFecalysisReports] s JOIN [LabReports] r ON r.Id = s.LabReportId'
+        Emit 'WHERE LTRIM(RTRIM(ISNULL(s.Result, N''''))) <> N'''' AND r.Remarks <> s.Result AND s.Others = N'''';'
+        Emit ''
+    }
 }
 
 Emit @"
