@@ -33,6 +33,10 @@ public static class DependencyInjection
         services.AddScoped<IModuleDefaultsService, ModuleDefaultsService>();
         services.AddScoped<IStoolFecalysisService, StoolFecalysisService>();
         services.AddScoped<IUrinalysisService, UrinalysisService>();
+        services.AddScoped<IHematologyService, HematologyService>();
+        services.AddScoped<ISerologyService, SerologyService>();
+        services.AddScoped<IImmunologyService, ImmunologyService>();
+        services.AddScoped<IPregnancyTestService, PregnancyTestService>();
         services.AddScoped<IAnnualPhysicalExamService, AnnualPhysicalExamService>();
         services.AddScoped<IReferenceLookups, ReferenceLookups>();
         services.AddScoped<ICompanyService, CompanyService>();

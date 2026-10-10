@@ -30,6 +30,12 @@ public static class ReportDocumentBuilder
             case ReportLayout.Urinalysis:
                 UrinalysisLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.Hematology:
+                HematologyLayout.Draw(canvas, report);
+                break;
+            case ReportLayout.TestResult:
+                TestResultLayout.Draw(canvas, report);
+                break;
             case ReportLayout.AnnualPhysicalExam:
                 AnnualPhysicalExamLayout.Draw(canvas, report);
                 break;
@@ -48,6 +54,15 @@ public static class ReportDocumentBuilder
         document.Pages.Add(pageContent);
         return document;
     }
+}
+
+/// <summary>How big a page design sets its text and how heavy its lines are (the forms were printed from different report designs).</summary>
+internal readonly record struct PageStyle(double Body, double Company, double Line)
+{
+    public static readonly PageStyle Standard = new(13, 18, 1.33);
+
+    /// <summary>The Serology and Immunology forms come from a smaller, finer report design.</summary>
+    public static readonly PageStyle Fine = new(11.7, 16.3, 1.0);
 }
 
 /// <summary>Small drawing helpers shared by the page designs. All positions are page pixels; text is placed by its baseline, like the originals.</summary>
@@ -86,10 +101,10 @@ internal static class PageDrawing
     }
 
     /// <summary>A bold label followed by its colon, as printed ("Patient Code :"); returns where the colon ended.</summary>
-    public static void PutLabel(Canvas canvas, string label, double x, double baseline)
+    public static void PutLabel(Canvas canvas, string label, double x, double baseline, double size = Body)
     {
-        var text = PutText(canvas, label, x, baseline, Body, bold: true);
-        PutText(canvas, ":", x + text.DesiredSize.Width, baseline, Body, bold: true);
+        var text = PutText(canvas, label, x, baseline, size, bold: true);
+        PutText(canvas, ":", x + text.DesiredSize.Width, baseline, size, bold: true);
     }
 
     public static void PutRule(Canvas canvas, double x, double y, double width, double thickness = 1.33) =>
@@ -118,8 +133,9 @@ internal static class PageDrawing
         report.PatientLines.FirstOrDefault(l => l.Label == label)?.Value ?? string.Empty;
 
     /// <summary>The company block (logo, name, branch, address, contacts, e-mail) and the photo box, identical on every form.</summary>
-    public static void PutHeader(Canvas canvas, ReportLetterhead letterhead)
+    public static void PutHeader(Canvas canvas, ReportLetterhead letterhead, PageStyle? style = null)
     {
+        var s = style ?? PageStyle.Standard;
         if (ImageLoader.FromBytes(letterhead.Logo) is { } logo)
         {
             var image = new Image { Source = logo, Width = 92, Height = 100, Stretch = Stretch.Uniform };
@@ -128,54 +144,64 @@ internal static class PageDrawing
             canvas.Children.Add(image);
         }
 
-        PutText(canvas, letterhead.CompanyName, 150.6, 45.6, 18, bold: true);
-        PutText(canvas, letterhead.SubCompanyName, 150.6, 68.0, Body, bold: false);
-        PutText(canvas, letterhead.Address, 150.6, 86.0, Body, bold: false);
-        PutText(canvas, letterhead.ContactNumbers, 150.6, 103.6, Body, bold: false);
-        PutText(canvas, letterhead.Email, 150.6, 121.2, Body, bold: false);
+        PutText(canvas, letterhead.CompanyName, 150.6, 45.6, s.Company, bold: true);
+        PutText(canvas, letterhead.SubCompanyName, 150.6, 68.0, s.Body, bold: false);
+        PutText(canvas, letterhead.Address, 150.6, 86.0, s.Body, bold: false);
+        PutText(canvas, letterhead.ContactNumbers, 150.6, 103.6, s.Body, bold: false);
+        PutText(canvas, letterhead.Email, 150.6, 121.2, s.Body, bold: false);
 
         // The box at the top right is for a photo; it is printed empty, as on the old forms.
-        PutRect(canvas, 640.7, 30, 112.6, 109.7, null, Brushes.Black, 1.33);
+        PutRect(canvas, 640.7, 30, 112.6, 109.7, null, Brushes.Black, s.Line);
     }
 
     /// <summary>The yellow title bar with the form's name centred in it.</summary>
-    public static void PutTitleBar(Canvas canvas, string title)
+    public static void PutTitleBar(Canvas canvas, string title, PageStyle? style = null)
     {
+        var s = style ?? PageStyle.Standard;
         PutRect(canvas, 50.3, 214.9, 712.4, 21.4, new SolidColorBrush(Color.FromRgb(225, 225, 0)), Brushes.Black, 1.4);
-        PutText(canvas, title, 50.3, 230.0, Body, bold: true, width: 712.4, alignment: TextAlignment.Center);
+        PutText(canvas, title, 50.3, 230.0, s.Body, bold: true, width: 712.4, alignment: TextAlignment.Center);
+    }
+
+    /// <summary>Where the values of the patient block start. The labels are the same on every form; the printed forms each start the values a few pixels apart.</summary>
+    public readonly record struct PatientValues(double Left, double Age, double Sex, double Date)
+    {
+        public static readonly PatientValues Standard = new(185.3, 516.0, 692.0, 564.0);
     }
 
     /// <summary>The patient block: three rows, the first two split into a left and a right half, exactly as on the old forms.</summary>
-    public static void PutPatientBlock(Canvas canvas, PrintableReport report)
+    public static void PutPatientBlock(Canvas canvas, PrintableReport report, PatientValues? values = null, PageStyle? style = null)
     {
-        PutLabel(canvas, "Patient Code", 52.7, 161.7);
-        PutText(canvas, Line(report, "Patient Code"), 185.3, 161.3, Body, bold: false);
-        PutLabel(canvas, "Patient Name", 52.7, 182.3);
-        PutText(canvas, Line(report, "Patient Name"), 185.3, 182.0, Body, bold: false);
-        PutLabel(canvas, "Company/Physician", 52.7, 204.3);
-        PutText(canvas, Line(report, "Company/Physician"), 185.3, 204.0, Body, bold: false);
+        var v = values ?? PatientValues.Standard;
+        var size = (style ?? PageStyle.Standard).Body;
+        PutLabel(canvas, "Patient Code", 52.7, 161.7, size);
+        PutText(canvas, Line(report, "Patient Code"), v.Left, 161.3, size, bold: false);
+        PutLabel(canvas, "Patient Name", 52.7, 182.3, size);
+        PutText(canvas, Line(report, "Patient Name"), v.Left, 182.0, size, bold: false);
+        PutLabel(canvas, "Company/Physician", 52.7, 204.3, size);
+        PutText(canvas, Line(report, "Company/Physician"), v.Left, 204.0, size, bold: false);
 
-        PutLabel(canvas, "Age", 453.3, 161.7);
-        PutText(canvas, Line(report, "Age"), 516.0, 161.3, Body, bold: false);
-        PutLabel(canvas, "Sex", 629.3, 161.7);
-        PutText(canvas, Line(report, "Sex"), 692.0, 161.3, Body, bold: false);
-        PutLabel(canvas, "Date Requested", 453.3, 182.3);
-        PutText(canvas, Line(report, "Date Requested"), 564.0, 182.0, Body, bold: false);
+        PutLabel(canvas, "Age", 453.3, 161.7, size);
+        PutText(canvas, Line(report, "Age"), v.Age, 161.3, size, bold: false);
+        PutLabel(canvas, "Sex", 629.3, 161.7, size);
+        PutText(canvas, Line(report, "Sex"), v.Sex, 161.3, size, bold: false);
+        PutLabel(canvas, "Date Requested", 453.3, 182.3, size);
+        PutText(canvas, Line(report, "Date Requested"), v.Date, 182.0, size, bold: false);
     }
 
     /// <summary>The "computer generated" note and the two signatories, laid out below <paramref name="top"/> (the bottom of the last box).</summary>
-    public static void PutFooter(Canvas canvas, PrintableReport report, double top)
+    public static void PutFooter(Canvas canvas, PrintableReport report, double top, PageStyle? style = null)
     {
+        var s = style ?? PageStyle.Standard;
         var note = top + 21.0;
-        PutText(canvas, report.FooterNote, 50.3, note, Body, bold: false, width: 712.4, alignment: TextAlignment.Center);
+        PutText(canvas, report.FooterNote, 50.3, note, s.Body, bold: false, width: 712.4, alignment: TextAlignment.Center);
 
         double[] left = [89.0, 448.7];
         for (var i = 0; i < report.Signatories.Count && i < left.Length; i++)
         {
             const double width = 284.9;
-            PutText(canvas, report.Signatories[i].Name, left[i], note + 27.7, Body, bold: true, width: width, alignment: TextAlignment.Center);
-            PutRule(canvas, left[i], note + 33.4, width);
-            PutText(canvas, report.Signatories[i].Role, left[i], note + 47.9, Body, bold: false, width: width, alignment: TextAlignment.Center);
+            PutText(canvas, report.Signatories[i].Name, left[i], note + 27.7, s.Body, bold: true, width: width, alignment: TextAlignment.Center);
+            PutRule(canvas, left[i], note + 33.4, width, s.Line);
+            PutText(canvas, report.Signatories[i].Role, left[i], note + 47.9, s.Body, bold: false, width: width, alignment: TextAlignment.Center);
         }
     }
 }
@@ -239,64 +265,183 @@ internal static class UrinalysisLayout
     private const double Left = 51.3;
     private const double Right = 763.3;
     private const double Top = 246.5;
-    private const double RowHeight = 19.7;
-    private const double Baseline = 14.0;
 
     private static readonly string[] LeftLabels = ["Color", "Appearance", "Reaction", "SP. Gravity", "Albumin", "Sugar", "Pus Cells", "Red Cells"];
     private static readonly string[] RightLabels = ["Mucus Threads", "Epithelial Cells", "Amorphous Urates / PO4", "Bacteria", "Casts", "Crystals"];
+
+    // The rows of the printed form are not evenly spaced, so each rule and baseline is placed as measured.
+    private static readonly double[] Rules = [264.9, 286.0, 306.0, 326.0, 345.0, 364.7, 383.3, 403.3];
+    private static readonly double[] LabelBaselines = [260.3, 281.0, 301.7, 321.0, 341.0, 360.3, 379.7, 399.0];
+    private static readonly double[] LeftValueBaselines = [260.6, 280.5, 301.2, 320.5, 340.5, 359.8, 379.2, 398.5];
+    private static readonly double[] RightValueBaselines = [260.0, 280.6, 301.3, 320.6, 340.6, 360.0];
+    private const double TableBottom = 404.0;
+
+    private static readonly PageDrawing.PatientValues PatientValues = new(188.7, 516.7, 694.0, 564.7);
 
     public static void Draw(Canvas canvas, PrintableReport report)
     {
         PageDrawing.PutHeader(canvas, report.Letterhead);
         PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
-        PageDrawing.PutPatientBlock(canvas, report);
+        PageDrawing.PutPatientBlock(canvas, report, PatientValues);
 
         string? ValueOf(string label) => report.ResultLines.FirstOrDefault(l => l.Label == label)?.Value;
 
         for (var row = 0; row < LeftLabels.Length; row++)
         {
-            var baseline = Top + (row * RowHeight) + Baseline;
-            PageDrawing.PutLabel(canvas, LeftLabels[row], 54.7, baseline);
-            PageDrawing.PutText(canvas, ValueOf(LeftLabels[row]), 218.0, baseline - 0.3, PageDrawing.Body, bold: false, width: 185);
+            PageDrawing.PutLabel(canvas, LeftLabels[row], 54.7, LabelBaselines[row]);
+            PageDrawing.PutText(canvas, ValueOf(LeftLabels[row]), 220.0, LeftValueBaselines[row], PageDrawing.Body, bold: false, width: 185);
 
             if (row < RightLabels.Length)
             {
-                PageDrawing.PutLabel(canvas, RightLabels[row], 412.0, baseline);
-                PageDrawing.PutText(canvas, ValueOf(RightLabels[row]), 603.3, baseline - 0.3, PageDrawing.Body, bold: false, width: 158);
+                PageDrawing.PutLabel(canvas, RightLabels[row], 412.0, LabelBaselines[row]);
+                PageDrawing.PutText(canvas, ValueOf(RightLabels[row]), 603.3, RightValueBaselines[row], PageDrawing.Body, bold: false, width: 158);
             }
         }
 
         // "Others": the label and its text share the first line, as on the old form; a long text grows the box.
-        var tableBottom = Top + (LeftLabels.Length * RowHeight);
-        PageDrawing.PutLabel(canvas, "Others", 54.7, tableBottom + 14.6);
+        PageDrawing.PutLabel(canvas, "Others", 54.7, 419.3);
         var others = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Others")?.Text, PageDrawing.Body, bold: false, width: 578);
-        var othersTop = tableBottom + 14.6 - others.BaselineOffset;
-        Canvas.SetLeft(others, 183.3);
+        var othersTop = 419.0 - others.BaselineOffset;
+        Canvas.SetLeft(others, 183.0);
         Canvas.SetTop(others, othersTop);
         canvas.Children.Add(others);
-        var othersBottom = Math.Max(tableBottom + 47.7, othersTop + others.DesiredSize.Height + 6);
+        var othersBottom = Math.Max(452.3, othersTop + others.DesiredSize.Height + 6);
 
         PageDrawing.PutRect(canvas, Left, Top, Right - Left, othersBottom - Top, null, Brushes.Black, 1.33);
-        for (var line = 1; line <= LeftLabels.Length; line++)
-            PageDrawing.PutRule(canvas, 51.7, Top + (line * RowHeight) - 0.66, 711.0);
+        foreach (var y in Rules)
+            PageDrawing.PutRule(canvas, 51.7, y, 711.0);
 
         foreach (var x in new[] { 214.5, 407.0, 598.5 })
-            PageDrawing.PutVerticalRule(canvas, x, Top, tableBottom - Top);
+            PageDrawing.PutVerticalRule(canvas, x, Top, TableBottom - Top);
 
         // Remarks
-        PageDrawing.PutLabel(canvas, "Remarks", 52.0, othersBottom + 15.2);
-        var remarksTop = othersBottom + 20.2;
+        PageDrawing.PutLabel(canvas, "Remarks", 52.0, othersBottom + 15.4);
+        var remarksTop = othersBottom + 20.9;
         var remarks = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, PageDrawing.Body, bold: false, width: 700);
-        Canvas.SetLeft(remarks, 54.7);
-        Canvas.SetTop(remarks, remarksTop + 3.0);
+        Canvas.SetLeft(remarks, 54.5);
+        Canvas.SetTop(remarks, remarksTop + 4.1);
         canvas.Children.Add(remarks);
-        var remarksBottom = Math.Max(remarksTop + 42.9, remarksTop + 3.0 + remarks.DesiredSize.Height + 6);
+        var remarksBottom = Math.Max(remarksTop + 42.1, remarksTop + 4.1 + remarks.DesiredSize.Height + 6);
         PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, 1.33);
 
         PageDrawing.PutFooter(canvas, report, remarksBottom);
     }
 }
+/// <summary>
+/// Serology and Immunology share one page design: a box whose first row names the test, then the Result text, then the Remarks box.
+/// It comes from a finer report design than the other forms (smaller type, 1 pixel lines). Positions are measured from the printed form.
+/// </summary>
+internal static class TestResultLayout
+{
+    private static readonly PageStyle Style = PageStyle.Fine;
+    private static readonly PageDrawing.PatientValues PatientValues = new(188.7, 516.0, 692.7, 566.0);
 
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        PageDrawing.PutHeader(canvas, report.Letterhead, Style);
+        PageDrawing.PutTitleBar(canvas, report.Title, Style);
+        PageDrawing.PutPatientBlock(canvas, report, PatientValues, Style);
+
+        var testLine = report.ResultLines.FirstOrDefault(l => l.Label == "Test");
+        var test = testLine?.Value;
+        var size = Style.Body;
+
+        // Without a test row (the pregnancy test) the Result starts in the first row and the box is one row shorter.
+        var up = testLine is null ? 19.0 : 0.0;
+
+        // The Result text grows the box when it is long, and everything below it moves down.
+        var result = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Result")?.Text, size, bold: false, width: 700);
+        var resultTop = 299.9 - up - result.BaselineOffset;
+        Canvas.SetLeft(result, 54.7);
+        Canvas.SetTop(result, resultTop);
+        canvas.Children.Add(result);
+        var boxBottom = Math.Max(371.5 - up, resultTop + result.DesiredSize.Height + 6);
+
+        PageDrawing.PutRect(canvas, 51.3, 246.5, 712.0, boxBottom - 246.5, null, Brushes.Black, Style.Line);
+        if (testLine is not null)
+        {
+            PageDrawing.PutRule(canvas, 51.7, 265.0, 711.0, Style.Line);
+            PageDrawing.PutText(canvas, test, 47.0, 260.6, size, bold: false, width: 712.6, alignment: TextAlignment.Center);
+        }
+
+        PageDrawing.PutLabel(canvas, "Result", 54.7, 281.7 - up, size);
+
+        var shift = boxBottom - 371.5;
+        PageDrawing.PutLabel(canvas, "Remarks", 52.0, 395.7 + shift, size);
+        var remarksTop = 401.2 + shift;
+        var remarks = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, size, bold: false, width: 700);
+        var remarksTextTop = remarksTop + 15.4 - remarks.BaselineOffset;
+        Canvas.SetLeft(remarks, 55.3);
+        Canvas.SetTop(remarks, remarksTextTop);
+        canvas.Children.Add(remarks);
+        var remarksBottom = Math.Max(remarksTop + 42.1, remarksTextTop + remarks.DesiredSize.Height + 6);
+        PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, Style.Line);
+
+        PageDrawing.PutFooter(canvas, report, remarksBottom, Style);
+    }
+}
+/// <summary>
+/// Hematology: a table of ten lines in three columns (test, normal values, result; the last two are centred), then the Remarks box.
+/// Positions are measured from the client's printed form; the lines are not evenly spaced there, so each is placed on its own.
+/// </summary>
+internal static class HematologyLayout
+{
+    private const double Left = 51.3;
+    private const double Right = 763.3;
+    private const double Top = 246.5;
+    private const double Bottom = 463.0;
+
+    // Where each row's rule is drawn, and where its text sits (from the printed form).
+    private static readonly double[] Rules = [265.0, 286.0, 306.0, 326.0, 345.0, 364.7, 383.3, 403.3, 422.3, 442.3];
+    private static readonly double[] LabelBaselines = [281.0, 301.9, 321.3, 341.0, 360.8, 379.7, 399.3, 419.3, 438.5, 457.9];
+    private static readonly double[] ValueBaselines = [280.6, 301.5, 321.0, 340.6, 360.4, 379.3, 399.0, 419.0, 438.2, 457.5];
+    private static readonly double[] LabelX = [54.7, 55.0, 54.5, 82.7, 82.5, 82.7, 82.5, 83.0, 82.7, 54.5];
+
+    private static readonly PageDrawing.PatientValues PatientValues = new(191.5, 516.0, 688.5, 563.0);
+
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        PageDrawing.PutHeader(canvas, report.Letterhead);
+        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
+        PageDrawing.PutPatientBlock(canvas, report, PatientValues);
+
+        PageDrawing.PutRect(canvas, Left, Top, Right - Left, Bottom - Top, null, Brushes.Black, 1.33);
+        foreach (var y in Rules)
+            PageDrawing.PutRule(canvas, 51.7, y, 711.0);
+
+        foreach (var x in new[] { 261.2, 530.5 })
+            PageDrawing.PutVerticalRule(canvas, x, Top, Bottom - Top - 0.6);
+
+        const double normalLeft = 262.5, normalWidth = 268.0, resultLeft = 531.9, resultWidth = 231.4;
+        PageDrawing.PutText(canvas, "Complete Blood Count", 54.0, 260.9, PageDrawing.Body, bold: true);
+        PageDrawing.PutText(canvas, "Normal Values", normalLeft, 260.3, PageDrawing.Body, bold: true, width: normalWidth, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "Result", resultLeft, 260.3, PageDrawing.Body, bold: true, width: resultWidth, alignment: TextAlignment.Center);
+
+        var fields = report.Fields ?? new Dictionary<string, string?>();
+        for (var i = 0; i < HematologyService.Tests.Length; i++)
+        {
+            var (name, label) = HematologyService.Tests[i];
+            PageDrawing.PutText(canvas, label, LabelX[i], LabelBaselines[i], PageDrawing.Body, bold: true);
+
+            fields.TryGetValue(name + "NormalValue", out var normal);
+            fields.TryGetValue(name + "Result", out var result);
+            PageDrawing.PutText(canvas, normal, normalLeft, ValueBaselines[i], PageDrawing.Body, bold: false, width: normalWidth, alignment: TextAlignment.Center);
+            PageDrawing.PutText(canvas, result, resultLeft, ValueBaselines[i], PageDrawing.Body, bold: false, width: resultWidth, alignment: TextAlignment.Center);
+        }
+
+        // Remarks: a long text grows the box and everything below it.
+        PageDrawing.PutLabel(canvas, "Remarks", 51.5, 482.3);
+        const double remarksTop = 487.9;
+        var remarks = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, PageDrawing.Body, bold: false, width: 700);
+        Canvas.SetLeft(remarks, 54.5);
+        Canvas.SetTop(remarks, remarksTop + 4.1);
+        canvas.Children.Add(remarks);
+        var remarksBottom = Math.Max(remarksTop + 42.1, remarksTop + 4.1 + remarks.DesiredSize.Height + 6);
+        PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, 1.33);
+
+        PageDrawing.PutFooter(canvas, report, remarksBottom);
+    }
+}
 /// <summary>
 /// The annual physical exam ("Medical Examination Report"). Unlike the other forms it has a centred letterhead, no photo box or title bar,
 /// and is built from boxed sections in Calibri. Every position, line and size is measured from the client's printed form (one Letter page).

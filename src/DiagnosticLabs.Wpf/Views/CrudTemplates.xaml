@@ -681,6 +681,186 @@
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>
   </DataTemplate>
+  <!-- ===================================================== Serology and Immunology (one form: the test, its result, remarks) -->
+  <DataTemplate x:Key="TestResultForm">
+    <ctl:CrudLayout FormMaxWidth="940">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the values every new result starts with (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <Border Margin="0,6,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White">
+            <StackPanel>
+              <!-- The test, then the result -->
+              <Grid Margin="6,5,6,5" Visibility="{Binding HasTest, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Test:" Style="{StaticResource PaperLabel}" Margin="0,0,10,0" />
+                <ctl:ChoiceBox Grid.Column="1" ItemsSource="{Binding Test.Items}" Text="{Binding Test.Value}" EditCommand="{Binding Test.EditCommand}" />
+              </Grid>
+              <Border BorderBrush="{StaticResource PaperLineBrush}" Padding="6,4,6,6">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Setter Property="BorderThickness" Value="0,1,0,0" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding HasTest}" Value="False">
+                        <Setter Property="BorderThickness" Value="0" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top" Text="Result:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
+                  <ctl:TemplateTextBox Text="{Binding Result, UpdateSourceTrigger=PropertyChanged}" Options="{Binding ResultTemplates}" EditCommand="{Binding EditResultTemplatesCommand}" MinHeight="50" MaxHeight="110" />
+                </DockPanel>
+              </Border>
+            </StackPanel>
+          </Border>
+
+          <ctl:LabResultBottom />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:SerologyViewModel}">
+    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TestResultForm}" />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:ImmunologyViewModel}">
+    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TestResultForm}" />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:PregnancyTestViewModel}">
+    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TestResultForm}" />
+  </DataTemplate>  <!-- ===================================================== Hematology -->
+  <DataTemplate DataType="{x:Type vm:HematologyViewModel}">
+    <ctl:CrudLayout FormMaxWidth="940">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the values every new result starts with, such as the normal values (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <!-- The table of the paper form: test, normal values (what a new form starts with), result -->
+          <Border Margin="0,6,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="240" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                  <TextBlock Text="Complete Blood Count" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
+                </Border>
+                <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                  <TextBlock Text="Normal Values" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
+                </Border>
+                <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                  <TextBlock Text="Result" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
+                </Border>
+              </Grid>
+              <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
+                        <TextBlock Text="{Binding Label}">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource PaperLabel}">
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding Indented}" Value="True">
+                                  <Setter Property="Margin" Value="22,0,6,0" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                      </Border>
+                      <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
+                        <TextBox Text="{Binding NormalValue, UpdateSourceTrigger=PropertyChanged}" />
+                      </Border>
+                      <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
+                        <TextBox Text="{Binding Result, UpdateSourceTrigger=PropertyChanged}" />
+                      </Border>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
+          <ctl:LabResultBottom />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
   <!-- ===================================================== Annual Physical Exam -->
   <DataTemplate DataType="{x:Type vm:AnnualPhysicalExamViewModel}">
     <DataTemplate.Resources>

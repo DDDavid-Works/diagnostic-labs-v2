@@ -5,6 +5,8 @@ public enum ReportLayout
 {
     StoolFecalysis,
     Urinalysis,
+    Hematology,
+    TestResult,
     AnnualPhysicalExam,
 }
 

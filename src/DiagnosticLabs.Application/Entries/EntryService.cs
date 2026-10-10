@@ -49,6 +49,15 @@ public static class EntryFields
     public static readonly EntryField UrinalysisCasts = new("Casts", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisCrystals = new("Crystals", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisOthers = new("Others", EntryKind.MultiLine, ModuleIds.Urinalysis);
+    public static readonly EntryField SerologyTest = new("Test", EntryKind.SingleLine, ModuleIds.Serology);
+    public static readonly EntryField SerologyResult = new("Result", EntryKind.MultiLine, ModuleIds.Serology);
+    public static readonly EntryField SerologyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Serology);
+    public static readonly EntryField ImmunologyTest = new("Test", EntryKind.SingleLine, ModuleIds.Immunology);
+    public static readonly EntryField ImmunologyResult = new("Result", EntryKind.MultiLine, ModuleIds.Immunology);
+    public static readonly EntryField ImmunologyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Immunology);
+    public static readonly EntryField PregnancyResult = new("Result", EntryKind.MultiLine, ModuleIds.PregnancyTest);
+    public static readonly EntryField PregnancyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.PregnancyTest);
+    public static readonly EntryField HematologyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Hematology);
     public static readonly EntryField UrinalysisRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Urinalysis);
 
     // Annual Physical Exam
