@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ILabRegistrationLookup, LabRegistrationLookup>();
         services.AddScoped<IModuleDefaultsService, ModuleDefaultsService>();
         services.AddScoped<IStoolFecalysisService, StoolFecalysisService>();
+        services.AddScoped<IUrinalysisService, UrinalysisService>();
         services.AddScoped<IReferenceLookups, ReferenceLookups>();
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<IDepartmentService, DepartmentService>();

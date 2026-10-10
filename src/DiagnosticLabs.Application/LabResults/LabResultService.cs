@@ -22,7 +22,8 @@ public sealed record LabResultHeader(
     string? Remarks,
     string? MedicalTechnologist,
     string? Pathologist,
-    bool ConfirmedDuplicate = false);
+    bool ConfirmedDuplicate = false,
+    long? PatientId = null);
 
 public sealed record LabResultListItem(
     long Id, DateOnly Date, string PatientName, string? RegistrationCode, string? CompanyOrPhysician) : IHasId;
@@ -62,6 +63,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
     private readonly int _module = moduleId;
     private readonly ConditionalWeakTable<LabReport, TDetail> _details = [];
     private Domain.Registrations.PatientRegistration? _registration;
+    private Domain.Patients.Patient? _patient;
 
     protected abstract LabResultHeader HeaderOf(TInput input);
 
@@ -119,7 +121,8 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         var detail = _details.TryGetValue(r, out var loaded) ? loaded : new TDetail();
         var header = new LabResultHeader(
             r.PatientRegistrationId, r.PatientRegistration?.RegistrationCode, r.PatientCode, r.PatientName, r.Age, r.Sex,
-            r.CompanyOrPhysician, LocalTime.ToLocalDate(r.DateRequested), r.Remarks, r.MedicalTechnologist, r.Pathologist);
+            r.CompanyOrPhysician, LocalTime.ToLocalDate(r.DateRequested), r.Remarks, r.MedicalTechnologist, r.Pathologist,
+            PatientId: r.PatientId);
         return BuildDetails(r, header, detail);
     }
 
@@ -167,11 +170,22 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
     {
         var header = HeaderOf(input);
         _registration = null;
-        if (header.RegistrationId is not { } registrationId)
-            return [];
+        _patient = null;
 
-        _registration = await Db.PatientRegistrations.Include(r => r.Patient).FirstOrDefaultAsync(r => r.Id == registrationId, cancellationToken);
-        return _registration is null ? ["The registration no longer exists."] : [];
+        if (header.RegistrationId is { } registrationId)
+        {
+            _registration = await Db.PatientRegistrations.Include(r => r.Patient).FirstOrDefaultAsync(r => r.Id == registrationId, cancellationToken);
+            return _registration is null ? ["The registration no longer exists."] : [];
+        }
+
+        // Without a registration a result can still be linked to a patient picked from the patient list.
+        if (header.PatientId is { } patientId)
+        {
+            _patient = await Db.Patients.FirstOrDefaultAsync(p => p.Id == patientId, cancellationToken);
+            return _patient is null ? ["The patient no longer exists."] : [];
+        }
+
+        return [];
     }
 
     /// <summary>
@@ -208,7 +222,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
         report.PatientRegistration = _registration;
         report.PatientRegistrationId = _registration?.Id;
-        report.PatientId = _registration?.PatientId;
+        report.PatientId = _registration?.PatientId ?? _patient?.Id;
         report.PatientCode = Clean(header.PatientCode) ?? _registration?.Patient.PatientCode ?? string.Empty;
         report.PatientName = header.PatientName!.Trim();
         report.Age = Clean(header.Age);

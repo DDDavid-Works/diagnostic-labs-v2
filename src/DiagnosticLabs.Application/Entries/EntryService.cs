@@ -33,6 +33,23 @@ public static class EntryFields
     public static readonly EntryField StoolConsistency = new("Consistency", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
     public static readonly EntryField StoolResult = new("Result", EntryKind.MultiLine, ModuleIds.StoolFecalysis);
     public static readonly EntryField StoolRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.StoolFecalysis);
+
+    public static readonly EntryField UrinalysisColor = new("Color", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisAppearance = new("Appearance", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisReaction = new("Reaction", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisSpGravity = new("SP. Gravity", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisAlbumin = new("Albumin", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisSugar = new("Sugar", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisPusCells = new("Pus Cells", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisRedCells = new("Red Cells", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisMucusThreads = new("Mucus Threads", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisEpithelialCells = new("Epithelial Cells", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisAmorphousUrates = new("Amorphous Urates / PO4", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisBacteria = new("Bacteria", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisCasts = new("Casts", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisCrystals = new("Crystals", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisOthers = new("Others", EntryKind.MultiLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Urinalysis);
 }
 
 public sealed record SingleLineEntry(long Id, string Value);

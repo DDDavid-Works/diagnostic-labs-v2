@@ -582,6 +582,111 @@
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>
   </DataTemplate>
+  <!-- ===================================================== Urinalysis -->
+  <DataTemplate DataType="{x:Type vm:UrinalysisViewModel}">
+    <ctl:CrudLayout FormMaxWidth="940">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the values every new result starts with (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <!-- The result table of the paper form: two columns of label and value, then the Others box -->
+          <Border Margin="0,6,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White">
+            <StackPanel>
+              <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
+                        <TextBlock Text="{Binding Left.Label, StringFormat='{}{0}:'}" Style="{StaticResource PaperLabel}" />
+                      </Border>
+                      <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
+                        <ctl:ChoiceBox ItemsSource="{Binding Left.Items}" Text="{Binding Left.Value}" EditCommand="{Binding Left.EditCommand}" />
+                      </Border>
+                      <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
+                        <TextBlock Text="{Binding Right.Label, StringFormat='{}{0}:'}">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource PaperLabel}">
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding Right}" Value="{x:Null}">
+                                  <Setter Property="Visibility" Value="Hidden" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                      </Border>
+                      <Border Grid.Column="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2">
+                        <ctl:ChoiceBox ItemsSource="{Binding Right.Items}" Text="{Binding Right.Value}" EditCommand="{Binding Right.EditCommand}">
+                          <ctl:ChoiceBox.Style>
+                            <Style TargetType="ctl:ChoiceBox">
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding Right}" Value="{x:Null}">
+                                  <Setter Property="Visibility" Value="Hidden" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </ctl:ChoiceBox.Style>
+                        </ctl:ChoiceBox>
+                      </Border>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <DockPanel Margin="6,4,6,6">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                  <ctl:TemplatePicker DockPanel.Dock="Right" Width="230" Options="{Binding OthersTemplates}" EditCommand="{Binding EditOthersTemplatesCommand}" />
+                  <TextBlock Text="Others:" Style="{StaticResource PaperLabel}" />
+                </DockPanel>
+                <TextBox Text="{Binding Others, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="46" MaxHeight="90" VerticalScrollBarVisibility="Auto" />
+              </DockPanel>
+            </StackPanel>
+          </Border>
+
+          <ctl:LabResultBottom />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
   <!-- ===================================================== Companies -->
   <DataTemplate DataType="{x:Type vm:CompaniesViewModel}">
     <ctl:CrudLayout>

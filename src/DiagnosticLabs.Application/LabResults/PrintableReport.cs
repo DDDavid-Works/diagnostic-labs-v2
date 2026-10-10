@@ -4,6 +4,7 @@ namespace DiagnosticLabs.Application.LabResults;
 public enum ReportLayout
 {
     StoolFecalysis,
+    Urinalysis,
 }
 
 /// <summary>The company block at the top of a printout, from Company Setup.</summary>

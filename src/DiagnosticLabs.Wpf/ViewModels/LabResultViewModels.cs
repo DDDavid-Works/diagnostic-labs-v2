@@ -7,10 +7,34 @@ using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Application.LabResults;
 using DiagnosticLabs.Application.Lookups;
+using DiagnosticLabs.Application.Registrations;
 using DiagnosticLabs.Wpf.Services;
 using Microsoft.Extensions.Logging;
 
 namespace DiagnosticLabs.Wpf.ViewModels;
+
+/// <summary>A result field that is picked from a maintained list (or typed): its value, its list and the "Edit entries..." command.</summary>
+public sealed partial class ChoiceField(string name, string label, EntryField entry) : ObservableObject
+{
+    /// <summary>The key used for saved defaults.</summary>
+    public string Name { get; } = name;
+
+    /// <summary>What the printed form calls it.</summary>
+    public string Label { get; } = label;
+
+    public EntryField Entry { get; } = entry;
+
+    public ObservableCollection<string> Items { get; } = [];
+
+    [ObservableProperty]
+    private string? _value;
+
+    [ObservableProperty]
+    private System.Windows.Input.ICommand? _editCommand;
+}
+
+/// <summary>One row of a two-column result table; the right side may be empty.</summary>
+public sealed record ChoiceRow(ChoiceField Left, ChoiceField? Right);
 
 /// <summary>One field of a result form that can have a default value: its name in the saved defaults and how to read and set it.</summary>
 public sealed class DefaultField(string name, Func<string?> get, Action<string?> set)
@@ -91,11 +115,16 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     private string _findText = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasRegistration), nameof(IsPatientLocked), nameof(RegistrationCaption))]
+    [NotifyPropertyChangedFor(nameof(HasRegistration), nameof(IsPatientLocked), nameof(RegistrationCaption), nameof(CanLookUpPatient))]
     private ResultRegistration? _registration;
 
     [ObservableProperty]
     private ResultRegistrationMatch? _selectedSuggestion;
+
+    // A result without a registration can still be tied to a patient picked from the patient list.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPatient), nameof(IsPatientLocked), nameof(CanLookUpPatient))]
+    private long? _patientId;
 
     // ----- the patient block (a snapshot saved with the result) -----
     [ObservableProperty]
@@ -158,12 +187,21 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     // Created up front so the screen can bind to it before the lists have loaded.
     public TemplateOptions RemarksTemplates { get; } = new();
 
+    public ObservableCollection<PatientSuggestion> PatientSuggestions { get; } = [];
+
+    public bool HasPatientSuggestions => PatientSuggestions.Count > 0;
+
     public bool HasSuggestions => Suggestions.Count > 0;
+
+    public bool HasPatient => PatientId is not null;
+
+    /// <summary>Patients can be looked up only while no registration is loaded (a registration brings its own patient) and none is picked yet.</summary>
+    public bool CanLookUpPatient => !HasRegistration && !HasPatient;
 
     public bool HasRegistration => Registration is not null;
 
-    /// <summary>With a registration the patient code and name come from it and stay as they are; a stray result is typed in.</summary>
-    public bool IsPatientLocked => HasRegistration;
+    /// <summary>With a registration (or a picked patient) the patient code and name come from there and stay as they are; a stray result is typed in.</summary>
+    public bool IsPatientLocked => HasRegistration || HasPatient;
 
     public string RegistrationCaption => Registration is null
         ? string.Empty
@@ -200,11 +238,15 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     protected abstract void ResetDetail();
 
+    /// <summary>The list-picked fields of this screen. They load their lists, reset, take defaults and get their "Edit entries..." command from here.</summary>
+    protected virtual IEnumerable<ChoiceField> ChoiceFields => [];
+
     private List<DefaultField> DefaultFields() =>
     [
         new("Remarks", () => Remarks, v => Remarks = v),
         new("MedicalTechnologist", () => MedicalTechnologist, v => MedicalTechnologist = v),
         new("Pathologist", () => Pathologist, v => Pathologist = v),
+        .. ChoiceFields.Select(c => new DefaultField(c.Name, () => c.Value, v => c.Value = v)),
         .. ExtraDefaultFields(),
     ];
 
@@ -212,6 +254,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     protected sealed override void ResetFields()
     {
         ResetHeader();
+        foreach (var choice in ChoiceFields)
+            choice.Value = null;
+
         ResetDetail();
         ApplyDefaults();
     }
@@ -243,7 +288,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         Remarks,
         MedicalTechnologist,
         Pathologist,
-        _confirmedDuplicate);
+        _confirmedDuplicate,
+        HasRegistration ? null : PatientId);
 
     /// <summary>Shows a loaded result's header; the registration's own details are fetched in the background.</summary>
     protected void ShowHeader(LabResultHeader header, byte[]? photo)
@@ -253,6 +299,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         try
         {
             Registration = null;
+            PatientId = header.RegistrationId is null ? header.PatientId : null;
             FindText = header.RegistrationCode ?? string.Empty;
             PatientCode = header.PatientCode ?? string.Empty;
             PatientName = header.PatientName ?? string.Empty;
@@ -266,6 +313,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             Photo = ImageLoader.FromBytes(photo);
             _confirmedDuplicate = false;
             ClearSuggestions();
+            ClearPatientSuggestions();
         }
         finally
         {
@@ -283,6 +331,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         try
         {
             Registration = null;
+            PatientId = null;
             FindText = string.Empty;
             PatientCode = string.Empty;
             PatientName = string.Empty;
@@ -296,6 +345,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             Photo = null;
             _confirmedDuplicate = false;
             ClearSuggestions();
+            ClearPatientSuggestions();
         }
         finally
         {
@@ -418,6 +468,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         try
         {
             Registration = r;
+            PatientId = null;
+            ClearPatientSuggestions();
             FindText = r.RegistrationCode;
             if (fillPatient)
             {
@@ -433,6 +485,100 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         {
             _loading = false;
         }
+    }
+
+    // ------------------------------------------------------------------ patient lookup (only without a registration)
+
+    private int _patientSuggestVersion;
+
+    partial void OnPatientNameChanged(string value)
+    {
+        if (!_loading && CanLookUpPatient)
+            Fire(() => SuggestPatientsAsync(value));
+    }
+
+    partial void OnPatientCodeChanged(string value)
+    {
+        if (!_loading && CanLookUpPatient)
+            Fire(() => SuggestPatientsAsync(value));
+    }
+
+    private async Task SuggestPatientsAsync(string text)
+    {
+        var version = ++_patientSuggestVersion;
+        if (text.Trim().Length < LabRegistrationLookup.MinSuggestionLength)
+        {
+            ClearPatientSuggestions();
+            return;
+        }
+
+        await Task.Delay(250); // wait for a pause in typing
+        if (version != _patientSuggestVersion || !CanLookUpPatient)
+            return;
+
+        var result = await Call<ILabRegistrationLookup, Result<IReadOnlyList<PatientSuggestion>>>(s => s.SuggestPatientsAsync(_module, text));
+        if (version != _patientSuggestVersion || !CanLookUpPatient)
+            return;
+
+        PatientSuggestions.Clear();
+        if (result.IsSuccess)
+        {
+            foreach (var patient in result.Value)
+                PatientSuggestions.Add(patient);
+        }
+
+        OnPropertyChanged(nameof(HasPatientSuggestions));
+    }
+
+    private void ClearPatientSuggestions()
+    {
+        _patientSuggestVersion++;
+        PatientSuggestions.Clear();
+        OnPropertyChanged(nameof(HasPatientSuggestions));
+    }
+
+    /// <summary>Fills the patient block from the patient clicked in the list and ties the result to them.</summary>
+    [RelayCommand]
+    private void PickPatient(PatientSuggestion? suggestion)
+    {
+        if (suggestion is null || !CanLookUpPatient)
+            return;
+
+        ClearPatientSuggestions();
+        Fire(async () =>
+        {
+            var result = await Call<ILabRegistrationLookup, Result<ResultPatient>>(s => s.GetPatientAsync(_module, suggestion.Id));
+            if (result.IsFailure)
+            {
+                ShowError(result.Error.Message);
+                return;
+            }
+
+            var p = result.Value;
+            _loading = true;
+            try
+            {
+                PatientId = p.PatientId;
+                PatientCode = p.PatientCode;
+                PatientName = p.PatientName;
+                Age = p.Age;
+                Sex = p.Sex;
+            }
+            finally
+            {
+                _loading = false;
+            }
+
+            ClearMessage();
+        });
+    }
+
+    /// <summary>Lets go of the picked patient so the block can be typed in again (or another patient looked up).</summary>
+    [RelayCommand]
+    private void ChangePatient()
+    {
+        PatientId = null;
+        ClearPatientSuggestions();
     }
 
     private async Task SuggestAsync(string text)
@@ -482,6 +628,13 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         Replace(Technologists, technologists);
         Replace(Pathologists, pathologists);
         Replace(CompanyNames, companies.Select(c => c.Name));
+
+        foreach (var choice in ChoiceFields)
+        {
+            var field = choice;
+            field.EditCommand ??= new AsyncRelayCommand(() => EditSingleLineAsync(field.Entry), () => CanEditLists);
+            Replace(field.Items, await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(field.Entry)));
+        }
     }
 
     protected async Task LoadTemplatesAsync()
@@ -764,4 +917,121 @@ public partial class StoolFecalysisViewModel(
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
     private Task EditResultTemplatesAsync() => EditMultiLineAsync(EntryFields.StoolResult);
+}
+
+public partial class UrinalysisViewModel(
+    IServiceRunner runner,
+    IDialogService dialogs,
+    ICurrentUser user,
+    IEntryBuilderDialog entryBuilder,
+    IReportPreviewDialog preview,
+    ILogger<UrinalysisViewModel> logger)
+    : LabResultViewModel<IUrinalysisService, UrinalysisDetails, UrinalysisInput>(
+        runner, dialogs, user, entryBuilder, preview, ModuleIds.Urinalysis, "Urinalysis", logger)
+{
+    public ChoiceField Color { get; } = new("Color", "Color", EntryFields.UrinalysisColor);
+
+    public ChoiceField Appearance { get; } = new("Appearance", "Appearance", EntryFields.UrinalysisAppearance);
+
+    public ChoiceField Reaction { get; } = new("Reaction", "Reaction", EntryFields.UrinalysisReaction);
+
+    public ChoiceField SPGravity { get; } = new("SPGravity", "SP. Gravity", EntryFields.UrinalysisSpGravity);
+
+    public ChoiceField Albumin { get; } = new("Albumin", "Albumin", EntryFields.UrinalysisAlbumin);
+
+    public ChoiceField Sugar { get; } = new("Sugar", "Sugar", EntryFields.UrinalysisSugar);
+
+    public ChoiceField PusCells { get; } = new("PusCells", "Pus Cells", EntryFields.UrinalysisPusCells);
+
+    public ChoiceField RedCells { get; } = new("RedCells", "Red Cells", EntryFields.UrinalysisRedCells);
+
+    public ChoiceField MucusThreads { get; } = new("MucusThreads", "Mucus Threads", EntryFields.UrinalysisMucusThreads);
+
+    public ChoiceField EpithelialCells { get; } = new("EpithelialCells", "Epithelial Cells", EntryFields.UrinalysisEpithelialCells);
+
+    public ChoiceField AmorphousUratesPO4 { get; } = new("AmorphousUratesPO4", "Amorphous Urates / PO4", EntryFields.UrinalysisAmorphousUrates);
+
+    public ChoiceField Bacteria { get; } = new("Bacteria", "Bacteria", EntryFields.UrinalysisBacteria);
+
+    public ChoiceField Casts { get; } = new("Casts", "Casts", EntryFields.UrinalysisCasts);
+
+    public ChoiceField Crystals { get; } = new("Crystals", "Crystals", EntryFields.UrinalysisCrystals);
+
+    [ObservableProperty]
+    private string? _others;
+
+    public TemplateOptions OthersTemplates { get; } = new();
+
+    /// <summary>The table of the form, in the order of the printed form: two columns, the right one shorter.</summary>
+    public IReadOnlyList<ChoiceRow> Rows =>
+    [
+        new(Color, MucusThreads),
+        new(Appearance, EpithelialCells),
+        new(Reaction, AmorphousUratesPO4),
+        new(SPGravity, Bacteria),
+        new(Albumin, Casts),
+        new(Sugar, Crystals),
+        new(PusCells, null),
+        new(RedCells, null),
+    ];
+
+    protected override IEnumerable<ChoiceField> ChoiceFields =>
+        [Color, Appearance, Reaction, SPGravity, Albumin, Sugar, PusCells, RedCells, MucusThreads, EpithelialCells, AmorphousUratesPO4, Bacteria, Casts, Crystals];
+
+    protected override EntryField RemarksField => EntryFields.UrinalysisRemarks;
+
+    protected override async Task OnInitializeAsync()
+    {
+        await base.OnInitializeAsync();
+        await LoadOthersTemplatesAsync();
+    }
+
+    protected override async Task ReloadChoicesAsync()
+    {
+        await base.ReloadChoicesAsync();
+        await LoadOthersTemplatesAsync();
+    }
+
+    private async Task LoadOthersTemplatesAsync()
+    {
+        var others = await Call<IEntryService, Result<MultiLineEntryList>>(s => s.GetMultiLineAsync(EntryFields.UrinalysisOthers, ModuleId));
+        OthersTemplates.Apply ??= text => Others = text;
+        OthersTemplates.Replace(others.IsSuccess ? others.Value.Items : []);
+    }
+
+    protected override UrinalysisInput BuildInput() => new(
+        Id, BuildHeader(), Color.Value, Appearance.Value, Reaction.Value, SPGravity.Value, Albumin.Value, Sugar.Value, PusCells.Value,
+        RedCells.Value, MucusThreads.Value, EpithelialCells.Value, AmorphousUratesPO4.Value, Bacteria.Value, Casts.Value, Crystals.Value,
+        Others, RowVersion);
+
+    protected override void ShowFields(UrinalysisDetails d)
+    {
+        ShowHeader(d.Header, d.Photo);
+        Color.Value = d.Color;
+        Appearance.Value = d.Appearance;
+        Reaction.Value = d.Reaction;
+        SPGravity.Value = d.SPGravity;
+        Albumin.Value = d.Albumin;
+        Sugar.Value = d.Sugar;
+        PusCells.Value = d.PusCells;
+        RedCells.Value = d.RedCells;
+        MucusThreads.Value = d.MucusThreads;
+        EpithelialCells.Value = d.EpithelialCells;
+        AmorphousUratesPO4.Value = d.AmorphousUratesPO4;
+        Bacteria.Value = d.Bacteria;
+        Casts.Value = d.Casts;
+        Crystals.Value = d.Crystals;
+        Others = d.Others;
+        RowVersion = d.RowVersion;
+    }
+
+    protected override void ResetDetail() => Others = null;
+
+    protected override IEnumerable<DefaultField> ExtraDefaultFields() => [new("Others", () => Others, v => Others = v)];
+
+    protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
+        Call<IUrinalysisService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditOthersTemplatesAsync() => EditMultiLineAsync(EntryFields.UrinalysisOthers);
 }

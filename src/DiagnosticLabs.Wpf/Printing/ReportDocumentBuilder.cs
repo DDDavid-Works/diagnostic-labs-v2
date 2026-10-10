@@ -27,6 +27,9 @@ public static class ReportDocumentBuilder
             case ReportLayout.StoolFecalysis:
                 StoolFecalysisLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.Urinalysis:
+                UrinalysisLayout.Draw(canvas, report);
+                break;
             default:
                 throw new NotSupportedException($"There is no page design for {report.Layout}.");
         }
@@ -221,5 +224,72 @@ internal static class StoolFecalysisLayout
         Canvas.SetLeft(block, x);
         Canvas.SetTop(block, top);
         return block;
+    }
+}
+
+/// <summary>
+/// Urinalysis. The header, patient block, title bar and footer are the same as on every form; the body is a table of eight rows in
+/// two columns (the right column has six), then an "Others" box and the Remarks box. Positions are measured from the client's printed form.
+/// </summary>
+internal static class UrinalysisLayout
+{
+    private const double Left = 51.3;
+    private const double Right = 763.3;
+    private const double Top = 246.5;
+    private const double RowHeight = 19.7;
+    private const double Baseline = 14.0;
+
+    private static readonly string[] LeftLabels = ["Color", "Appearance", "Reaction", "SP. Gravity", "Albumin", "Sugar", "Pus Cells", "Red Cells"];
+    private static readonly string[] RightLabels = ["Mucus Threads", "Epithelial Cells", "Amorphous Urates / PO4", "Bacteria", "Casts", "Crystals"];
+
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        PageDrawing.PutHeader(canvas, report.Letterhead);
+        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
+        PageDrawing.PutPatientBlock(canvas, report);
+
+        string? ValueOf(string label) => report.ResultLines.FirstOrDefault(l => l.Label == label)?.Value;
+
+        for (var row = 0; row < LeftLabels.Length; row++)
+        {
+            var baseline = Top + (row * RowHeight) + Baseline;
+            PageDrawing.PutLabel(canvas, LeftLabels[row], 54.7, baseline);
+            PageDrawing.PutText(canvas, ValueOf(LeftLabels[row]), 218.0, baseline - 0.3, PageDrawing.Body, bold: false, width: 185);
+
+            if (row < RightLabels.Length)
+            {
+                PageDrawing.PutLabel(canvas, RightLabels[row], 412.0, baseline);
+                PageDrawing.PutText(canvas, ValueOf(RightLabels[row]), 603.3, baseline - 0.3, PageDrawing.Body, bold: false, width: 158);
+            }
+        }
+
+        // "Others": the label and its text share the first line, as on the old form; a long text grows the box.
+        var tableBottom = Top + (LeftLabels.Length * RowHeight);
+        PageDrawing.PutLabel(canvas, "Others", 54.7, tableBottom + 14.6);
+        var others = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Others")?.Text, PageDrawing.Body, bold: false, width: 578);
+        var othersTop = tableBottom + 14.6 - others.BaselineOffset;
+        Canvas.SetLeft(others, 183.3);
+        Canvas.SetTop(others, othersTop);
+        canvas.Children.Add(others);
+        var othersBottom = Math.Max(tableBottom + 47.7, othersTop + others.DesiredSize.Height + 6);
+
+        PageDrawing.PutRect(canvas, Left, Top, Right - Left, othersBottom - Top, null, Brushes.Black, 1.33);
+        for (var line = 1; line <= LeftLabels.Length; line++)
+            PageDrawing.PutRule(canvas, 51.7, Top + (line * RowHeight) - 0.66, 711.0);
+
+        foreach (var x in new[] { 214.5, 407.0, 598.5 })
+            PageDrawing.PutVerticalRule(canvas, x, Top, tableBottom - Top);
+
+        // Remarks
+        PageDrawing.PutLabel(canvas, "Remarks", 52.0, othersBottom + 15.2);
+        var remarksTop = othersBottom + 20.2;
+        var remarks = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, PageDrawing.Body, bold: false, width: 700);
+        Canvas.SetLeft(remarks, 54.7);
+        Canvas.SetTop(remarks, remarksTop + 3.0);
+        canvas.Children.Add(remarks);
+        var remarksBottom = Math.Max(remarksTop + 42.9, remarksTop + 3.0 + remarks.DesiredSize.Height + 6);
+        PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, 1.33);
+
+        PageDrawing.PutFooter(canvas, report, remarksBottom);
     }
 }

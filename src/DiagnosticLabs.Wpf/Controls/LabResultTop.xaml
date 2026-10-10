@@ -119,24 +119,121 @@
       </Grid.ColumnDefinitions>
 
       <TextBlock Grid.Row="0" Grid.Column="0" Text="Patient Code:" Style="{StaticResource PaperLabel}" />
-      <TextBox Grid.Row="0" Grid.Column="1" Margin="0,2" Text="{Binding PatientCode, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsPatientLocked}">
-        <TextBox.Style>
-          <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Style.Triggers>
-              <Trigger Property="IsReadOnly" Value="True">
-                <Setter Property="Background" Value="#EEF0F3" />
-              </Trigger>
-            </Style.Triggers>
-          </Style>
-        </TextBox.Style>
-      </TextBox>
+      <Grid Grid.Row="0" Grid.Column="1" Margin="0,2">
+        <TextBox Text="{Binding PatientCode, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsPatientLocked}"
+                 ToolTip="Type a patient code or name to look the patient up (not available once a registration is loaded)">
+          <TextBox.Style>
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+              <Style.Triggers>
+                <Trigger Property="IsReadOnly" Value="True">
+                  <Setter Property="Background" Value="#EEF0F3" />
+                </Trigger>
+              </Style.Triggers>
+            </Style>          </TextBox.Style>
+        </TextBox>
+          <Popup PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}" Placement="Bottom" StaysOpen="True"
+                 MinWidth="260" Width="{Binding PlacementTarget.ActualWidth, RelativeSource={RelativeSource Self}}">
+            <Popup.Style>
+              <Style TargetType="Popup">
+                <Setter Property="IsOpen" Value="False" />
+                <Style.Triggers>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Binding="{Binding HasPatientSuggestions}" Value="True" />
+                      <Condition Binding="{Binding PlacementTarget.IsKeyboardFocusWithin, RelativeSource={RelativeSource Self}}" Value="True" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsOpen" Value="True" />
+                  </MultiDataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Popup.Style>
+            <Border Background="White" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
+              <StackPanel>
+                <TextBlock Text="Already a patient? Click to use" Margin="8,5" FontSize="11" Foreground="{StaticResource MutedTextBrush}" />
+                <ScrollViewer MaxHeight="210" VerticalScrollBarVisibility="Auto" Focusable="False">
+                  <ItemsControl ItemsSource="{Binding PatientSuggestions}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Button Style="{StaticResource SuggestionButton}" CommandParameter="{Binding}"
+                                Command="{Binding DataContext.PickPatientCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                          <StackPanel>
+                            <TextBlock Text="{Binding PatientName}" FontWeight="SemiBold" />
+                            <TextBlock Foreground="{StaticResource MutedTextBrush}" FontSize="11">
+                              <Run Text="{Binding PatientCode, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Sex, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Age, Mode=OneWay}" />
+                            </TextBlock>
+                          </StackPanel>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </StackPanel>
+            </Border>
+          </Popup>      </Grid>
       <TextBlock Grid.Row="0" Grid.Column="3" Text="Age:" Style="{StaticResource PaperLabel}" />
       <TextBox Grid.Row="0" Grid.Column="4" Margin="0,2" Text="{Binding Age, UpdateSourceTrigger=PropertyChanged}" />
       <TextBlock Grid.Row="0" Grid.Column="5" Text="Sex:" Style="{StaticResource PaperLabel}" HorizontalAlignment="Right" />
       <ctl:ChoiceBox Grid.Row="0" Grid.Column="6" Margin="0,2" ItemsSource="{Binding Genders}" Text="{Binding Sex}" EditCommand="{Binding EditGenderListCommand}" />
 
       <TextBlock Grid.Row="1" Grid.Column="0" Text="Patient Name:" Style="{StaticResource PaperLabel}" />
-      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,2" Text="{Binding PatientName, UpdateSourceTrigger=PropertyChanged}" />
+      <Grid Grid.Row="1" Grid.Column="1" Margin="0,2">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox Grid.Column="0" Text="{Binding PatientName, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsPatientLocked}"
+                 ToolTip="Type a patient name or code to look the patient up (not available once a registration is loaded)">
+          <TextBox.Style>
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+              <Style.Triggers>
+                <Trigger Property="IsReadOnly" Value="True">
+                  <Setter Property="Background" Value="#EEF0F3" />
+                </Trigger>
+              </Style.Triggers>
+            </Style>          </TextBox.Style>
+        </TextBox>
+        <Button Grid.Column="1" Content="Different patient" Margin="6,0,0,0" MinWidth="0" Padding="8,2" Command="{Binding ChangePatientCommand}"
+                Visibility="{Binding HasPatient, Converter={StaticResource BoolToVis}}"
+                ToolTip="Stop using this patient and type the details in (or look up another patient)" />
+          <Popup PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}" Placement="Bottom" StaysOpen="True"
+                 MinWidth="260" Width="{Binding PlacementTarget.ActualWidth, RelativeSource={RelativeSource Self}}">
+            <Popup.Style>
+              <Style TargetType="Popup">
+                <Setter Property="IsOpen" Value="False" />
+                <Style.Triggers>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Binding="{Binding HasPatientSuggestions}" Value="True" />
+                      <Condition Binding="{Binding PlacementTarget.IsKeyboardFocusWithin, RelativeSource={RelativeSource Self}}" Value="True" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsOpen" Value="True" />
+                  </MultiDataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Popup.Style>
+            <Border Background="White" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
+              <StackPanel>
+                <TextBlock Text="Already a patient? Click to use" Margin="8,5" FontSize="11" Foreground="{StaticResource MutedTextBrush}" />
+                <ScrollViewer MaxHeight="210" VerticalScrollBarVisibility="Auto" Focusable="False">
+                  <ItemsControl ItemsSource="{Binding PatientSuggestions}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Button Style="{StaticResource SuggestionButton}" CommandParameter="{Binding}"
+                                Command="{Binding DataContext.PickPatientCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                          <StackPanel>
+                            <TextBlock Text="{Binding PatientName}" FontWeight="SemiBold" />
+                            <TextBlock Foreground="{StaticResource MutedTextBrush}" FontSize="11">
+                              <Run Text="{Binding PatientCode, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Sex, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Age, Mode=OneWay}" />
+                            </TextBlock>
+                          </StackPanel>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </StackPanel>
+            </Border>
+          </Popup>      </Grid>
       <TextBlock Grid.Row="1" Grid.Column="3" Text="Date Requested:" Style="{StaticResource PaperLabel}" />
       <DatePicker Grid.Row="1" Grid.Column="4" Grid.ColumnSpan="3" Margin="0,2" SelectedDate="{Binding DateRequested}" />
 

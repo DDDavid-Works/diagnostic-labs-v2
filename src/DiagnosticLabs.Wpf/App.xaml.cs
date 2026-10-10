@@ -103,6 +103,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<RegistrationsViewModel>();
         builder.Services.AddTransient<PaymentsViewModel>();
         builder.Services.AddTransient<StoolFecalysisViewModel>();
+        builder.Services.AddTransient<UrinalysisViewModel>();
         builder.Services.AddTransient<CompaniesViewModel>();
         builder.Services.AddTransient<DepartmentsViewModel>();
         builder.Services.AddTransient<ServicesViewModel>();

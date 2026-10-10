@@ -19,6 +19,9 @@ public sealed record ResultRegistration(
     string BatchName,
     IReadOnlyList<string> Services);
 
+/// <summary>A patient as the top of a result form shows them once picked from the patient list.</summary>
+public sealed record ResultPatient(long PatientId, string PatientCode, string PatientName, string? Age, string? Sex);
+
 /// <summary>A registration offered while typing in the registration box.</summary>
 public sealed record ResultRegistrationMatch(long Id, string RegistrationCode, string PatientName, DateOnly Date);
 
@@ -33,6 +36,11 @@ public interface ILabRegistrationLookup
     Task<Result<ResultRegistration>> GetAsync(int moduleId, long registrationId, CancellationToken cancellationToken = default);
 
     Task<Result<IReadOnlyList<ResultRegistrationMatch>>> SuggestAsync(int moduleId, string text, CancellationToken cancellationToken = default);
+
+    /// <summary>Patients whose name or code matches the typed text, for a result made without a registration.</summary>
+    Task<Result<IReadOnlyList<Registrations.PatientSuggestion>>> SuggestPatientsAsync(int moduleId, string text, CancellationToken cancellationToken = default);
+
+    Task<Result<ResultPatient>> GetPatientAsync(int moduleId, long patientId, CancellationToken cancellationToken = default);
 }
 
 public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser currentUser, IClock clock) : ILabRegistrationLookup
@@ -105,5 +113,41 @@ public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser current
         IReadOnlyList<ResultRegistrationMatch> matches =
             [.. rows.Select(r => new ResultRegistrationMatch(r.Id, r.RegistrationCode, r.PatientName, LocalTime.ToLocalDate(r.InputDate)))];
         return Result<IReadOnlyList<ResultRegistrationMatch>>.Success(matches);
+    }
+
+    public async Task<Result<IReadOnlyList<Registrations.PatientSuggestion>>> SuggestPatientsAsync(int moduleId, string text, CancellationToken cancellationToken = default)
+    {
+        if (!currentUser.Can(moduleId, ModuleAction.View))
+            return Result<IReadOnlyList<Registrations.PatientSuggestion>>.Failure(Errors.Forbidden);
+
+        var words = (text ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (words.Length == 0 || string.Concat(words).Length < MinSuggestionLength)
+            return Result<IReadOnlyList<Registrations.PatientSuggestion>>.Success([]);
+
+        var query = db.Patients.AsNoTracking();
+        foreach (var word in words)
+        {
+            var term = word;
+            query = query.Where(p => p.PatientName.Contains(term) || p.PatientCode.Contains(term));
+        }
+
+        var rows = await query.OrderBy(p => p.PatientName).ThenBy(p => p.Id).Take(MaxSuggestions)
+            .Select(p => new { p.Id, p.PatientCode, p.PatientName, p.DateOfBirth, p.Age, p.Sex })
+            .ToListAsync(cancellationToken);
+
+        IReadOnlyList<Registrations.PatientSuggestion> matches =
+            [.. rows.Select(r => new Registrations.PatientSuggestion(r.Id, r.PatientCode, r.PatientName, AgeCalculator.Describe(r.DateOfBirth, Today) ?? r.Age, r.Sex))];
+        return Result<IReadOnlyList<Registrations.PatientSuggestion>>.Success(matches);
+    }
+
+    public async Task<Result<ResultPatient>> GetPatientAsync(int moduleId, long patientId, CancellationToken cancellationToken = default)
+    {
+        if (!currentUser.Can(moduleId, ModuleAction.View))
+            return Result<ResultPatient>.Failure(Errors.Forbidden);
+
+        var p = await db.Patients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == patientId, cancellationToken);
+        return p is null
+            ? Result<ResultPatient>.Failure(Errors.NotFound("Patient"))
+            : Result<ResultPatient>.Success(new ResultPatient(p.Id, p.PatientCode, p.PatientName, AgeCalculator.Describe(p.DateOfBirth, Today) ?? p.Age, p.Sex));
     }
 }
