@@ -352,7 +352,7 @@ internal static class UrinalysisLayout
     private const double Right = 763.3;
     private const double Top = 246.5;
 
-    private static readonly string[] LeftLabels = ["Color", "Appearance", "Reaction", "SP. Gravity", "Albumin", "Sugar", "Pus Cells", "Red Cells"];
+    private static readonly string[] LeftLabels = ["Color", "Appearance", "Reaction (PH)", "SP. Gravity", "Protein", "Glucose", "Pus Cells", "Red Cells"];
     private static readonly string[] RightLabels = ["Mucus Threads", "Epithelial Cells", "Amorphous Urates / PO4", "Bacteria", "Casts", "Crystals"];
 
     // The rows of the printed form are not evenly spaced, so each rule and baseline is placed as measured.
@@ -515,7 +515,7 @@ internal static class ClinicalChemistryLayout
     }
 }
 /// <summary>
-/// Clinical Chemistry 2: alkaline phosphatase and SGOT, each with normal values, unit and results in conventional and in system units.
+/// Clinical Chemistry 2: alkaline phosphatase and AST/SGOT, each with normal values, unit and results in conventional and in system units.
 /// The client's printed form is titled "CLINICAL CHEMISTRY" (without the 2), so that is what is printed. Positions are measured from it.
 /// </summary>
 internal static class ClinicalChemistry2Layout
@@ -559,7 +559,7 @@ internal static class ClinicalChemistry2Layout
         (string Name, string Label, double LabelBaseline, double ValueBaseline)[] tests =
         [
             ("AlkalinePhosphatase", "Alkaline Phosphatase", 302.0, 301.9),
-            ("SGOT", "SGOT", 324.7, 324.3),
+            ("ASTSGOT", "AST/SGOT", 324.7, 324.3),
         ];
         foreach (var (name, label, labelBaseline, valueBaseline) in tests)
         {

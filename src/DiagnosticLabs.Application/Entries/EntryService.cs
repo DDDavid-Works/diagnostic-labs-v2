@@ -53,10 +53,10 @@ public static class EntryFields
 
     public static readonly EntryField UrinalysisColor = new("Color", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisAppearance = new("Appearance", EntryKind.SingleLine, ModuleIds.Urinalysis);
-    public static readonly EntryField UrinalysisReaction = new("Reaction", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisReaction = new("Reaction (PH)", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisSpGravity = new("SP. Gravity", EntryKind.SingleLine, ModuleIds.Urinalysis);
-    public static readonly EntryField UrinalysisAlbumin = new("Albumin", EntryKind.SingleLine, ModuleIds.Urinalysis);
-    public static readonly EntryField UrinalysisSugar = new("Sugar", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisProtein = new("Protein", EntryKind.SingleLine, ModuleIds.Urinalysis);
+    public static readonly EntryField UrinalysisGlucose = new("Glucose", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisPusCells = new("Pus Cells", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisRedCells = new("Red Cells", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisMucusThreads = new("Mucus Threads", EntryKind.SingleLine, ModuleIds.Urinalysis);

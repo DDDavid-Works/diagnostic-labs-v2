@@ -15,9 +15,9 @@ public sealed record ClinicalChemistry2Data
 
     public UnitResultEntry AlkalinePhosphataseSystem { get; init; } = new(null, null, null);
 
-    public UnitResultEntry SGOTConventional { get; init; } = new(null, null, null);
+    public UnitResultEntry ASTSGOTConventional { get; init; } = new(null, null, null);
 
-    public UnitResultEntry SGOTSystem { get; init; } = new(null, null, null);
+    public UnitResultEntry ASTSGOTSystem { get; init; } = new(null, null, null);
 }
 
 public sealed record ClinicalChemistry2Details(long Id, LabResultHeader Header, ClinicalChemistry2Data Data, byte[]? Photo, byte[] RowVersion) : IHasId;
@@ -27,7 +27,7 @@ public sealed record ClinicalChemistry2Input(long Id, LabResultHeader Header, Cl
 public interface IClinicalChemistry2Service
     : ICrudService<LabResultListItem, ClinicalChemistry2Details, ClinicalChemistry2Input>, ILabResultPrinting;
 
-/// <summary>Clinical Chemistry 2: alkaline phosphatase and SGOT, each with normal values, unit and result in two unit systems. The form has no Remarks.</summary>
+/// <summary>Clinical Chemistry 2: alkaline phosphatase and AST/SGOT, each with normal values, unit and result in two unit systems. The form has no Remarks.</summary>
 public sealed class ClinicalChemistry2Service(IAppDbContext db, ICurrentUser currentUser, IClock clock)
     : LabResultService<ClinicalChemistry2Input, ClinicalChemistry2Details, ClinicalChemistry2Report>(
         db, currentUser, clock, ModuleIds.ClinicalChemistry2, "Clinical Chemistry 2", LabReportType.ClinicalChemistry2),
@@ -44,7 +44,7 @@ public sealed class ClinicalChemistry2Service(IAppDbContext db, ICurrentUser cur
     private static IEnumerable<(string Label, UnitResultEntry Entry)> Entries(ClinicalChemistry2Data d) =>
     [
         ("Alkaline phosphatase (conventional)", d.AlkalinePhosphataseConventional), ("Alkaline phosphatase (system unit)", d.AlkalinePhosphataseSystem),
-        ("SGOT (conventional)", d.SGOTConventional), ("SGOT (system unit)", d.SGOTSystem),
+        ("AST/SGOT (conventional)", d.ASTSGOTConventional), ("AST/SGOT (system unit)", d.ASTSGOTSystem),
     ];
 
     protected override IEnumerable<string> ValidateDetail(ClinicalChemistry2Input input)
@@ -69,20 +69,20 @@ public sealed class ClinicalChemistry2Service(IAppDbContext db, ICurrentUser cur
         e.AlkalinePhosphataseSNValue = Clean(d.AlkalinePhosphataseSystem.NormalValue);
         e.AlkalinePhosphataseSUnit = Clean(d.AlkalinePhosphataseSystem.Unit);
         e.AlkalinePhosphataseSResults = Clean(d.AlkalinePhosphataseSystem.Result);
-        e.SGOTCNValue = Clean(d.SGOTConventional.NormalValue);
-        e.SGOTCUnit = Clean(d.SGOTConventional.Unit);
-        e.SGOTCResults = Clean(d.SGOTConventional.Result);
-        e.SGOTSNValue = Clean(d.SGOTSystem.NormalValue);
-        e.SGOTSUnit = Clean(d.SGOTSystem.Unit);
-        e.SGOTSResults = Clean(d.SGOTSystem.Result);
+        e.ASTSGOTCNValue = Clean(d.ASTSGOTConventional.NormalValue);
+        e.ASTSGOTCUnit = Clean(d.ASTSGOTConventional.Unit);
+        e.ASTSGOTCResults = Clean(d.ASTSGOTConventional.Result);
+        e.ASTSGOTSNValue = Clean(d.ASTSGOTSystem.NormalValue);
+        e.ASTSGOTSUnit = Clean(d.ASTSGOTSystem.Unit);
+        e.ASTSGOTSResults = Clean(d.ASTSGOTSystem.Result);
     }
 
     private static ClinicalChemistry2Data DataOf(ClinicalChemistry2Report e) => new()
     {
         AlkalinePhosphataseConventional = new(e.AlkalinePhosphataseCNValue, e.AlkalinePhosphataseCUnit, e.AlkalinePhosphataseCResults),
         AlkalinePhosphataseSystem = new(e.AlkalinePhosphataseSNValue, e.AlkalinePhosphataseSUnit, e.AlkalinePhosphataseSResults),
-        SGOTConventional = new(e.SGOTCNValue, e.SGOTCUnit, e.SGOTCResults),
-        SGOTSystem = new(e.SGOTSNValue, e.SGOTSUnit, e.SGOTSResults),
+        ASTSGOTConventional = new(e.ASTSGOTCNValue, e.ASTSGOTCUnit, e.ASTSGOTCResults),
+        ASTSGOTSystem = new(e.ASTSGOTSNValue, e.ASTSGOTSUnit, e.ASTSGOTSResults),
     };
 
     protected override ClinicalChemistry2Details BuildDetails(LabReport report, LabResultHeader header, ClinicalChemistry2Report e) =>
@@ -97,7 +97,7 @@ public sealed class ClinicalChemistry2Service(IAppDbContext db, ICurrentUser cur
     {
         ["AlkalinePhosphataseCNValue"] = e.AlkalinePhosphataseCNValue, ["AlkalinePhosphataseCUnit"] = e.AlkalinePhosphataseCUnit, ["AlkalinePhosphataseCResults"] = e.AlkalinePhosphataseCResults,
         ["AlkalinePhosphataseSNValue"] = e.AlkalinePhosphataseSNValue, ["AlkalinePhosphataseSUnit"] = e.AlkalinePhosphataseSUnit, ["AlkalinePhosphataseSResults"] = e.AlkalinePhosphataseSResults,
-        ["SGOTCNValue"] = e.SGOTCNValue, ["SGOTCUnit"] = e.SGOTCUnit, ["SGOTCResults"] = e.SGOTCResults,
-        ["SGOTSNValue"] = e.SGOTSNValue, ["SGOTSUnit"] = e.SGOTSUnit, ["SGOTSResults"] = e.SGOTSResults,
+        ["ASTSGOTCNValue"] = e.ASTSGOTCNValue, ["ASTSGOTCUnit"] = e.ASTSGOTCUnit, ["ASTSGOTCResults"] = e.ASTSGOTCResults,
+        ["ASTSGOTSNValue"] = e.ASTSGOTSNValue, ["ASTSGOTSUnit"] = e.ASTSGOTSUnit, ["ASTSGOTSResults"] = e.ASTSGOTSResults,
     };
 }

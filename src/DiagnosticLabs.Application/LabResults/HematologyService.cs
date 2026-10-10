@@ -17,7 +17,7 @@ public sealed record HematologyData
 
     public NormalResultEntry WBCCount { get; init; } = new(null, null);
 
-    public NormalResultEntry Segmenters { get; init; } = new(null, null);
+    public NormalResultEntry Neutrophils { get; init; } = new(null, null);
 
     public NormalResultEntry Lymphocytes { get; init; } = new(null, null);
 
@@ -48,7 +48,7 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
     /// <summary>The lines of the table with the name each is printed and saved under.</summary>
     public static readonly (string Name, string Label)[] Tests =
     [
-        ("Hematocrit", "Hematocrit"), ("Hemoglobin", "Hemoglobin"), ("WBCCount", "White Blood Cell Count"), ("Segmenters", "Segmenters"),
+        ("Hematocrit", "Hematocrit"), ("Hemoglobin", "Hemoglobin"), ("WBCCount", "White Blood Cell Count"), ("Neutrophils", "Neutrophils"),
         ("Lymphocytes", "Lymphocytes"), ("Eosinophils", "Eosinophils"), ("Monocytes", "Monocytes"), ("Basophils", "Basophils"),
         ("Stab", "Stab"), ("PlateletCount", "Platelet Count"),
     ];
@@ -61,7 +61,7 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
 
     private static IEnumerable<(string Name, NormalResultEntry Entry)> Entries(HematologyData d) =>
     [
-        ("Hematocrit", d.Hematocrit), ("Hemoglobin", d.Hemoglobin), ("WBCCount", d.WBCCount), ("Segmenters", d.Segmenters),
+        ("Hematocrit", d.Hematocrit), ("Hemoglobin", d.Hemoglobin), ("WBCCount", d.WBCCount), ("Neutrophils", d.Neutrophils),
         ("Lymphocytes", d.Lymphocytes), ("Eosinophils", d.Eosinophils), ("Monocytes", d.Monocytes), ("Basophils", d.Basophils),
         ("Stab", d.Stab), ("PlateletCount", d.PlateletCount),
     ];
@@ -88,8 +88,8 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
         e.HemoglobinResult = Clean(d.Hemoglobin.Result);
         e.WBCCountNValue = Clean(d.WBCCount.NormalValue);
         e.WBCCountResult = Clean(d.WBCCount.Result);
-        e.SegmentersNValue = Clean(d.Segmenters.NormalValue);
-        e.SegmentersResult = Clean(d.Segmenters.Result);
+        e.NeutrophilsNValue = Clean(d.Neutrophils.NormalValue);
+        e.NeutrophilsResult = Clean(d.Neutrophils.Result);
         e.LymphocytesNValue = Clean(d.Lymphocytes.NormalValue);
         e.LymphocytesResult = Clean(d.Lymphocytes.Result);
         e.EosinophilsNValue = Clean(d.Eosinophils.NormalValue);
@@ -109,7 +109,7 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
         Hematocrit = new(e.HematocritNValue, e.HematocritResult),
         Hemoglobin = new(e.HemoglobinNValue, e.HemoglobinResult),
         WBCCount = new(e.WBCCountNValue, e.WBCCountResult),
-        Segmenters = new(e.SegmentersNValue, e.SegmentersResult),
+        Neutrophils = new(e.NeutrophilsNValue, e.NeutrophilsResult),
         Lymphocytes = new(e.LymphocytesNValue, e.LymphocytesResult),
         Eosinophils = new(e.EosinophilsNValue, e.EosinophilsResult),
         Monocytes = new(e.MonocytesNValue, e.MonocytesResult),

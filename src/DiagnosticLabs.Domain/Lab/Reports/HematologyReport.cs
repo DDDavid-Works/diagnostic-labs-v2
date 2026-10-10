@@ -15,9 +15,9 @@ public class HematologyReport : LabReportDetail
 
     public string? WBCCountResult { get; set; }
 
-    public string? SegmentersNValue { get; set; }
+    public string? NeutrophilsNValue { get; set; }
 
-    public string? SegmentersResult { get; set; }
+    public string? NeutrophilsResult { get; set; }
 
     public string? LymphocytesNValue { get; set; }
 

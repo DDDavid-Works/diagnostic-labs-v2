@@ -535,7 +535,7 @@ INSERT INTO #skipped SELECT 'Urinalyses', s.Id, 'No matching patient for this la
 
 INSERT INTO [LabReportPhotos] ([LabReportId], [Content]) SELECT m.NewId, s.Photo FROM [$(Legacy)].dbo.[Urinalyses] s JOIN #map m ON m.LegacyId = s.Id WHERE s.Photo IS NOT NULL;
 
-INSERT INTO [UrinalysisReports] ([LabReportId], [Color], [Appearance], [Reaction], [SPGravity], [Albumin], [Sugar], [PusCells], [RedCells], [MucusThreads], [EpithelialCells], [AmorphousUratesPO4], [Bacteria], [Casts], [Crystals], [Others])
+INSERT INTO [UrinalysisReports] ([LabReportId], [Color], [Appearance], [Reaction], [SPGravity], [Protein], [Glucose], [PusCells], [RedCells], [MucusThreads], [EpithelialCells], [AmorphousUratesPO4], [Bacteria], [Casts], [Crystals], [Others])
 SELECT m.NewId, s.[Color], s.[Appearance], s.[Reaction], s.[SPGravity], s.[Albumin], s.[Sugar], s.[PusCells], s.[RedCells], s.[MucusThreads], s.[EpithelialCells], s.[AmorphousUratesPO4], s.[Bacteria], s.[Casts], s.[Crystals], s.[Others]
 FROM [$(Legacy)].dbo.[Urinalyses] s JOIN #map m ON m.LegacyId = s.Id;
 
@@ -574,7 +574,7 @@ INSERT INTO #skipped SELECT 'Hematologies', s.Id, 'No matching patient for this 
 
 INSERT INTO [LabReportPhotos] ([LabReportId], [Content]) SELECT m.NewId, s.Photo FROM [$(Legacy)].dbo.[Hematologies] s JOIN #map m ON m.LegacyId = s.Id WHERE s.Photo IS NOT NULL;
 
-INSERT INTO [HematologyReports] ([LabReportId], [HematocritNValue], [HematocritResult], [HemoglobinNValue], [HemoglobinResult], [WBCCountNValue], [WBCCountResult], [SegmentersNValue], [SegmentersResult], [LymphocytesNValue], [LymphocytesResult], [EosinophilsNValue], [EosinophilsResult], [MonocytesNValue], [MonocytesResult], [BasophilsNValue], [BasophilsResult], [StabNValue], [StabResult], [PlateletCountNValue], [PlateletCountResult])
+INSERT INTO [HematologyReports] ([LabReportId], [HematocritNValue], [HematocritResult], [HemoglobinNValue], [HemoglobinResult], [WBCCountNValue], [WBCCountResult], [NeutrophilsNValue], [NeutrophilsResult], [LymphocytesNValue], [LymphocytesResult], [EosinophilsNValue], [EosinophilsResult], [MonocytesNValue], [MonocytesResult], [BasophilsNValue], [BasophilsResult], [StabNValue], [StabResult], [PlateletCountNValue], [PlateletCountResult])
 SELECT m.NewId, s.[HematocritNValue], s.[HematocritResult], s.[HemoglobinNValue], s.[HemoglobinResult], s.[WBCCountNValue], s.[WBCCountResult], s.[SegmentersNValue], s.[SegmentersResult], s.[LymphocytesNValue], s.[LymphocytesResult], s.[EosinophilsNValue], s.[EosinophilsResult], s.[MonocytesNValue], s.[MonocytesResult], s.[BasophilsNValue], s.[BasophilsResult], s.[StabNValue], s.[StabResult], s.[PlateletCountNValue], s.[PlateletCountResult]
 FROM [$(Legacy)].dbo.[Hematologies] s JOIN #map m ON m.LegacyId = s.Id;
 
@@ -730,7 +730,7 @@ INSERT INTO #skipped SELECT 'ClinicalChemistries', s.Id, 'No matching patient fo
 
 INSERT INTO [LabReportPhotos] ([LabReportId], [Content]) SELECT m.NewId, s.Photo FROM [$(Legacy)].dbo.[ClinicalChemistries] s JOIN #map m ON m.LegacyId = s.Id WHERE s.Photo IS NOT NULL;
 
-INSERT INTO [ClinicalChemistryReports] ([LabReportId], [FBSNValue], [FBSResult], [TotalCholesterolNValue], [TotalCholesterolResult], [TriglyceridesNValue], [TriglyceridesResult], [HDLNValue], [HDLResult], [BUNNValue], [BUNResult], [CreatinineNValue], [CreatinineResult], [BloodUricAcidNValue], [BloodUricAcidResult], [LDLNValue], [LDLResult], [SGPTNValue], [SGPTResult])
+INSERT INTO [ClinicalChemistryReports] ([LabReportId], [FBSNValue], [FBSResult], [TotalCholesterolNValue], [TotalCholesterolResult], [TriglyceridesNValue], [TriglyceridesResult], [HDLNValue], [HDLResult], [BUNNValue], [BUNResult], [CreatinineNValue], [CreatinineResult], [BloodUricAcidNValue], [BloodUricAcidResult], [LDLNValue], [LDLResult], [ALTSGPTNValue], [ALTSGPTResult])
 SELECT m.NewId, s.[FBSNValue], s.[FBSResult], s.[TotalCholesterolNValue], s.[TotalCholesterolResult], s.[TriglyceridesNValue], s.[TriglyceridesResult], s.[HDLNValue], s.[HDLResult], s.[BUNNValue], s.[BUNResult], s.[CreatinineNValue], s.[CreatinineResult], s.[BloodUricAcidNValue], s.[BloodUricAcidResult], s.[LDLNValue], s.[LDLResult], s.[SGPTNValue], s.[SGPTResult]
 FROM [$(Legacy)].dbo.[ClinicalChemistries] s JOIN #map m ON m.LegacyId = s.Id;
 
@@ -808,7 +808,7 @@ INSERT INTO #skipped SELECT 'ClinicalChemistries2', s.Id, 'No matching patient f
 
 INSERT INTO [LabReportPhotos] ([LabReportId], [Content]) SELECT m.NewId, s.Photo FROM [$(Legacy)].dbo.[ClinicalChemistries2] s JOIN #map m ON m.LegacyId = s.Id WHERE s.Photo IS NOT NULL;
 
-INSERT INTO [ClinicalChemistry2Reports] ([LabReportId], [AlkalinePhosphataseCNValue], [AlkalinePhosphataseCUnit], [AlkalinePhosphataseCResults], [AlkalinePhosphataseSNValue], [AlkalinePhosphataseSUnit], [AlkalinePhosphataseSResults], [SGOTCNValue], [SGOTCUnit], [SGOTCResults], [SGOTSNValue], [SGOTSUnit], [SGOTSResults])
+INSERT INTO [ClinicalChemistry2Reports] ([LabReportId], [AlkalinePhosphataseCNValue], [AlkalinePhosphataseCUnit], [AlkalinePhosphataseCResults], [AlkalinePhosphataseSNValue], [AlkalinePhosphataseSUnit], [AlkalinePhosphataseSResults], [ASTSGOTCNValue], [ASTSGOTCUnit], [ASTSGOTCResults], [ASTSGOTSNValue], [ASTSGOTSUnit], [ASTSGOTSResults])
 SELECT m.NewId, s.[AlkalinePhosphataseCNValue], s.[AlkalinePhosphataseCUnit], s.[AlkalinePhosphataseCResults], s.[AlkalinePhosphataseSNValue], s.[AlkalinePhosphataseSUnit], s.[AlkalinePhosphataseSResults], s.[SGOTCNValue], s.[SGOTCUnit], s.[SGOTCResults], s.[SGOTSNValue], s.[SGOTSUnit], s.[SGOTSResults]
 FROM [$(Legacy)].dbo.[ClinicalChemistries2] s JOIN #map m ON m.LegacyId = s.Id;
 
@@ -885,6 +885,15 @@ INSERT INTO #skipped SELECT 'MERs', s.Id, 'No matching patient for this lab row'
 INSERT INTO [MedicalExaminationReports] ([LabReportId], [ContactNo], [CivilStatus], [ChestXray], [ChestXrayRemarks], [CBC], [CBCRemarks], [Urinalysis], [UrinalysisRemarks], [Fecalysis], [FecalysisRemarks], [HBsAg], [HBsAgRemarks], [DrugTest2Panel], [DrugTest2PanelRemarks], [DrugTest4Panel], [DrugTest4PanelRemarks], [Classification], [MedicalSurgicalHistory], [Assessment], [AssessmentDoneBy], [PhysicianName], [PhysicianLicense])
 SELECT m.NewId, s.[ContactNo], s.[CivilStatus], s.[ChestXray], s.[ChestXrayRemarks], s.[CBC], s.[CBCRemarks], s.[Urinalysis], s.[UrinalysisRemarks], s.[Fecalysis], s.[FecalysisRemarks], s.[HBsAg], s.[HBsAgRemarks], s.[DrugTest2Panel], s.[DrugTest2PanelRemarks], s.[DrugTest4Panel], s.[DrugTest4PanelRemarks], s.[Classification], s.[MedicalSurgicalHistory], s.[Assessment], s.[AssessmentDoneBy], s.[PhysicianName], s.[PhysicianLicense]
 FROM [$(Legacy)].dbo.[MERs] s JOIN #map m ON m.LegacyId = s.Id;
+
+-- Fields the client renamed: the entry lists and the saved defaults of those screens carry the old names
+UPDATE [LookupValues] SET [FieldName] = N'Protein' WHERE [ModuleId] = 6 AND [FieldName] = N'Albumin';
+UPDATE [LookupValues] SET [FieldName] = N'Glucose' WHERE [ModuleId] = 6 AND [FieldName] = N'Sugar';
+UPDATE [LookupValues] SET [FieldName] = N'Reaction (PH)' WHERE [ModuleId] = 6 AND [FieldName] = N'Reaction';
+UPDATE [ModuleDefaults] SET [Defaults] = REPLACE(REPLACE([Defaults], N'"Albumin"', N'"Protein"'), N'"Sugar"', N'"Glucose"') WHERE [ModuleId] = 6;
+UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N'"Segmenters', N'"Neutrophils') WHERE [ModuleId] = 7;
+UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N'"SGPT', N'"ALTSGPT') WHERE [ModuleId] = 11;
+UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N'"SGOT', N'"ASTSGOT') WHERE [ModuleId] = 13;
 
 -- ===== Summary =====
 SELECT SourceTable AS SkippedSourceTable, LegacyId, Reason FROM #skipped ORDER BY SourceTable, LegacyId;

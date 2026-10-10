@@ -35,8 +35,8 @@ public class ClinicalChemistryReport : LabReportDetail
 
     public string? LDLResult { get; set; }
 
-    public string? SGPTNValue { get; set; }
+    public string? ALTSGPTNValue { get; set; }
 
-    public string? SGPTResult { get; set; }
+    public string? ALTSGPTResult { get; set; }
 
 }

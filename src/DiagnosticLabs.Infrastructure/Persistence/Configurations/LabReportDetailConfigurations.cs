@@ -38,8 +38,8 @@ internal sealed class UrinalysisReportConfiguration : IEntityTypeConfiguration<U
         builder.Property(e => e.Appearance).HasMaxLength(50);
         builder.Property(e => e.Reaction).HasMaxLength(50);
         builder.Property(e => e.SPGravity).HasMaxLength(50);
-        builder.Property(e => e.Albumin).HasMaxLength(50);
-        builder.Property(e => e.Sugar).HasMaxLength(50);
+        builder.Property(e => e.Protein).HasMaxLength(50);
+        builder.Property(e => e.Glucose).HasMaxLength(50);
         builder.Property(e => e.PusCells).HasMaxLength(50);
         builder.Property(e => e.RedCells).HasMaxLength(50);
         builder.Property(e => e.MucusThreads).HasMaxLength(50);
@@ -65,8 +65,8 @@ internal sealed class HematologyReportConfiguration : IEntityTypeConfiguration<H
         builder.Property(e => e.HemoglobinResult).HasMaxLength(100);
         builder.Property(e => e.WBCCountNValue).HasMaxLength(100);
         builder.Property(e => e.WBCCountResult).HasMaxLength(100);
-        builder.Property(e => e.SegmentersNValue).HasMaxLength(100);
-        builder.Property(e => e.SegmentersResult).HasMaxLength(100);
+        builder.Property(e => e.NeutrophilsNValue).HasMaxLength(100);
+        builder.Property(e => e.NeutrophilsResult).HasMaxLength(100);
         builder.Property(e => e.LymphocytesNValue).HasMaxLength(100);
         builder.Property(e => e.LymphocytesResult).HasMaxLength(100);
         builder.Property(e => e.EosinophilsNValue).HasMaxLength(100);
@@ -140,8 +140,8 @@ internal sealed class ClinicalChemistryReportConfiguration : IEntityTypeConfigur
         builder.Property(e => e.BloodUricAcidResult).HasMaxLength(100);
         builder.Property(e => e.LDLNValue).HasMaxLength(100);
         builder.Property(e => e.LDLResult).HasMaxLength(100);
-        builder.Property(e => e.SGPTNValue).HasMaxLength(100);
-        builder.Property(e => e.SGPTResult).HasMaxLength(100);
+        builder.Property(e => e.ALTSGPTNValue).HasMaxLength(100);
+        builder.Property(e => e.ALTSGPTResult).HasMaxLength(100);
     }
 }
 
@@ -170,12 +170,12 @@ internal sealed class ClinicalChemistry2ReportConfiguration : IEntityTypeConfigu
         builder.Property(e => e.AlkalinePhosphataseSNValue).HasMaxLength(100);
         builder.Property(e => e.AlkalinePhosphataseSUnit).HasMaxLength(100);
         builder.Property(e => e.AlkalinePhosphataseSResults).HasMaxLength(100);
-        builder.Property(e => e.SGOTCNValue).HasMaxLength(100);
-        builder.Property(e => e.SGOTCUnit).HasMaxLength(100);
-        builder.Property(e => e.SGOTCResults).HasMaxLength(100);
-        builder.Property(e => e.SGOTSNValue).HasMaxLength(100);
-        builder.Property(e => e.SGOTSUnit).HasMaxLength(100);
-        builder.Property(e => e.SGOTSResults).HasMaxLength(100);
+        builder.Property(e => e.ASTSGOTCNValue).HasMaxLength(100);
+        builder.Property(e => e.ASTSGOTCUnit).HasMaxLength(100);
+        builder.Property(e => e.ASTSGOTCResults).HasMaxLength(100);
+        builder.Property(e => e.ASTSGOTSNValue).HasMaxLength(100);
+        builder.Property(e => e.ASTSGOTSUnit).HasMaxLength(100);
+        builder.Property(e => e.ASTSGOTSResults).HasMaxLength(100);
     }
 }
 

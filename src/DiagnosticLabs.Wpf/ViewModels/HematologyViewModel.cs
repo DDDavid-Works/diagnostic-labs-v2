@@ -52,7 +52,7 @@ public partial class HematologyViewModel(
     public IReadOnlyList<NormalResultRow> Rows { get; } =
     [
         new("Hematocrit", "Hematocrit", false), new("Hemoglobin", "Hemoglobin", false), new("WBCCount", "White Blood Cell Count", false),
-        new("Segmenters", "Segmenters", true), new("Lymphocytes", "Lymphocytes", true), new("Eosinophils", "Eosinophils", true),
+        new("Neutrophils", "Neutrophils", true), new("Lymphocytes", "Lymphocytes", true), new("Eosinophils", "Eosinophils", true),
         new("Monocytes", "Monocytes", true), new("Basophils", "Basophils", true), new("Stab", "Stab", true),
         new("PlateletCount", "Platelet Count", false),
     ];
@@ -69,7 +69,7 @@ public partial class HematologyViewModel(
             Hematocrit = Row("Hematocrit").ToEntry(),
             Hemoglobin = Row("Hemoglobin").ToEntry(),
             WBCCount = Row("WBCCount").ToEntry(),
-            Segmenters = Row("Segmenters").ToEntry(),
+            Neutrophils = Row("Neutrophils").ToEntry(),
             Lymphocytes = Row("Lymphocytes").ToEntry(),
             Eosinophils = Row("Eosinophils").ToEntry(),
             Monocytes = Row("Monocytes").ToEntry(),
@@ -85,7 +85,7 @@ public partial class HematologyViewModel(
         Row("Hematocrit").Show(d.Data.Hematocrit);
         Row("Hemoglobin").Show(d.Data.Hemoglobin);
         Row("WBCCount").Show(d.Data.WBCCount);
-        Row("Segmenters").Show(d.Data.Segmenters);
+        Row("Neutrophils").Show(d.Data.Neutrophils);
         Row("Lymphocytes").Show(d.Data.Lymphocytes);
         Row("Eosinophils").Show(d.Data.Eosinophils);
         Row("Monocytes").Show(d.Data.Monocytes);

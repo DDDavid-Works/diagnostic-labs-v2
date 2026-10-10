@@ -12,8 +12,8 @@ public sealed record UrinalysisDetails(
     string? Appearance,
     string? Reaction,
     string? SPGravity,
-    string? Albumin,
-    string? Sugar,
+    string? Protein,
+    string? Glucose,
     string? PusCells,
     string? RedCells,
     string? MucusThreads,
@@ -33,8 +33,8 @@ public sealed record UrinalysisInput(
     string? Appearance,
     string? Reaction,
     string? SPGravity,
-    string? Albumin,
-    string? Sugar,
+    string? Protein,
+    string? Glucose,
     string? PusCells,
     string? RedCells,
     string? MucusThreads,
@@ -74,8 +74,8 @@ public sealed class UrinalysisService(IAppDbContext db, ICurrentUser currentUser
 
     private static IEnumerable<(string Label, string? Value)> Values(UrinalysisInput i) =>
     [
-        ("Color", i.Color), ("Appearance", i.Appearance), ("Reaction", i.Reaction), ("SP. Gravity", i.SPGravity),
-        ("Albumin", i.Albumin), ("Sugar", i.Sugar), ("Pus Cells", i.PusCells), ("Red Cells", i.RedCells),
+        ("Color", i.Color), ("Appearance", i.Appearance), ("Reaction (PH)", i.Reaction), ("SP. Gravity", i.SPGravity),
+        ("Protein", i.Protein), ("Glucose", i.Glucose), ("Pus Cells", i.PusCells), ("Red Cells", i.RedCells),
         ("Mucus Threads", i.MucusThreads), ("Epithelial Cells", i.EpithelialCells), ("Amorphous Urates / PO4", i.AmorphousUratesPO4),
         ("Bacteria", i.Bacteria), ("Casts", i.Casts), ("Crystals", i.Crystals),
     ];
@@ -86,8 +86,8 @@ public sealed class UrinalysisService(IAppDbContext db, ICurrentUser currentUser
         d.Appearance = Clean(i.Appearance);
         d.Reaction = Clean(i.Reaction);
         d.SPGravity = Clean(i.SPGravity);
-        d.Albumin = Clean(i.Albumin);
-        d.Sugar = Clean(i.Sugar);
+        d.Protein = Clean(i.Protein);
+        d.Glucose = Clean(i.Glucose);
         d.PusCells = Clean(i.PusCells);
         d.RedCells = Clean(i.RedCells);
         d.MucusThreads = Clean(i.MucusThreads);
@@ -100,14 +100,14 @@ public sealed class UrinalysisService(IAppDbContext db, ICurrentUser currentUser
     }
 
     protected override UrinalysisDetails BuildDetails(LabReport report, LabResultHeader header, UrinalysisReport d) => new(
-        report.Id, header, d.Color, d.Appearance, d.Reaction, d.SPGravity, d.Albumin, d.Sugar, d.PusCells, d.RedCells, d.MucusThreads,
+        report.Id, header, d.Color, d.Appearance, d.Reaction, d.SPGravity, d.Protein, d.Glucose, d.PusCells, d.RedCells, d.MucusThreads,
         d.EpithelialCells, d.AmorphousUratesPO4, d.Bacteria, d.Casts, d.Crystals, d.Others, report.Photo?.Content, report.RowVersion);
 
     // The order and wording of the labels is the order and wording on the printed form: left column, then right column.
     protected override IReadOnlyList<PrintLine> ResultLines(UrinalysisReport d) =>
     [
-        new("Color", d.Color), new("Appearance", d.Appearance), new("Reaction", d.Reaction), new("SP. Gravity", d.SPGravity),
-        new("Albumin", d.Albumin), new("Sugar", d.Sugar), new("Pus Cells", d.PusCells), new("Red Cells", d.RedCells),
+        new("Color", d.Color), new("Appearance", d.Appearance), new("Reaction (PH)", d.Reaction), new("SP. Gravity", d.SPGravity),
+        new("Protein", d.Protein), new("Glucose", d.Glucose), new("Pus Cells", d.PusCells), new("Red Cells", d.RedCells),
         new("Mucus Threads", d.MucusThreads), new("Epithelial Cells", d.EpithelialCells),
         new("Amorphous Urates / PO4", d.AmorphousUratesPO4), new("Bacteria", d.Bacteria), new("Casts", d.Casts), new("Crystals", d.Crystals),
     ];

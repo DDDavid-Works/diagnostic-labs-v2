@@ -1537,3 +1537,127 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[UrinalysisReports].[Albumin]', N'Protein', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[UrinalysisReports].[Sugar]', N'Glucose', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[HematologyReports].[SegmentersNValue]', N'NeutrophilsNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[HematologyReports].[SegmentersResult]', N'NeutrophilsResult', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[SGPTNValue]', N'ALTSGPTNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[SGPTResult]', N'ALTSGPTResult', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistry2Reports].[SGOTCNValue]', N'ASTSGOTCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistry2Reports].[SGOTCUnit]', N'ASTSGOTCUnit', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistry2Reports].[SGOTCResults]', N'ASTSGOTCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistry2Reports].[SGOTSNValue]', N'ASTSGOTSNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistry2Reports].[SGOTSUnit]', N'ASTSGOTSUnit', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistry2Reports].[SGOTSResults]', N'ASTSGOTSResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+
+                    UPDATE LookupValues SET FieldName = N'Protein' WHERE ModuleId = 6 AND FieldName = N'Albumin';
+                    UPDATE LookupValues SET FieldName = N'Glucose' WHERE ModuleId = 6 AND FieldName = N'Sugar';
+                    UPDATE LookupValues SET FieldName = N'Reaction (PH)' WHERE ModuleId = 6 AND FieldName = N'Reaction';
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(REPLACE(Defaults, N'"Albumin"', N'"Protein"'), N'"Sugar"', N'"Glucose"') WHERE ModuleId = 6;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"Segmenters', N'"Neutrophils') WHERE ModuleId = 7;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"SGPT', N'"ALTSGPT') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"SGOT', N'"ASTSGOT') WHERE ModuleId = 13;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010121232_ClientFieldRenames'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010121232_ClientFieldRenames', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

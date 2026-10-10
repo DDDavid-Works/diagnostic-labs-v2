@@ -225,6 +225,14 @@ $skipOutlier = $common + @('DateInputted', 'CompanyName', 'Gender', 'Remarks')
 Emit '-- ===== Lab reports: header rows go to LabReports (new ids, mapped per source table) ====='
 Emit ''
 
+# Fields the client renamed since the legacy schema: legacy column -> new column, per target class.
+$renamedColumns = @{
+    ClinicalChemistry2Report = @{ SGOTCNValue = 'ASTSGOTCNValue'; SGOTCResults = 'ASTSGOTCResults'; SGOTCUnit = 'ASTSGOTCUnit'; SGOTSNValue = 'ASTSGOTSNValue'; SGOTSResults = 'ASTSGOTSResults'; SGOTSUnit = 'ASTSGOTSUnit' }
+    ClinicalChemistryReport = @{ SGPTNValue = 'ALTSGPTNValue'; SGPTResult = 'ALTSGPTResult' }
+    HematologyReport = @{ SegmentersNValue = 'NeutrophilsNValue'; SegmentersResult = 'NeutrophilsResult' }
+    UrinalysisReport = @{ Albumin = 'Protein'; Sugar = 'Glucose' }
+}
+
 foreach ($lab in $labs) {
     $src = $lab.Src
     $isOutlier = $lab.Mode -ne 'std'
@@ -315,7 +323,7 @@ foreach ($lab in $labs) {
         Emit ''
     }
 
-    $dn = (@('LabReportId') + ($detail | ForEach-Object { $_.C })) | ForEach-Object { "[$_]" }
+    $dn = (@('LabReportId') + ($detail | ForEach-Object { if ($renamedColumns[$lab.Cls] -and $renamedColumns[$lab.Cls][$_.C]) { $renamedColumns[$lab.Cls][$_.C] } else { $_.C } })) | ForEach-Object { "[$_]" }
     $dv = @('m.NewId') + ($detail | ForEach-Object { if ($_.Ty -eq 'nchar') { "RTRIM(s.[$($_.C)])" } else { "s.[$($_.C)]" } })
     Emit "INSERT INTO [$($lab.Cls)s] ($($dn -join ', '))"
     Emit "SELECT $($dv -join ', ')"
@@ -333,6 +341,16 @@ foreach ($lab in $labs) {
         Emit ''
     }
 }
+
+Emit '-- Fields the client renamed: the entry lists and the saved defaults of those screens carry the old names'
+Emit 'UPDATE [LookupValues] SET [FieldName] = N''Protein'' WHERE [ModuleId] = 6 AND [FieldName] = N''Albumin'';'
+Emit 'UPDATE [LookupValues] SET [FieldName] = N''Glucose'' WHERE [ModuleId] = 6 AND [FieldName] = N''Sugar'';'
+Emit 'UPDATE [LookupValues] SET [FieldName] = N''Reaction (PH)'' WHERE [ModuleId] = 6 AND [FieldName] = N''Reaction'';'
+Emit 'UPDATE [ModuleDefaults] SET [Defaults] = REPLACE(REPLACE([Defaults], N''"Albumin"'', N''"Protein"''), N''"Sugar"'', N''"Glucose"'') WHERE [ModuleId] = 6;'
+Emit 'UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N''"Segmenters'', N''"Neutrophils'') WHERE [ModuleId] = 7;'
+Emit 'UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N''"SGPT'', N''"ALTSGPT'') WHERE [ModuleId] = 11;'
+Emit 'UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N''"SGOT'', N''"ASTSGOT'') WHERE [ModuleId] = 13;'
+Emit ''
 
 Emit @"
 -- ===== Summary =====

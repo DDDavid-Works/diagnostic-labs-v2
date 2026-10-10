@@ -11,9 +11,9 @@ public class UrinalysisReport : LabReportDetail
 
     public string? SPGravity { get; set; }
 
-    public string? Albumin { get; set; }
+    public string? Protein { get; set; }
 
-    public string? Sugar { get; set; }
+    public string? Glucose { get; set; }
 
     public string? PusCells { get; set; }
 

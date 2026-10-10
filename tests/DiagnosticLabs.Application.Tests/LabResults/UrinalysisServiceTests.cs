@@ -34,7 +34,7 @@ public class UrinalysisServiceTests
         var reopened = (await service.GetAsync(saved.Id)).Value;
 
         Assert.Equal(["GREEN", "NORMAL", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C"],
-            new string?[] { reopened.Color, reopened.Appearance, reopened.Reaction, reopened.SPGravity, reopened.Albumin, reopened.Sugar, reopened.PusCells,
+            new string?[] { reopened.Color, reopened.Appearance, reopened.Reaction, reopened.SPGravity, reopened.Protein, reopened.Glucose, reopened.PusCells,
                     reopened.RedCells, reopened.MucusThreads, reopened.EpithelialCells, reopened.AmorphousUratesPO4, reopened.Bacteria, reopened.Casts, reopened.Crystals }.Select(v => v ?? string.Empty).ToArray());
         Assert.Equal("OTHERS XXXX", reopened.Others);
         Assert.Equal("REMARKS XXX", reopened.Header.Remarks);
@@ -63,12 +63,12 @@ public class UrinalysisServiceTests
         var service = CreateService(db);
 
         var blank = (await service.SaveAsync(Input() with { Color = "  ", Others = null })).Value;
-        var tooLong = await service.SaveAsync(Input() with { Sugar = new string('x', 51) });
+        var tooLong = await service.SaveAsync(Input() with { Glucose = new string('x', 51) });
         var othersTooLong = await service.SaveAsync(Input() with { Others = new string('x', 501) });
 
         Assert.Null(blank.Color);
         Assert.Equal(string.Empty, blank.Others);
-        Assert.Contains("Sugar", tooLong.Error.Message, StringComparison.Ordinal);
+        Assert.Contains("Glucose", tooLong.Error.Message, StringComparison.Ordinal);
         Assert.Contains("Others", othersTooLong.Error.Message, StringComparison.Ordinal);
     }
 
@@ -84,7 +84,7 @@ public class UrinalysisServiceTests
 
         Assert.Equal(ReportLayout.Urinalysis, print.Layout);
         Assert.Equal(
-            ["Color", "Appearance", "Reaction", "SP. Gravity", "Albumin", "Sugar", "Pus Cells", "Red Cells",
+            ["Color", "Appearance", "Reaction (PH)", "SP. Gravity", "Protein", "Glucose", "Pus Cells", "Red Cells",
              "Mucus Threads", "Epithelial Cells", "Amorphous Urates / PO4", "Bacteria", "Casts", "Crystals"],
             print.ResultLines.Select(l => l.Label));
         Assert.Equal("GREEN", print.ResultLines[0].Value);

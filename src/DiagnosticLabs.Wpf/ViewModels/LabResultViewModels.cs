@@ -1061,13 +1061,13 @@ public partial class UrinalysisViewModel(
 
     public ChoiceField Appearance { get; } = new("Appearance", "Appearance", EntryFields.UrinalysisAppearance);
 
-    public ChoiceField Reaction { get; } = new("Reaction", "Reaction", EntryFields.UrinalysisReaction);
+    public ChoiceField Reaction { get; } = new("Reaction", "Reaction (PH)", EntryFields.UrinalysisReaction);
 
     public ChoiceField SPGravity { get; } = new("SPGravity", "SP. Gravity", EntryFields.UrinalysisSpGravity);
 
-    public ChoiceField Albumin { get; } = new("Albumin", "Albumin", EntryFields.UrinalysisAlbumin);
+    public ChoiceField Protein { get; } = new("Protein", "Protein", EntryFields.UrinalysisProtein);
 
-    public ChoiceField Sugar { get; } = new("Sugar", "Sugar", EntryFields.UrinalysisSugar);
+    public ChoiceField Glucose { get; } = new("Glucose", "Glucose", EntryFields.UrinalysisGlucose);
 
     public ChoiceField PusCells { get; } = new("PusCells", "Pus Cells", EntryFields.UrinalysisPusCells);
 
@@ -1097,14 +1097,14 @@ public partial class UrinalysisViewModel(
         new(Appearance, EpithelialCells),
         new(Reaction, AmorphousUratesPO4),
         new(SPGravity, Bacteria),
-        new(Albumin, Casts),
-        new(Sugar, Crystals),
+        new(Protein, Casts),
+        new(Glucose, Crystals),
         new(PusCells, null),
         new(RedCells, null),
     ];
 
     protected override IEnumerable<ChoiceField> ChoiceFields =>
-        [Color, Appearance, Reaction, SPGravity, Albumin, Sugar, PusCells, RedCells, MucusThreads, EpithelialCells, AmorphousUratesPO4, Bacteria, Casts, Crystals];
+        [Color, Appearance, Reaction, SPGravity, Protein, Glucose, PusCells, RedCells, MucusThreads, EpithelialCells, AmorphousUratesPO4, Bacteria, Casts, Crystals];
 
     protected override EntryField RemarksField => EntryFields.UrinalysisRemarks;
 
@@ -1128,7 +1128,7 @@ public partial class UrinalysisViewModel(
     }
 
     protected override UrinalysisInput BuildInput() => new(
-        Id, BuildHeader(), Color.Value, Appearance.Value, Reaction.Value, SPGravity.Value, Albumin.Value, Sugar.Value, PusCells.Value,
+        Id, BuildHeader(), Color.Value, Appearance.Value, Reaction.Value, SPGravity.Value, Protein.Value, Glucose.Value, PusCells.Value,
         RedCells.Value, MucusThreads.Value, EpithelialCells.Value, AmorphousUratesPO4.Value, Bacteria.Value, Casts.Value, Crystals.Value,
         Others, RowVersion);
 
@@ -1139,8 +1139,8 @@ public partial class UrinalysisViewModel(
         Appearance.Value = d.Appearance;
         Reaction.Value = d.Reaction;
         SPGravity.Value = d.SPGravity;
-        Albumin.Value = d.Albumin;
-        Sugar.Value = d.Sugar;
+        Protein.Value = d.Protein;
+        Glucose.Value = d.Glucose;
         PusCells.Value = d.PusCells;
         RedCells.Value = d.RedCells;
         MucusThreads.Value = d.MucusThreads;

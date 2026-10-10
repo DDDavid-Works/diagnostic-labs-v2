@@ -15,16 +15,16 @@ public class ClinicalChemistry2Report : LabReportDetail
 
     public string? AlkalinePhosphataseSResults { get; set; }
 
-    public string? SGOTCNValue { get; set; }
+    public string? ASTSGOTCNValue { get; set; }
 
-    public string? SGOTCUnit { get; set; }
+    public string? ASTSGOTCUnit { get; set; }
 
-    public string? SGOTCResults { get; set; }
+    public string? ASTSGOTCResults { get; set; }
 
-    public string? SGOTSNValue { get; set; }
+    public string? ASTSGOTSNValue { get; set; }
 
-    public string? SGOTSUnit { get; set; }
+    public string? ASTSGOTSUnit { get; set; }
 
-    public string? SGOTSResults { get; set; }
+    public string? ASTSGOTSResults { get; set; }
 
 }

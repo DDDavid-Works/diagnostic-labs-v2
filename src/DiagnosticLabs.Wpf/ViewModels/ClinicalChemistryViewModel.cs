@@ -43,7 +43,7 @@ public partial class ClinicalChemistryViewModel(
             Creatinine = Row("Creatinine").ToEntry(),
             BloodUricAcid = Row("BloodUricAcid").ToEntry(),
             LDL = Row("LDL").ToEntry(),
-            SGPT = Row("SGPT").ToEntry(),
+            ALTSGPT = Row("ALTSGPT").ToEntry(),
         },
         RowVersion);
 
@@ -58,7 +58,7 @@ public partial class ClinicalChemistryViewModel(
         Row("Creatinine").Show(d.Data.Creatinine);
         Row("BloodUricAcid").Show(d.Data.BloodUricAcid);
         Row("LDL").Show(d.Data.LDL);
-        Row("SGPT").Show(d.Data.SGPT);
+        Row("ALTSGPT").Show(d.Data.ALTSGPT);
         RowVersion = d.RowVersion;
     }
 

@@ -23,7 +23,7 @@ public class ClinicalChemistryServiceTests
     private static ClinicalChemistryData FullData() => new()
     {
         FBS = new("70-105", "9"), TotalCholesterol = new("up to 200", "8"), Triglycerides = new("44-148", "7"), HDL = new("30-75", "6"),
-        BUN = new("7-18", "5"), Creatinine = new("0.40-1.40", "4"), BloodUricAcid = new("2.5-7.5", "3"), LDL = new("66-178", "2"), SGPT = new("4-36", "1"),
+        BUN = new("7-18", "5"), Creatinine = new("0.40-1.40", "4"), BloodUricAcid = new("2.5-7.5", "3"), LDL = new("66-178", "2"), ALTSGPT = new("4-36", "1"),
     };
 
     private ClinicalChemistryInput Input(ClinicalChemistryData? data = null) => new(0, Header(), data ?? FullData(), null);
@@ -67,7 +67,7 @@ public class ClinicalChemistryServiceTests
 
         Assert.Equal(ReportLayout.ClinicalChemistry, printable.Layout);
         Assert.Equal("70-105", printable.Fields!["FBSNormalValue"]);
-        Assert.Equal("1", printable.Fields["SGPTResult"]);
+        Assert.Equal("1", printable.Fields["ALTSGPTResult"]);
         Assert.Equal(ClinicalChemistryService.Tests.Length * 2, printable.Fields.Count);
     }
 }

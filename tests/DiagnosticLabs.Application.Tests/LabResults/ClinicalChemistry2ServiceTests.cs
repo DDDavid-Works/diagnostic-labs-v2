@@ -22,8 +22,8 @@ public class ClinicalChemistry2ServiceTests
     {
         AlkalinePhosphataseConventional = new("APCNV", "APCU", "10"),
         AlkalinePhosphataseSystem = new("APSNV", "APSU", "11"),
-        SGOTConventional = new("SGOTCNV", "SGOTCU", "12"),
-        SGOTSystem = new("SGOTSNV", "SGOTSU", "13"),
+        ASTSGOTConventional = new("ASTSGOTCNV", "ASTSGOTCU", "12"),
+        ASTSGOTSystem = new("ASTSGOTSNV", "ASTSGOTSU", "13"),
     };
 
     private ClinicalChemistry2Input Input(ClinicalChemistry2Data? data = null) => new(0, Header(), data ?? FullData(), null);
@@ -49,10 +49,10 @@ public class ClinicalChemistry2ServiceTests
         SignInAsAdmin();
         var service = new ClinicalChemistry2Service(db, _env.Session, _env.Clock);
 
-        var result = await service.SaveAsync(Input(FullData() with { SGOTSystem = new(null, new string('x', ClinicalChemistry2Service.ValueMaxLength + 1), null) }));
+        var result = await service.SaveAsync(Input(FullData() with { ASTSGOTSystem = new(null, new string('x', ClinicalChemistry2Service.ValueMaxLength + 1), null) }));
 
         Assert.True(result.IsFailure);
-        Assert.Contains("SGOT (system unit) unit", result.Error.Message);
+        Assert.Contains("AST/SGOT (system unit) unit", result.Error.Message);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class ClinicalChemistry2ServiceTests
 
         Assert.Equal(ReportLayout.ClinicalChemistry2, printable.Layout);
         Assert.Equal("APCNV", printable.Fields!["AlkalinePhosphataseCNValue"]);
-        Assert.Equal("13", printable.Fields["SGOTSResults"]);
+        Assert.Equal("13", printable.Fields["ASTSGOTSResults"]);
         Assert.Equal(12, printable.Fields.Count);
     }
 }

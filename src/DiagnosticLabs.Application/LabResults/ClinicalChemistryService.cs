@@ -24,7 +24,7 @@ public sealed record ClinicalChemistryData
 
     public NormalResultEntry LDL { get; init; } = new(null, null);
 
-    public NormalResultEntry SGPT { get; init; } = new(null, null);
+    public NormalResultEntry ALTSGPT { get; init; } = new(null, null);
 }
 
 public sealed record ClinicalChemistryDetails(long Id, LabResultHeader Header, ClinicalChemistryData Data, byte[]? Photo, byte[] RowVersion) : IHasId;
@@ -46,7 +46,7 @@ public sealed class ClinicalChemistryService(IAppDbContext db, ICurrentUser curr
     public static readonly (string Name, string Label)[] Tests =
     [
         ("FBS", "FBS"), ("TotalCholesterol", "Total Cholesterol"), ("Triglycerides", "Triglycerides"), ("HDL", "HDL"), ("BUN", "BUN"),
-        ("Creatinine", "Creatinine"), ("BloodUricAcid", "Blood Uric Acid"), ("LDL", "LDL"), ("SGPT", "SGPT"),
+        ("Creatinine", "Creatinine"), ("BloodUricAcid", "Blood Uric Acid"), ("LDL", "LDL"), ("ALTSGPT", "ALT/SGPT"),
     ];
 
     protected override string Title => "Clinical Chemistry";
@@ -58,7 +58,7 @@ public sealed class ClinicalChemistryService(IAppDbContext db, ICurrentUser curr
     private static IEnumerable<(string Name, NormalResultEntry Entry)> Entries(ClinicalChemistryData d) =>
     [
         ("FBS", d.FBS), ("TotalCholesterol", d.TotalCholesterol), ("Triglycerides", d.Triglycerides), ("HDL", d.HDL), ("BUN", d.BUN),
-        ("Creatinine", d.Creatinine), ("BloodUricAcid", d.BloodUricAcid), ("LDL", d.LDL), ("SGPT", d.SGPT),
+        ("Creatinine", d.Creatinine), ("BloodUricAcid", d.BloodUricAcid), ("LDL", d.LDL), ("ALTSGPT", d.ALTSGPT),
     ];
 
     protected override IEnumerable<string> ValidateDetail(ClinicalChemistryInput input)
@@ -93,8 +93,8 @@ public sealed class ClinicalChemistryService(IAppDbContext db, ICurrentUser curr
         e.BloodUricAcidResult = Clean(d.BloodUricAcid.Result);
         e.LDLNValue = Clean(d.LDL.NormalValue);
         e.LDLResult = Clean(d.LDL.Result);
-        e.SGPTNValue = Clean(d.SGPT.NormalValue);
-        e.SGPTResult = Clean(d.SGPT.Result);
+        e.ALTSGPTNValue = Clean(d.ALTSGPT.NormalValue);
+        e.ALTSGPTResult = Clean(d.ALTSGPT.Result);
     }
 
     private static ClinicalChemistryData DataOf(ClinicalChemistryReport e) => new()
@@ -107,7 +107,7 @@ public sealed class ClinicalChemistryService(IAppDbContext db, ICurrentUser curr
         Creatinine = new(e.CreatinineNValue, e.CreatinineResult),
         BloodUricAcid = new(e.BloodUricAcidNValue, e.BloodUricAcidResult),
         LDL = new(e.LDLNValue, e.LDLResult),
-        SGPT = new(e.SGPTNValue, e.SGPTResult),
+        ALTSGPT = new(e.ALTSGPTNValue, e.ALTSGPTResult),
     };
 
     protected override ClinicalChemistryDetails BuildDetails(LabReport report, LabResultHeader header, ClinicalChemistryReport e) =>

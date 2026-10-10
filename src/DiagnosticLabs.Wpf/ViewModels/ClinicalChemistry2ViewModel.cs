@@ -48,7 +48,7 @@ public sealed partial class UnitResultRow(string name, string label) : Observabl
     }
 }
 
-/// <summary>Clinical Chemistry 2: alkaline phosphatase and SGOT in two unit systems. The normal values and units are what a new form starts with.</summary>
+/// <summary>Clinical Chemistry 2: alkaline phosphatase and AST/SGOT in two unit systems. The normal values and units are what a new form starts with.</summary>
 public partial class ClinicalChemistry2ViewModel(
     IServiceRunner runner,
     IDialogService dialogs,
@@ -63,7 +63,7 @@ public partial class ClinicalChemistry2ViewModel(
 
     public UnitResultRow AlkalinePhosphatase { get; } = new("AlkalinePhosphatase", "Alkaline Phosphatase");
 
-    public UnitResultRow SGOT { get; } = new("SGOT", "SGOT");
+    public UnitResultRow ASTSGOT { get; } = new("ASTSGOT", "AST/SGOT");
 
     protected override EntryField RemarksField => EntryFields.ClinicalChemistry2Remarks;
 
@@ -74,8 +74,8 @@ public partial class ClinicalChemistry2ViewModel(
         {
             AlkalinePhosphataseConventional = AlkalinePhosphatase.Conventional,
             AlkalinePhosphataseSystem = AlkalinePhosphatase.System,
-            SGOTConventional = SGOT.Conventional,
-            SGOTSystem = SGOT.System,
+            ASTSGOTConventional = ASTSGOT.Conventional,
+            ASTSGOTSystem = ASTSGOT.System,
         },
         RowVersion);
 
@@ -83,7 +83,7 @@ public partial class ClinicalChemistry2ViewModel(
     {
         ShowHeader(d.Header, d.Photo);
         AlkalinePhosphatase.Show(d.Data.AlkalinePhosphataseConventional, d.Data.AlkalinePhosphataseSystem);
-        SGOT.Show(d.Data.SGOTConventional, d.Data.SGOTSystem);
+        ASTSGOT.Show(d.Data.ASTSGOTConventional, d.Data.ASTSGOTSystem);
         RowVersion = d.RowVersion;
     }
 
@@ -91,13 +91,13 @@ public partial class ClinicalChemistry2ViewModel(
     {
         var none = new UnitResultEntry(null, null, null);
         AlkalinePhosphatase.Show(none, none);
-        SGOT.Show(none, none);
+        ASTSGOT.Show(none, none);
     }
 
     // The normal values and units are what a new form starts with (the results are per person).
     protected override IEnumerable<DefaultField> ExtraDefaultFields()
     {
-        foreach (var row in new[] { AlkalinePhosphatase, SGOT })
+        foreach (var row in new[] { AlkalinePhosphatase, ASTSGOT })
         {
             var r = row;
             yield return new(r.Name + "ConventionalNormalValue", () => r.ConventionalNormalValue, v => r.ConventionalNormalValue = v);

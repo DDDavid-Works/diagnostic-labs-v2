@@ -25,7 +25,7 @@ public class HematologyServiceTests
         Hematocrit = new("MALE: XXX    FEMALE: XXX", "0.45"),
         Hemoglobin = new("MALE: YYY    FEMALE: YYY", "140"),
         WBCCount = new("KKK", "7.5"),
-        Segmenters = new("UUU", "60"),
+        Neutrophils = new("UUU", "60"),
         Lymphocytes = new("HHH", "30"),
         Eosinophils = new("PPP", "2"),
         Monocytes = new("BBB", "5"),
