@@ -18,6 +18,9 @@
   <SolidColorBrush x:Key="ReadOnlyFillBrush" Color="#EEF3EE" />
   <SolidColorBrush x:Key="GridLineBrush" Color="#E3ECE4" />
   <SolidColorBrush x:Key="DangerTintBrush" Color="#FBEAEA" />
+  <SolidColorBrush x:Key="WarningBrush" Color="#B26A00" />
+  <SolidColorBrush x:Key="WarningTintBrush" Color="#FFF6DD" />
+  <SolidColorBrush x:Key="WarningBorderBrush" Color="#E8C766" />
 
   <!-- Controls (implicit, so every screen looks the same) -->
   <Style TargetType="TextBox">
@@ -196,15 +199,24 @@
       <Trigger Property="IsKeyboardFocused" Value="True">
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
       </Trigger>
-      <Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-      </Trigger>
-      <Trigger Property="IsPressed" Value="True">
-        <Setter Property="Background" Value="{StaticResource SelectedTintBrush}" />
-      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsMouseOver" Value="True" />
+          <Condition Property="IsEnabled" Value="True" />
+        </MultiTrigger.Conditions>
+          <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
+          <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </MultiTrigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsPressed" Value="True" />
+          <Condition Property="IsEnabled" Value="True" />
+        </MultiTrigger.Conditions>
+          <Setter Property="Background" Value="{StaticResource SelectedTintBrush}" />
+      </MultiTrigger>
       <Trigger Property="IsEnabled" Value="False">
         <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="Cursor" Value="Arrow" />
       </Trigger>
     </Style.Triggers>
   </Style>
@@ -214,13 +226,21 @@
     <Setter Property="Foreground" Value="White" />
     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
     <Style.Triggers>
-      <Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
-      </Trigger>
-      <Trigger Property="IsPressed" Value="True">
-        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
-      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsMouseOver" Value="True" />
+          <Condition Property="IsEnabled" Value="True" />
+        </MultiTrigger.Conditions>
+          <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+          <Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+      </MultiTrigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsPressed" Value="True" />
+          <Condition Property="IsEnabled" Value="True" />
+        </MultiTrigger.Conditions>
+          <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+      </MultiTrigger>
     </Style.Triggers>
   </Style>
 
@@ -228,13 +248,21 @@
     <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
     <Style.Triggers>
-      <Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="{StaticResource DangerTintBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
-      </Trigger>
-      <Trigger Property="IsPressed" Value="True">
-        <Setter Property="Background" Value="{StaticResource DangerTintBrush}" />
-      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsMouseOver" Value="True" />
+          <Condition Property="IsEnabled" Value="True" />
+        </MultiTrigger.Conditions>
+          <Setter Property="Background" Value="{StaticResource DangerTintBrush}" />
+          <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+      </MultiTrigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsPressed" Value="True" />
+          <Condition Property="IsEnabled" Value="True" />
+        </MultiTrigger.Conditions>
+          <Setter Property="Background" Value="{StaticResource DangerTintBrush}" />
+      </MultiTrigger>
     </Style.Triggers>
   </Style>
 
@@ -274,16 +302,21 @@
       <Trigger Property="IsKeyboardFocused" Value="True">
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
       </Trigger>
-      <Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsMouseOver" Value="True" />
+          <Condition Property="IsEnabled" Value="True" />
+        </MultiTrigger.Conditions>
+          <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
+          <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </MultiTrigger>
       <Trigger Property="IsChecked" Value="True">
         <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
       </Trigger>
       <Trigger Property="IsEnabled" Value="False">
         <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="Cursor" Value="Arrow" />
       </Trigger>
     </Style.Triggers>
   </Style>

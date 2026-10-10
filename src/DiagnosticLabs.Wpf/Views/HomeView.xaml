@@ -135,7 +135,7 @@
                               <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding PaymentState}" Value="Partial">
-                              <Setter Property="Foreground" Value="#B26A00" />
+                              <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
                             </DataTrigger>
                           </Style.Triggers>
                         </Style>
