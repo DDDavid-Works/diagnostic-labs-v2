@@ -1,4 +1,4 @@
-﻿using DiagnosticLabs.Application.Abstractions;
+using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.LabResults;
 using DiagnosticLabs.Domain.Lab;
@@ -18,18 +18,30 @@ public class ClinicalChemistryServiceTests
 
     private void SignInAsAdmin() => _env.Session.SignIn(new AuthenticatedUser(1, "admin", "Admin", true, false, []));
 
-    private LabResultHeader Header() => new(null, null, null, "Dolores Rivera", "28", "Female", null, Today, null, "DR. A", "DR. B");
+    private LabResultHeader Header() =>
+        new(null, null, null, "Dolores Rivera", "28", "Female", null, Today, null, "DR. A", "DR. B", MedicalTechnologist2: "DR. C");
 
-    private static ClinicalChemistryData FullData() => new()
-    {
-        FBS = new("70-105", "9"), TotalCholesterol = new("up to 200", "8"), Triglycerides = new("44-148", "7"), HDL = new("30-75", "6"),
-        BUN = new("7-18", "5"), Creatinine = new("0.40-1.40", "4"), BloodUricAcid = new("2.5-7.5", "3"), LDL = new("66-178", "2"), ALTSGPT = new("4-36", "1"),
-    };
+    // Every test gets its own distinct six values, so a value landing in the wrong column shows.
+    private static ChemistryTestEntry EntryOf(int i) => new(
+        new UnitResultEntry($"cn{i}", $"cu{i}", $"cr{i}"),
+        new UnitResultEntry($"sn{i}", $"su{i}", $"sr{i}"));
+
+    private static ClinicalChemistryData FullData() =>
+        new(ClinicalChemistryService.Tests.Select((t, i) => (t.Name, Entry: EntryOf(i))).ToDictionary(x => x.Name, x => x.Entry));
 
     private ClinicalChemistryInput Input(ClinicalChemistryData? data = null) => new(0, Header(), data ?? FullData(), null);
 
     [Fact]
-    public async Task Every_line_is_saved_and_read_back()
+    public async Task The_table_has_the_ten_tests_of_the_printed_form_in_order()
+    {
+        Assert.Equal(
+            ["Fasting Blood Sugar", "Cholesterol", "Triglycerides", "HDL", "LDL", "Creatinine", "Blood Urea Nitrogen", "Blood Uric Acid", "ALT/SGPT", "AST/SGOT"],
+            ClinicalChemistryService.Tests.Select(t => t.Label));
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task Every_cell_is_saved_and_read_back_in_its_own_place()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
@@ -38,8 +50,23 @@ public class ClinicalChemistryServiceTests
         var saved = (await service.SaveAsync(Input())).Value;
         var reopened = (await service.GetAsync(saved.Id)).Value;
 
-        Assert.Equal(FullData(), reopened.Data);
+        for (var i = 0; i < ClinicalChemistryService.Tests.Length; i++)
+            Assert.Equal(EntryOf(i), reopened.Data.Of(ClinicalChemistryService.Tests[i].Name));
+
         Assert.Equal(LabReportType.ClinicalChemistry, (await db.LabReports.AsNoTracking().SingleAsync()).ReportType);
+        Assert.Equal("DR. C", reopened.Header.MedicalTechnologist2);
+    }
+
+    [Fact]
+    public async Task A_test_left_out_is_empty()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+
+        var saved = (await service.SaveAsync(Input(ClinicalChemistryData.Empty))).Value;
+
+        Assert.All(ClinicalChemistryService.Tests, t => Assert.Equal(ChemistryTestEntry.Empty, saved.Data.Of(t.Name)));
     }
 
     [Fact]
@@ -48,26 +75,34 @@ public class ClinicalChemistryServiceTests
         await using var db = _env.CreateDb();
         SignInAsAdmin();
         var service = CreateService(db);
+        var tooLong = new ChemistryTestEntry(
+            new UnitResultEntry(null, null, null), new UnitResultEntry(null, new string('x', ClinicalChemistryService.ValueMaxLength + 1), null));
+        var data = new ClinicalChemistryData(new Dictionary<string, ChemistryTestEntry> { ["LDL"] = tooLong });
 
-        var result = await service.SaveAsync(Input(FullData() with { LDL = new(null, new string('x', ClinicalChemistryService.ValueMaxLength + 1)) }));
+        var result = await service.SaveAsync(Input(data));
 
         Assert.True(result.IsFailure);
-        Assert.Contains("LDL result", result.Error.Message);
+        Assert.Contains("LDL S.I. unit", result.Error.Message);
     }
 
     [Fact]
-    public async Task The_printout_carries_every_cell_by_name()
+    public async Task The_printout_carries_every_cell_by_name_and_has_three_signatories_and_remarks()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
         var service = CreateService(db);
-        var saved = (await service.SaveAsync(Input())).Value;
+        var header = Header() with { Remarks = "Fasting for 8 hours", MedicalTechnologistLicense = "111", MedicalTechnologist2License = "222", PathologistLicense = "333" };
+        var saved = (await service.SaveAsync(new ClinicalChemistryInput(0, header, FullData(), null))).Value;
 
         var printable = (await service.GetPrintableAsync(saved.Id)).Value;
 
         Assert.Equal(ReportLayout.ClinicalChemistry, printable.Layout);
-        Assert.Equal("70-105", printable.Fields!["FBSNormalValue"]);
-        Assert.Equal("1", printable.Fields["ALTSGPTResult"]);
-        Assert.Equal(ClinicalChemistryService.Tests.Length * 2, printable.Fields.Count);
+        Assert.Equal("cn0", printable.Fields!["FastingBloodSugarCNValue"]);
+        Assert.Equal("sr9", printable.Fields["ASTSGOTSResults"]);
+        Assert.Equal(ClinicalChemistryService.Tests.Length * ClinicalChemistryService.Suffixes.Length, printable.Fields.Count);
+        Assert.Equal(["DR. A", "DR. C", "DR. B"], printable.Signatories.Select(s => s.Name));
+        Assert.Equal(["111", "222", "333"], printable.Signatories.Select(s => s.LicenseNo));
+        Assert.Equal("Fasting for 8 hours", printable.ResultTexts.Single(t => t.Label == "Remarks").Text);
+        Assert.Equal(["* This is a validated and original report *", "This is an electronically signed document"], printable.FooterNote.Split('\n'));
     }
 }

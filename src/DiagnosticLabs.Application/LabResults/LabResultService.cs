@@ -25,7 +25,9 @@ public sealed record LabResultHeader(
     bool ConfirmedDuplicate = false,
     long? PatientId = null,
     string? MedicalTechnologistLicense = null,
-    string? PathologistLicense = null);
+    string? PathologistLicense = null,
+    string? MedicalTechnologist2 = null,
+    string? MedicalTechnologist2License = null);
 
 public sealed record LabResultListItem(
     long Id, DateOnly Date, string PatientName, string? RegistrationCode, string? CompanyOrPhysician) : IHasId;
@@ -62,6 +64,9 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
     public const string DuplicateCode = "LabResult.Duplicate";
     public const string FooterNote = "** COMPUTER GENERATED ** This is validated and original report **";
 
+    /// <summary>The two lines under the signatories of a form that says it is electronically signed (printed one under the other).</summary>
+    public const string ElectronicNote = "* This is a validated and original report *\nThis is an electronically signed document";
+
     private readonly int _module = moduleId;
     private readonly ConditionalWeakTable<LabReport, TDetail> _details = [];
     private Domain.Registrations.PatientRegistration? _registration;
@@ -86,12 +91,23 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
     /// <summary>The note under the signatories (a form may print its own wording; a line break starts a new line).</summary>
     protected virtual string FooterText => FooterNote;
 
+    /// <summary>True for a form signed by two medical technologists and the pathologist: the second one is saved on the result.</summary>
+    protected virtual bool HasSecondTechnologist => false;
+
     /// <summary>The names printed under lines at the foot of the page (the medical technologist and the pathologist unless a form says otherwise).</summary>
     protected virtual IReadOnlyList<PrintSignatory> Signatories(LabReport report, TDetail detail) =>
-        [
-            new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense),
-            new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense),
-        ];
+        HasSecondTechnologist
+            ?
+            [
+                new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense),
+                new PrintSignatory("Medical Technologist", report.MedicalTechnologist2, report.MedicalTechnologist2License),
+                new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense),
+            ]
+            :
+            [
+                new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense),
+                new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense),
+            ];
 
     /// <summary>Every value by name, for page designs (like the annual physical exam) that place each one at its own spot.</summary>
     protected virtual IReadOnlyDictionary<string, string?> PrintFields(LabReport report, TDetail detail) => new Dictionary<string, string?>();
@@ -137,7 +153,8 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         var header = new LabResultHeader(
             r.PatientRegistrationId, r.PatientRegistration?.RegistrationCode, r.PatientCode, r.PatientName, r.Age, r.Sex,
             r.CompanyOrPhysician, LocalTime.ToLocalDate(r.DateRequested), r.Remarks, r.MedicalTechnologist, r.Pathologist,
-            PatientId: r.PatientId, MedicalTechnologistLicense: r.MedicalTechnologistLicense, PathologistLicense: r.PathologistLicense);
+            PatientId: r.PatientId, MedicalTechnologistLicense: r.MedicalTechnologistLicense, PathologistLicense: r.PathologistLicense,
+            MedicalTechnologist2: r.MedicalTechnologist2, MedicalTechnologist2License: r.MedicalTechnologist2License);
         return BuildDetails(r, header, detail);
     }
 
@@ -172,6 +189,8 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         Max(errors, header.Pathologist, 100, "Pathologist");
         Max(errors, header.MedicalTechnologistLicense, 50, "Medical technologist license number");
         Max(errors, header.PathologistLicense, 50, "Pathologist license number");
+        Max(errors, header.MedicalTechnologist2, 100, "Second medical technologist");
+        Max(errors, header.MedicalTechnologist2License, 50, "Second medical technologist license number");
 
         errors.AddRange(ValidateDetail(input));
         return errors;
@@ -255,6 +274,8 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         report.Pathologist = Clean(header.Pathologist);
         report.MedicalTechnologistLicense = Clean(header.MedicalTechnologistLicense);
         report.PathologistLicense = Clean(header.PathologistLicense);
+        report.MedicalTechnologist2 = Clean(header.MedicalTechnologist2);
+        report.MedicalTechnologist2License = Clean(header.MedicalTechnologist2License);
 
         if (_details.TryGetValue(report, out var detail))
             ApplyDetail(detail, input);

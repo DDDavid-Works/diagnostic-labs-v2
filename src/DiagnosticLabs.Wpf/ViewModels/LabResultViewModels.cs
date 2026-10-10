@@ -164,6 +164,13 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     [ObservableProperty]
     private string? _pathologistLicense;
 
+    // The second medical technologist, for the forms signed by two (the same list and the same licence lookup as the first).
+    [ObservableProperty]
+    private string? _medicalTechnologist2;
+
+    [ObservableProperty]
+    private string? _medicalTechnologist2License;
+
     private readonly Dictionary<string, string?> _technologistLicenses = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string?> _pathologistLicenses = new(StringComparer.OrdinalIgnoreCase);
 
@@ -266,6 +273,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         new("Remarks", () => Remarks, v => Remarks = v),
         new("MedicalTechnologist", () => MedicalTechnologist, v => MedicalTechnologist = v),
         new("Pathologist", () => Pathologist, v => Pathologist = v),
+        new("MedicalTechnologist2", () => MedicalTechnologist2, v => MedicalTechnologist2 = v),
         .. ChoiceFields.Select(c => new DefaultField(c.Name, () => c.Value, v => c.Value = v)),
         .. ExtraDefaultFields(),
     ];
@@ -302,6 +310,12 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             MedicalTechnologistLicense = TechnologistLicenseOf(value);
     }
 
+    partial void OnMedicalTechnologist2Changed(string? value)
+    {
+        if (!_loading)
+            MedicalTechnologist2License = TechnologistLicenseOf(value);
+    }
+
     partial void OnPathologistChanged(string? value)
     {
         if (!_loading)
@@ -329,7 +343,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         _confirmedDuplicate,
         HasRegistration ? null : PatientId,
         MedicalTechnologistLicense,
-        PathologistLicense);
+        PathologistLicense,
+        MedicalTechnologist2,
+        MedicalTechnologist2License);
 
     /// <summary>Shows a loaded result's header; the registration's own details are fetched in the background.</summary>
     protected void ShowHeader(LabResultHeader header, byte[]? photo)
@@ -352,6 +368,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             Pathologist = header.Pathologist;
             MedicalTechnologistLicense = header.MedicalTechnologistLicense;
             PathologistLicense = header.PathologistLicense;
+            MedicalTechnologist2 = header.MedicalTechnologist2;
+            MedicalTechnologist2License = header.MedicalTechnologist2License;
             Photo = ImageLoader.FromBytes(photo);
             _confirmedDuplicate = false;
             ClearSuggestions();
@@ -386,6 +404,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             Pathologist = null;
             MedicalTechnologistLicense = null;
             PathologistLicense = null;
+            MedicalTechnologist2 = null;
+            MedicalTechnologist2License = null;
             Photo = null;
             _confirmedDuplicate = false;
             ClearSuggestions();
@@ -705,6 +725,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             MedicalTechnologistLicense = TechnologistLicenseOf(MedicalTechnologist);
         if (string.IsNullOrEmpty(PathologistLicense))
             PathologistLicense = LicenseOf(_pathologistLicenses, Pathologist);
+        if (string.IsNullOrEmpty(MedicalTechnologist2License))
+            MedicalTechnologist2License = TechnologistLicenseOf(MedicalTechnologist2);
         Replace(CompanyNames, companies.Select(c => c.Name));
 
         foreach (var choice in ChoiceFields)
@@ -964,22 +986,6 @@ public partial class StoolFecalysisViewModel(
 
     public ChoiceField OvaParasite { get; } = new("OvaParasite", "Ova/Parasite", EntryFields.StoolOvaParasite);
 
-    /// <summary>The second medical technologist who signs the form (the first is on the shared header); both pick from the same list.</summary>
-    [ObservableProperty]
-    private string? _medicalTechnologist2;
-
-    [ObservableProperty]
-    private string? _medicalTechnologist2License;
-
-    // True while a saved result is being shown or cleared, so putting its name on screen does not look its licence up again.
-    private bool _showing;
-
-    partial void OnMedicalTechnologist2Changed(string? value)
-    {
-        if (!_showing)
-            MedicalTechnologist2License = TechnologistLicenseOf(value);
-    }
-
     protected override IEnumerable<ChoiceField> ChoiceFields => [Color, Consistency, Wbc, Rbc, Bacteria, YeastCells, FatGlobules, OvaParasite];
 
     protected override EntryField RemarksField => EntryFields.StoolRemarks;
@@ -1006,7 +1012,7 @@ public partial class StoolFecalysisViewModel(
     protected override StoolFecalysisInput BuildInput() => new(
         Id, BuildHeader(), Color.Value, Consistency.Value, Others, RowVersion,
         Wbc: Wbc.Value, Rbc: Rbc.Value, Bacteria: Bacteria.Value, YeastCells: YeastCells.Value, FatGlobules: FatGlobules.Value,
-        OvaParasite: OvaParasite.Value, MedicalTechnologist2: MedicalTechnologist2, MedicalTechnologist2License: MedicalTechnologist2License);
+        OvaParasite: OvaParasite.Value);
 
     protected override void ShowFields(StoolFecalysisDetails d)
     {
@@ -1020,25 +1026,16 @@ public partial class StoolFecalysisViewModel(
         YeastCells.Value = d.YeastCells;
         FatGlobules.Value = d.FatGlobules;
         OvaParasite.Value = d.OvaParasite;
-        _showing = true;
-        MedicalTechnologist2 = d.MedicalTechnologist2;
-        MedicalTechnologist2License = d.MedicalTechnologist2License;
-        _showing = false;
         RowVersion = d.RowVersion;
     }
 
     protected override void ResetDetail()
     {
         Others = null;
-        MedicalTechnologist2 = null;
-        MedicalTechnologist2License = null;
     }
 
     protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
-    [
-        new("Others", () => Others, v => Others = v),
-        new("MedicalTechnologist2", () => MedicalTechnologist2, v => MedicalTechnologist2 = v),
-    ];
+    [new("Others", () => Others, v => Others = v)];
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IStoolFecalysisService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));

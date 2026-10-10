@@ -23,11 +23,6 @@ public class StoolFecalysisReport : LabReportDetail
 
     public string? OvaParasite { get; set; }
 
-    /// <summary>The second medical technologist who signs this form (the first is on the report header).</summary>
-    public string? MedicalTechnologist2 { get; set; }
-
-    public string? MedicalTechnologist2License { get; set; }
-
     /// <summary>
     /// The single free-text result of the old form. The screen no longer uses it; its text was moved into the report's Remarks
     /// (or into <see cref="Others"/> when Remarks already had text). The column stays until the client confirms nothing is missing.

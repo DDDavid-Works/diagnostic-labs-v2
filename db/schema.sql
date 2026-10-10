@@ -1661,3 +1661,622 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125123_SharedSecondTechnologist'
+)
+BEGIN
+    ALTER TABLE [LabReports] ADD [MedicalTechnologist2] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125123_SharedSecondTechnologist'
+)
+BEGIN
+    ALTER TABLE [LabReports] ADD [MedicalTechnologist2License] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125123_SharedSecondTechnologist'
+)
+BEGIN
+
+                    UPDATE r SET r.MedicalTechnologist2 = s.MedicalTechnologist2, r.MedicalTechnologist2License = s.MedicalTechnologist2License
+                    FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125123_SharedSecondTechnologist'
+)
+BEGIN
+    DECLARE @var2 nvarchar(max);
+    SELECT @var2 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[StoolFecalysisReports]') AND [c].[name] = N'MedicalTechnologist2');
+    IF @var2 IS NOT NULL EXEC(N'ALTER TABLE [StoolFecalysisReports] DROP CONSTRAINT ' + @var2 + ';');
+    ALTER TABLE [StoolFecalysisReports] DROP COLUMN [MedicalTechnologist2];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125123_SharedSecondTechnologist'
+)
+BEGIN
+    DECLARE @var3 nvarchar(max);
+    SELECT @var3 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[StoolFecalysisReports]') AND [c].[name] = N'MedicalTechnologist2License');
+    IF @var3 IS NOT NULL EXEC(N'ALTER TABLE [StoolFecalysisReports] DROP CONSTRAINT ' + @var3 + ';');
+    ALTER TABLE [StoolFecalysisReports] DROP COLUMN [MedicalTechnologist2License];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125123_SharedSecondTechnologist'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010125123_SharedSecondTechnologist', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[FBSNValue]', N'FastingBloodSugarCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[FBSResult]', N'FastingBloodSugarCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[TotalCholesterolNValue]', N'CholesterolCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[TotalCholesterolResult]', N'CholesterolCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[TriglyceridesNValue]', N'TriglyceridesCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[TriglyceridesResult]', N'TriglyceridesCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[HDLNValue]', N'HDLCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[HDLResult]', N'HDLCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[LDLNValue]', N'LDLCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[LDLResult]', N'LDLCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[CreatinineNValue]', N'CreatinineCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[CreatinineResult]', N'CreatinineCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[BUNNValue]', N'BloodUreaNitrogenCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[BUNResult]', N'BloodUreaNitrogenCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[BloodUricAcidNValue]', N'BloodUricAcidCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[BloodUricAcidResult]', N'BloodUricAcidCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[ALTSGPTNValue]', N'ALTSGPTCNValue', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalChemistryReports].[ALTSGPTResult]', N'ALTSGPTCResults', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [FastingBloodSugarCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [FastingBloodSugarSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [FastingBloodSugarSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [FastingBloodSugarSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CholesterolCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CholesterolSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CholesterolSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CholesterolSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [TriglyceridesCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [TriglyceridesSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [TriglyceridesSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [TriglyceridesSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [HDLCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [HDLSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [HDLSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [HDLSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [LDLCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [LDLSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [LDLSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [LDLSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CreatinineCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CreatinineSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CreatinineSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [CreatinineSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUreaNitrogenCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUreaNitrogenSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUreaNitrogenSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUreaNitrogenSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUricAcidCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUricAcidSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUricAcidSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [BloodUricAcidSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ALTSGPTCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ALTSGPTSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ALTSGPTSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ALTSGPTSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ASTSGOTCNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ASTSGOTCUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ASTSGOTCResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ASTSGOTSNValue] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ASTSGOTSUnit] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    ALTER TABLE [ClinicalChemistryReports] ADD [ASTSGOTSResults] nvarchar(100) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"FBSNormalValue"', N'"FastingBloodSugarConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"TotalCholesterolNormalValue"', N'"CholesterolConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"TriglyceridesNormalValue"', N'"TriglyceridesConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"HDLNormalValue"', N'"HDLConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"LDLNormalValue"', N'"LDLConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"CreatinineNormalValue"', N'"CreatinineConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"BUNNormalValue"', N'"BloodUreaNitrogenConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"BloodUricAcidNormalValue"', N'"BloodUricAcidConventionalNormalValue"') WHERE ModuleId = 11;
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"ALTSGPTNormalValue"', N'"ALTSGPTConventionalNormalValue"') WHERE ModuleId = 11;
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 11) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 11)
+                        INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (11, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."FastingBloodSugarConventionalNormalValue"', N'60-121') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."FastingBloodSugarConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."FastingBloodSugarConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."FastingBloodSugarConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."FastingBloodSugarSystemNormalValue"', N'3.34-6.73') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."FastingBloodSugarSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."FastingBloodSugarSystemUnit"', N'mmol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."FastingBloodSugarSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CholesterolConventionalNormalValue"', N'50-200') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CholesterolConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CholesterolConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CholesterolConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CholesterolSystemNormalValue"', N'1.29-5.18') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CholesterolSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CholesterolSystemUnit"', N'mmol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CholesterolSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."TriglyceridesConventionalNormalValue"', N'0-150') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."TriglyceridesConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."TriglyceridesConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."TriglyceridesConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."TriglyceridesSystemNormalValue"', N'0-1.70') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."TriglyceridesSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."TriglyceridesSystemUnit"', N'mmol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."TriglyceridesSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HDLConventionalNormalValue"', N'35-80') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HDLConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HDLConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HDLConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HDLSystemNormalValue"', N'0.91-2.08') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HDLSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HDLSystemUnit"', N'mmol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HDLSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LDLConventionalNormalValue"', N'66-178') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LDLConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LDLConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LDLConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LDLSystemNormalValue"', N'1.72-4.63') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LDLSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LDLSystemUnit"', N'mmol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LDLSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CreatinineConventionalNormalValue"', N'0.70-1.40') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CreatinineConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CreatinineConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CreatinineConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CreatinineSystemNormalValue"', N'62.0-124.0') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CreatinineSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CreatinineSystemUnit"', N'umol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CreatinineSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUreaNitrogenConventionalNormalValue"', N'7.80-20.17') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUreaNitrogenConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUreaNitrogenConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUreaNitrogenConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUreaNitrogenSystemNormalValue"', N'2.8-7.2') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUreaNitrogenSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUreaNitrogenSystemUnit"', N'mmol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUreaNitrogenSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUricAcidConventionalNormalValue"', N'2.35-7.06') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUricAcidConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUricAcidConventionalUnit"', N'mg/dL') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUricAcidConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUricAcidSystemNormalValue"', N'0.14-0.42') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUricAcidSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodUricAcidSystemUnit"', N'umol/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodUricAcidSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ALTSGPTConventionalNormalValue"', N'0-32') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ALTSGPTConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ALTSGPTConventionalUnit"', N'U/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ALTSGPTConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ALTSGPTSystemNormalValue"', N'0-32') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ALTSGPTSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ALTSGPTSystemUnit"', N'U/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ALTSGPTSystemUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ASTSGOTConventionalNormalValue"', N'0-31') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ASTSGOTConventionalNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ASTSGOTConventionalUnit"', N'U/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ASTSGOTConventionalUnit"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ASTSGOTSystemNormalValue"', N'0-31') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ASTSGOTSystemNormalValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ASTSGOTSystemUnit"', N'U/L') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ASTSGOTSystemUnit"') IS NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010125558_ClinicalChemistryRework'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010125558_ClinicalChemistryRework', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

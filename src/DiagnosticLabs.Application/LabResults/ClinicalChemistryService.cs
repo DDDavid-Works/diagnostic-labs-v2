@@ -1,30 +1,23 @@
-﻿using DiagnosticLabs.Application.Abstractions;
+using System.Reflection;
+using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Domain.Lab;
 using DiagnosticLabs.Domain.Lab.Reports;
 
 namespace DiagnosticLabs.Application.LabResults;
 
-/// <summary>The nine lines of the clinical chemistry table, in the order of the printed form.</summary>
-public sealed record ClinicalChemistryData
+/// <summary>One test of the clinical chemistry table: its result, unit and reference range in conventional units and in S.I. units.</summary>
+public sealed record ChemistryTestEntry(UnitResultEntry Conventional, UnitResultEntry System)
 {
-    public NormalResultEntry FBS { get; init; } = new(null, null);
+    public static ChemistryTestEntry Empty { get; } = new(new UnitResultEntry(null, null, null), new UnitResultEntry(null, null, null));
+}
 
-    public NormalResultEntry TotalCholesterol { get; init; } = new(null, null);
+/// <summary>The lines of the clinical chemistry table by test name (see <see cref="ClinicalChemistryService.Tests"/>); a test that is not listed is empty.</summary>
+public sealed record ClinicalChemistryData(IReadOnlyDictionary<string, ChemistryTestEntry> Tests)
+{
+    public static ClinicalChemistryData Empty { get; } = new(new Dictionary<string, ChemistryTestEntry>());
 
-    public NormalResultEntry Triglycerides { get; init; } = new(null, null);
-
-    public NormalResultEntry HDL { get; init; } = new(null, null);
-
-    public NormalResultEntry BUN { get; init; } = new(null, null);
-
-    public NormalResultEntry Creatinine { get; init; } = new(null, null);
-
-    public NormalResultEntry BloodUricAcid { get; init; } = new(null, null);
-
-    public NormalResultEntry LDL { get; init; } = new(null, null);
-
-    public NormalResultEntry ALTSGPT { get; init; } = new(null, null);
+    public ChemistryTestEntry Of(string name) => Tests.TryGetValue(name, out var entry) ? entry : ChemistryTestEntry.Empty;
 }
 
 public sealed record ClinicalChemistryDetails(long Id, LabResultHeader Header, ClinicalChemistryData Data, byte[]? Photo, byte[] RowVersion) : IHasId;
@@ -34,7 +27,10 @@ public sealed record ClinicalChemistryInput(long Id, LabResultHeader Header, Cli
 public interface IClinicalChemistryService
     : ICrudService<LabResultListItem, ClinicalChemistryDetails, ClinicalChemistryInput>, ILabResultPrinting;
 
-/// <summary>Clinical Chemistry: a table of nine tests, each with its normal values and a result. The form has no Remarks.</summary>
+/// <summary>
+/// Clinical Chemistry: a table of ten tests, each with a result, a unit and a reference range in conventional and in S.I. units.
+/// The units and ranges are what a new form starts with (the Defaults button); the results are per person. Signed by two medical technologists and the pathologist.
+/// </summary>
 public sealed class ClinicalChemistryService(IAppDbContext db, ICurrentUser currentUser, IClock clock)
     : LabResultService<ClinicalChemistryInput, ClinicalChemistryDetails, ClinicalChemistryReport>(
         db, currentUser, clock, ModuleIds.ClinicalChemistry, "Clinical Chemistry", LabReportType.ClinicalChemistry),
@@ -42,33 +38,44 @@ public sealed class ClinicalChemistryService(IAppDbContext db, ICurrentUser curr
 {
     public const int ValueMaxLength = 100;
 
-    /// <summary>The lines of the table with the name each is printed and saved under.</summary>
+    /// <summary>The lines of the table with the name each is saved under and the label it is printed with, in the order of the printed form.</summary>
     public static readonly (string Name, string Label)[] Tests =
     [
-        ("FBS", "FBS"), ("TotalCholesterol", "Total Cholesterol"), ("Triglycerides", "Triglycerides"), ("HDL", "HDL"), ("BUN", "BUN"),
-        ("Creatinine", "Creatinine"), ("BloodUricAcid", "Blood Uric Acid"), ("LDL", "LDL"), ("ALTSGPT", "ALT/SGPT"),
+        ("FastingBloodSugar", "Fasting Blood Sugar"), ("Cholesterol", "Cholesterol"), ("Triglycerides", "Triglycerides"), ("HDL", "HDL"), ("LDL", "LDL"),
+        ("Creatinine", "Creatinine"), ("BloodUreaNitrogen", "Blood Urea Nitrogen"), ("BloodUricAcid", "Blood Uric Acid"),
+        ("ALTSGPT", "ALT/SGPT"), ("ASTSGOT", "AST/SGOT"),
     ];
+
+    /// <summary>The columns of one test, in the order they are printed: conventional (reference range, unit, result), then S.I.</summary>
+    public static readonly string[] Suffixes = ["CNValue", "CUnit", "CResults", "SNValue", "SUnit", "SResults"];
+
+    // Each test has six columns named {Test}{Suffix}; they are read and written by name so the table is described in one place.
+    private static readonly Dictionary<string, PropertyInfo> Columns = Tests
+        .SelectMany(t => Suffixes.Select(s => t.Name + s))
+        .ToDictionary(n => n, n => typeof(ClinicalChemistryReport).GetProperty(n)!);
 
     protected override string Title => "Clinical Chemistry";
 
     protected override ReportLayout Layout => ReportLayout.ClinicalChemistry;
 
-    protected override LabResultHeader HeaderOf(ClinicalChemistryInput input) => input.Header;
+    protected override string FooterText => ElectronicNote;
 
-    private static IEnumerable<(string Name, NormalResultEntry Entry)> Entries(ClinicalChemistryData d) =>
-    [
-        ("FBS", d.FBS), ("TotalCholesterol", d.TotalCholesterol), ("Triglycerides", d.Triglycerides), ("HDL", d.HDL), ("BUN", d.BUN),
-        ("Creatinine", d.Creatinine), ("BloodUricAcid", d.BloodUricAcid), ("LDL", d.LDL), ("ALTSGPT", d.ALTSGPT),
-    ];
+    protected override bool HasSecondTechnologist => true;
+
+    protected override LabResultHeader HeaderOf(ClinicalChemistryInput input) => input.Header;
 
     protected override IEnumerable<string> ValidateDetail(ClinicalChemistryInput input)
     {
         var errors = new List<string>();
-        foreach (var (name, entry) in Entries(input.Data))
+        foreach (var (name, label) in Tests)
         {
-            var label = Tests.First(t => t.Name == name).Label;
-            Max(errors, entry.NormalValue, ValueMaxLength, $"{label} normal values");
-            Max(errors, entry.Result, ValueMaxLength, $"{label} result");
+            var test = input.Data.Of(name);
+            Max(errors, test.Conventional.NormalValue, ValueMaxLength, $"{label} conventional reference range");
+            Max(errors, test.Conventional.Unit, ValueMaxLength, $"{label} conventional unit");
+            Max(errors, test.Conventional.Result, ValueMaxLength, $"{label} conventional result");
+            Max(errors, test.System.NormalValue, ValueMaxLength, $"{label} S.I. reference range");
+            Max(errors, test.System.Unit, ValueMaxLength, $"{label} S.I. unit");
+            Max(errors, test.System.Result, ValueMaxLength, $"{label} S.I. result");
         }
 
         return errors;
@@ -76,57 +83,32 @@ public sealed class ClinicalChemistryService(IAppDbContext db, ICurrentUser curr
 
     protected override void ApplyDetail(ClinicalChemistryReport e, ClinicalChemistryInput input)
     {
-        var d = input.Data;
-        e.FBSNValue = Clean(d.FBS.NormalValue);
-        e.FBSResult = Clean(d.FBS.Result);
-        e.TotalCholesterolNValue = Clean(d.TotalCholesterol.NormalValue);
-        e.TotalCholesterolResult = Clean(d.TotalCholesterol.Result);
-        e.TriglyceridesNValue = Clean(d.Triglycerides.NormalValue);
-        e.TriglyceridesResult = Clean(d.Triglycerides.Result);
-        e.HDLNValue = Clean(d.HDL.NormalValue);
-        e.HDLResult = Clean(d.HDL.Result);
-        e.BUNNValue = Clean(d.BUN.NormalValue);
-        e.BUNResult = Clean(d.BUN.Result);
-        e.CreatinineNValue = Clean(d.Creatinine.NormalValue);
-        e.CreatinineResult = Clean(d.Creatinine.Result);
-        e.BloodUricAcidNValue = Clean(d.BloodUricAcid.NormalValue);
-        e.BloodUricAcidResult = Clean(d.BloodUricAcid.Result);
-        e.LDLNValue = Clean(d.LDL.NormalValue);
-        e.LDLResult = Clean(d.LDL.Result);
-        e.ALTSGPTNValue = Clean(d.ALTSGPT.NormalValue);
-        e.ALTSGPTResult = Clean(d.ALTSGPT.Result);
+        foreach (var (name, _) in Tests)
+        {
+            var test = input.Data.Of(name);
+            string?[] values =
+                [test.Conventional.NormalValue, test.Conventional.Unit, test.Conventional.Result, test.System.NormalValue, test.System.Unit, test.System.Result];
+            for (var i = 0; i < Suffixes.Length; i++)
+                Columns[name + Suffixes[i]].SetValue(e, Clean(values[i]));
+        }
     }
 
-    private static ClinicalChemistryData DataOf(ClinicalChemistryReport e) => new()
-    {
-        FBS = new(e.FBSNValue, e.FBSResult),
-        TotalCholesterol = new(e.TotalCholesterolNValue, e.TotalCholesterolResult),
-        Triglycerides = new(e.TriglyceridesNValue, e.TriglyceridesResult),
-        HDL = new(e.HDLNValue, e.HDLResult),
-        BUN = new(e.BUNNValue, e.BUNResult),
-        Creatinine = new(e.CreatinineNValue, e.CreatinineResult),
-        BloodUricAcid = new(e.BloodUricAcidNValue, e.BloodUricAcidResult),
-        LDL = new(e.LDLNValue, e.LDLResult),
-        ALTSGPT = new(e.ALTSGPTNValue, e.ALTSGPTResult),
-    };
+    private static string? Read(ClinicalChemistryReport e, string column) => (string?)Columns[column].GetValue(e);
+
+    private static ClinicalChemistryData DataOf(ClinicalChemistryReport e) => new(Tests.ToDictionary(
+        t => t.Name,
+        t => new ChemistryTestEntry(
+            new UnitResultEntry(Read(e, t.Name + "CNValue"), Read(e, t.Name + "CUnit"), Read(e, t.Name + "CResults")),
+            new UnitResultEntry(Read(e, t.Name + "SNValue"), Read(e, t.Name + "SUnit"), Read(e, t.Name + "SResults")))));
 
     protected override ClinicalChemistryDetails BuildDetails(LabReport report, LabResultHeader header, ClinicalChemistryReport e) =>
         new(report.Id, header, DataOf(e), report.Photo?.Content, report.RowVersion);
 
-    // The printed table places every value in its own cell, so the page design reads them by name ("FBSNormalValue", "FBSResult").
+    // The printed table places every value in its own cell, so the page design reads them by name ("FastingBloodSugarCResults" and so on).
     protected override IReadOnlyList<PrintLine> ResultLines(ClinicalChemistryReport detail) => [];
 
     protected override IReadOnlyList<PrintText> ResultTexts(ClinicalChemistryReport detail) => [];
 
-    protected override IReadOnlyDictionary<string, string?> PrintFields(LabReport report, ClinicalChemistryReport e)
-    {
-        var fields = new Dictionary<string, string?>();
-        foreach (var (name, entry) in Entries(DataOf(e)))
-        {
-            fields[name + "NormalValue"] = entry.NormalValue;
-            fields[name + "Result"] = entry.Result;
-        }
-
-        return fields;
-    }
+    protected override IReadOnlyDictionary<string, string?> PrintFields(LabReport report, ClinicalChemistryReport e) =>
+        Columns.Keys.ToDictionary(name => name, name => Read(e, name));
 }

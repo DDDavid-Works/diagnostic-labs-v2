@@ -213,6 +213,58 @@ internal static class PageDrawing
             PutText(canvas, report.Signatories[i].Role, left[i], note + 47.9, s.Body, bold: false, width: width, alignment: TextAlignment.Center);
         }
     }
+
+    private const double ThreeLeft = 50.3;
+    private const double ThreeRight = 762.7;
+    private const double ThreeSize = Body;
+
+    /// <summary>
+    /// Text whose first line sits on <paramref name="firstBaseline"/> and that runs on below it. (A wrapped text block reports the baseline of its
+    /// last line, so placing it by that would push long text up over the line above.)
+    /// </summary>
+    internal static TextBlock PutFlow(Canvas canvas, string? text, double x, double firstBaseline, double width, double size, bool bold = false, bool center = false)
+    {
+        var block = PageDrawing.Text(text, size, bold, width, center ? TextAlignment.Center : TextAlignment.Left);
+        var oneLine = PageDrawing.Text("Ag", size, bold, width);
+        Canvas.SetLeft(block, x);
+        Canvas.SetTop(block, firstBaseline - oneLine.BaselineOffset);
+        canvas.Children.Add(block);
+        return block;
+    }
+
+    /// <summary>A value that has to stay on its line: it is set smaller (down to 9 px) until it fits, and only wraps when even that is too wide.</summary>
+    internal static void PutFit(Canvas canvas, string? text, double x, double baseline, double width, double size = Body, bool bold = false, bool center = false)
+    {
+        while (size > 9.0 && PageDrawing.Text(text, size, bold).DesiredSize.Width > width)
+            size -= 0.5;
+
+        PutFlow(canvas, text, x, baseline, width, size, bold, center);
+    }
+
+    /// <summary>Three signatories in equal columns under <paramref name="top"/>, then the two lines of the electronic-document note under them.</summary>
+    internal static void PutThreeSignatories(Canvas canvas, PrintableReport report, double top)
+    {
+        const double gap = 10.0;
+        const double width = ((ThreeRight - ThreeLeft) - (2 * gap)) / 3;
+        const double size = 11.7;
+        for (var i = 0; i < report.Signatories.Count && i < 3; i++)
+        {
+            var x = ThreeLeft + (i * (width + gap));
+            PutFit(canvas, report.Signatories[i].Name, x, top + 48.7, width, size, bold: true, center: true);
+            PageDrawing.PutRule(canvas, x, top + 54.4, width);
+            PageDrawing.PutText(canvas, report.Signatories[i].Role.ToUpperInvariant(), x, top + 68.9, size, bold: false, width: width, alignment: TextAlignment.Center);
+            if (!string.IsNullOrWhiteSpace(report.Signatories[i].LicenseNo))
+                PutFit(canvas, $"LICENSE NO: {report.Signatories[i].LicenseNo}", x, top + 83.9, width, size, bold: false, center: true);
+        }
+
+        // The note moves down only when a licence line was printed under the names.
+        var y = top + (report.Signatories.Any(s => !string.IsNullOrWhiteSpace(s.LicenseNo)) ? 106.0 : 91.0);
+        foreach (var line in report.FooterNote.Split('\n'))
+        {
+            PageDrawing.PutText(canvas, line, 50.3, y, ThreeSize, bold: false, width: 712.4, alignment: TextAlignment.Center);
+            y += 17.0;
+        }
+    }
 }
 
 /// <summary>
@@ -270,7 +322,7 @@ internal static class StoolFecalysisLayout
         var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
         PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
 
-        PutSignatories(canvas, report, remarksBottom);
+        PageDrawing.PutThreeSignatories(canvas, report, remarksBottom);
     }
 
     /// <summary>A label, its value on the same line and an optional unit printed after the value ("WBC: 2-4 /hpf").</summary>
@@ -278,32 +330,9 @@ internal static class StoolFecalysisLayout
     {
         PageDrawing.PutLabel(canvas, label, labelX, baseline);
         var value = report.ResultLines.FirstOrDefault(l => l.Label == label)?.Value;
-        PutFit(canvas, value, valueX, baseline, width);
+        PageDrawing.PutFit(canvas, value, valueX, baseline, width);
         if (unit is not null)
             PageDrawing.PutText(canvas, unit, valueX + width + 8.0, baseline, Size, bold: false);
-    }
-
-    /// <summary>
-    /// Text whose first line sits on <paramref name="firstBaseline"/> and that runs on below it. (A wrapped text block reports the baseline of its
-    /// last line, so placing it by that would push long text up over the line above.)
-    /// </summary>
-    private static TextBlock PutFlow(Canvas canvas, string? text, double x, double firstBaseline, double width, double size, bool bold = false, bool center = false)
-    {
-        var block = PageDrawing.Text(text, size, bold, width, center ? TextAlignment.Center : TextAlignment.Left);
-        var oneLine = PageDrawing.Text("Ag", size, bold, width);
-        Canvas.SetLeft(block, x);
-        Canvas.SetTop(block, firstBaseline - oneLine.BaselineOffset);
-        canvas.Children.Add(block);
-        return block;
-    }
-
-    /// <summary>A value that has to stay on its line: it is set smaller (down to 9 px) until it fits, and only wraps when even that is too wide.</summary>
-    private static void PutFit(Canvas canvas, string? text, double x, double baseline, double width, double size = Size, bool bold = false, bool center = false)
-    {
-        while (size > 9.0 && PageDrawing.Text(text, size, bold).DesiredSize.Width > width)
-            size -= 0.5;
-
-        PutFlow(canvas, text, x, baseline, width, size, bold, center);
     }
 
     /// <summary>Text that starts on <paramref name="baseline"/> and may run on below it; returns the page y a box around it must reach.</summary>
@@ -312,33 +341,8 @@ internal static class StoolFecalysisLayout
         if (string.IsNullOrWhiteSpace(text))
             return 0;
 
-        var block = PutFlow(canvas, text, x, baseline, width, Size);
+        var block = PageDrawing.PutFlow(canvas, text, x, baseline, width, Size);
         return Canvas.GetTop(block) + block.DesiredSize.Height + 8.0;
-    }
-
-    /// <summary>Three signatories in equal columns under <paramref name="top"/>, then the two lines of the electronic-document note under them.</summary>
-    private static void PutSignatories(Canvas canvas, PrintableReport report, double top)
-    {
-        const double gap = 10.0;
-        const double width = ((Right - Left) - (2 * gap)) / 3;
-        const double size = 11.7;
-        for (var i = 0; i < report.Signatories.Count && i < 3; i++)
-        {
-            var x = Left + (i * (width + gap));
-            PutFit(canvas, report.Signatories[i].Name, x, top + 48.7, width, size, bold: true, center: true);
-            PageDrawing.PutRule(canvas, x, top + 54.4, width);
-            PageDrawing.PutText(canvas, report.Signatories[i].Role.ToUpperInvariant(), x, top + 68.9, size, bold: false, width: width, alignment: TextAlignment.Center);
-            if (!string.IsNullOrWhiteSpace(report.Signatories[i].LicenseNo))
-                PutFit(canvas, $"LICENSE NO: {report.Signatories[i].LicenseNo}", x, top + 83.9, width, size, bold: false, center: true);
-        }
-
-        // The note moves down only when a licence line was printed under the names.
-        var y = top + (report.Signatories.Any(s => !string.IsNullOrWhiteSpace(s.LicenseNo)) ? 106.0 : 91.0);
-        foreach (var line in report.FooterNote.Split('\n'))
-        {
-            PageDrawing.PutText(canvas, line, 50.3, y, Size, bold: false, width: 712.4, alignment: TextAlignment.Center);
-            y += 17.0;
-        }
     }
 }
 
@@ -467,53 +471,79 @@ internal static class TestResultLayout
     }
 }
 /// <summary>
-/// Clinical Chemistry: a table of nine tests (test, normal values, result; the last two centred) in the finer report design, with no Remarks.
-/// Positions are measured from the client's printed form; the lines are not evenly spaced there, so each is placed on its own.
+/// Clinical Chemistry, from the client's hand-drawn form: ten tests, each with a result, a unit and a reference range in conventional units and in
+/// S.I. units, then Remarks and three signatories (two medical technologists and the pathologist) with their licence numbers.
+/// The header, title bar, patient block and Remarks box are the same as on the other forms; the rows flow down from the table.
 /// </summary>
 internal static class ClinicalChemistryLayout
 {
-    private static readonly PageStyle Style = PageStyle.Fine;
-    private static readonly PageDrawing.PatientValues PatientValues = new(186.5, 513.5, 685.5, 564.0);
+    private const double Left = 51.3;
+    private const double Right = 763.3;
+    private const double Top = 246.5;
+    private const double TestWidth = 150.0;
+    private const double HeadingHeight = 21.0;
+    private const double RowHeight = 22.0;
+    private const double Size = 12.0;
 
-    private static readonly double[] Rules = [265.5, 286.7, 306.7, 326.7, 345.7, 365.3, 384.0, 404.0, 423.0];
-    private static readonly double[] LabelBaselines = [281.0, 301.7, 321.0, 341.0, 360.3, 379.7, 399.3, 419.3, 438.5];
-    private static readonly double[] ValueBaselines = [280.6, 301.3, 320.6, 340.6, 359.9, 379.3, 398.9, 418.9, 438.1];
+    // The printed order of the six cells: result, unit and reference range, in conventional and then S.I. units.
+    private static readonly string[] Cells = ["CResults", "CUnit", "CNValue", "SResults", "SUnit", "SNValue"];
+    private static readonly string[] CellNames = ["Result", "Unit", "Reference Range", "Result", "Unit", "Reference Range"];
 
     public static void Draw(Canvas canvas, PrintableReport report)
     {
-        PageDrawing.PutHeader(canvas, report.Letterhead, Style);
-        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant(), Style);
-        PageDrawing.PutPatientBlock(canvas, report, PatientValues, Style);
+        PageDrawing.PutHeader(canvas, report.Letterhead);
+        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
+        PageDrawing.PutPatientBlock(canvas, report);
 
-        const double top = 246.5, bottom = 444.3;
-        PageDrawing.PutRect(canvas, 51.3, top, 712.0, bottom - top, null, Brushes.Black, Style.Line);
-        foreach (var y in Rules)
-            PageDrawing.PutRule(canvas, 51.7, y, 711.0, Style.Line);
+        var tests = ClinicalChemistryService.Tests;
+        var cell = (Right - Left - TestWidth) / Cells.Length;
+        var headerBottom = Top + (2 * HeadingHeight);
+        var bottom = headerBottom + (tests.Length * RowHeight);
+        var line = PageStyle.Standard.Line;
 
-        foreach (var x in new[] { 261.9, 531.2 })
-            PageDrawing.PutVerticalRule(canvas, x, top, bottom - top, Style.Line);
+        PageDrawing.PutRect(canvas, Left, Top, Right - Left, bottom - Top, null, Brushes.Black, line);
+        PageDrawing.PutRule(canvas, Left + TestWidth, Top + HeadingHeight, Right - Left - TestWidth, line);
+        PageDrawing.PutRule(canvas, Left, headerBottom, Right - Left, line);
+        for (var i = 1; i < tests.Length; i++)
+            PageDrawing.PutRule(canvas, Left, headerBottom + (i * RowHeight), Right - Left, line);
 
-        const double normalLeft = 262.9, normalWidth = 268.3, resultLeft = 532.2, resultWidth = 231.1;
-        var size = Style.Body;
-        PageDrawing.PutText(canvas, "Test", 54.7, 260.3, size, bold: true);
-        PageDrawing.PutText(canvas, "Normal Values", normalLeft, 260.3, size, bold: true, width: normalWidth, alignment: TextAlignment.Center);
-        PageDrawing.PutText(canvas, "Result", resultLeft, 260.3, size, bold: true, width: resultWidth, alignment: TextAlignment.Center);
+        PageDrawing.PutVerticalRule(canvas, Left + TestWidth, Top, bottom - Top, line);
+        PageDrawing.PutVerticalRule(canvas, Left + TestWidth + (3 * cell), Top, bottom - Top, line);
+        foreach (var i in new[] { 1, 2, 4, 5 })
+            PageDrawing.PutVerticalRule(canvas, Left + TestWidth + (i * cell), Top + HeadingHeight, bottom - Top - HeadingHeight, line);
+
+        PageDrawing.PutText(canvas, "Test", Left, Top + HeadingHeight + 4.0, Size, bold: true, width: TestWidth, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "CONVENTIONAL UNITS", Left + TestWidth, Top + 15.0, Size, bold: true, width: 3 * cell, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "S.I. UNITS", Left + TestWidth + (3 * cell), Top + 15.0, Size, bold: true, width: 3 * cell, alignment: TextAlignment.Center);
+        for (var i = 0; i < Cells.Length; i++)
+            PageDrawing.PutFit(canvas, CellNames[i], Left + TestWidth + (i * cell) + 2.0, Top + HeadingHeight + 15.0, cell - 4.0, Size, bold: true, center: true);
 
         var fields = report.Fields ?? new Dictionary<string, string?>();
-        for (var i = 0; i < ClinicalChemistryService.Tests.Length; i++)
+        for (var r = 0; r < tests.Length; r++)
         {
-            var (name, label) = ClinicalChemistryService.Tests[i];
-            PageDrawing.PutText(canvas, label, 54.7, LabelBaselines[i], size, bold: true);
-
-            fields.TryGetValue(name + "NormalValue", out var normal);
-            fields.TryGetValue(name + "Result", out var result);
-            PageDrawing.PutText(canvas, normal, normalLeft, ValueBaselines[i], size, bold: false, width: normalWidth, alignment: TextAlignment.Center);
-            PageDrawing.PutText(canvas, result, resultLeft, ValueBaselines[i], size, bold: false, width: resultWidth, alignment: TextAlignment.Center);
+            var baseline = headerBottom + (r * RowHeight) + 15.0;
+            PageDrawing.PutFit(canvas, tests[r].Label, Left + 4.0, baseline, TestWidth - 8.0, Size, bold: true);
+            for (var i = 0; i < Cells.Length; i++)
+            {
+                fields.TryGetValue(tests[r].Name + Cells[i], out var value);
+                PageDrawing.PutFit(canvas, value, Left + TestWidth + (i * cell) + 3.0, baseline, cell - 6.0, Size, center: true);
+            }
         }
 
-        PageDrawing.PutFooter(canvas, report, bottom + 1.5, Style);
+        // Remarks, as on the other forms: a box under the table that grows with its text.
+        PageDrawing.PutLabel(canvas, "Remarks", 52.0, bottom + 24.2);
+        var remarks = report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text;
+        var remarksText = PageDrawing.Text(remarks, PageDrawing.Body, bold: false, width: 700);
+        Canvas.SetLeft(remarksText, 54.7);
+        Canvas.SetTop(remarksText, bottom + 32.7);
+        canvas.Children.Add(remarksText);
+        var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
+        PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
+
+        PageDrawing.PutThreeSignatories(canvas, report, remarksBottom);
     }
 }
+
 /// <summary>
 /// Clinical Chemistry 2: alkaline phosphatase and AST/SGOT, each with normal values, unit and results in conventional and in system units.
 /// The client's printed form is titled "CLINICAL CHEMISTRY" (without the 2), so that is what is printed. Positions are measured from it.

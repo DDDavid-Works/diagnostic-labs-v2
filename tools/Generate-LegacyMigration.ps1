@@ -228,7 +228,7 @@ Emit ''
 # Fields the client renamed since the legacy schema: legacy column -> new column, per target class.
 $renamedColumns = @{
     ClinicalChemistry2Report = @{ SGOTCNValue = 'ASTSGOTCNValue'; SGOTCResults = 'ASTSGOTCResults'; SGOTCUnit = 'ASTSGOTCUnit'; SGOTSNValue = 'ASTSGOTSNValue'; SGOTSResults = 'ASTSGOTSResults'; SGOTSUnit = 'ASTSGOTSUnit' }
-    ClinicalChemistryReport = @{ SGPTNValue = 'ALTSGPTNValue'; SGPTResult = 'ALTSGPTResult' }
+    ClinicalChemistryReport = @{ BUNNValue = 'BloodUreaNitrogenCNValue'; BUNResult = 'BloodUreaNitrogenCResults'; BloodUricAcidNValue = 'BloodUricAcidCNValue'; BloodUricAcidResult = 'BloodUricAcidCResults'; CreatinineNValue = 'CreatinineCNValue'; CreatinineResult = 'CreatinineCResults'; FBSNValue = 'FastingBloodSugarCNValue'; FBSResult = 'FastingBloodSugarCResults'; HDLNValue = 'HDLCNValue'; HDLResult = 'HDLCResults'; LDLNValue = 'LDLCNValue'; LDLResult = 'LDLCResults'; SGPTNValue = 'ALTSGPTCNValue'; SGPTResult = 'ALTSGPTCResults'; TotalCholesterolNValue = 'CholesterolCNValue'; TotalCholesterolResult = 'CholesterolCResults'; TriglyceridesNValue = 'TriglyceridesCNValue'; TriglyceridesResult = 'TriglyceridesCResults' }
     HematologyReport = @{ SegmentersNValue = 'NeutrophilsNValue'; SegmentersResult = 'NeutrophilsResult' }
     UrinalysisReport = @{ Albumin = 'Protein'; Sugar = 'Glucose' }
 }
@@ -352,6 +352,59 @@ Emit 'UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N''"SGPT'', N
 Emit 'UPDATE [ModuleDefaults] SET [Defaults] = REPLACE([Defaults], N''"SGOT'', N''"ASTSGOT'') WHERE [ModuleId] = 13;'
 Emit ''
 
+Emit '-- Clinical Chemistry: the saved defaults use the new field names, and the client''s units and reference ranges are what a new form starts with'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"FBSNormalValue"'', N''"FastingBloodSugarConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"TotalCholesterolNormalValue"'', N''"CholesterolConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"TriglyceridesNormalValue"'', N''"TriglyceridesConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"HDLNormalValue"'', N''"HDLConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"LDLNormalValue"'', N''"LDLConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"CreatinineNormalValue"'', N''"CreatinineConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"BUNNormalValue"'', N''"BloodUreaNitrogenConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"BloodUricAcidNormalValue"'', N''"BloodUricAcidConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N''"ALTSGPTNormalValue"'', N''"ALTSGPTConventionalNormalValue"'') WHERE ModuleId = 11;'
+Emit 'IF EXISTS (SELECT 1 FROM Modules WHERE Id = 11) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 11)'
+Emit '    INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (11, N''{}'', 1, SYSUTCDATETIME(), SYSUTCDATETIME());'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."FastingBloodSugarConventionalNormalValue"'', N''60-121'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."FastingBloodSugarConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."FastingBloodSugarConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."FastingBloodSugarConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."FastingBloodSugarSystemNormalValue"'', N''3.34-6.73'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."FastingBloodSugarSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."FastingBloodSugarSystemUnit"'', N''mmol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."FastingBloodSugarSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CholesterolConventionalNormalValue"'', N''50-200'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CholesterolConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CholesterolConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CholesterolConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CholesterolSystemNormalValue"'', N''1.29-5.18'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CholesterolSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CholesterolSystemUnit"'', N''mmol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CholesterolSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."TriglyceridesConventionalNormalValue"'', N''0-150'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."TriglyceridesConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."TriglyceridesConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."TriglyceridesConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."TriglyceridesSystemNormalValue"'', N''0-1.70'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."TriglyceridesSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."TriglyceridesSystemUnit"'', N''mmol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."TriglyceridesSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."HDLConventionalNormalValue"'', N''35-80'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."HDLConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."HDLConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."HDLConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."HDLSystemNormalValue"'', N''0.91-2.08'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."HDLSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."HDLSystemUnit"'', N''mmol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."HDLSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."LDLConventionalNormalValue"'', N''66-178'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."LDLConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."LDLConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."LDLConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."LDLSystemNormalValue"'', N''1.72-4.63'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."LDLSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."LDLSystemUnit"'', N''mmol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."LDLSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CreatinineConventionalNormalValue"'', N''0.70-1.40'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CreatinineConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CreatinineConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CreatinineConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CreatinineSystemNormalValue"'', N''62.0-124.0'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CreatinineSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CreatinineSystemUnit"'', N''umol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CreatinineSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUreaNitrogenConventionalNormalValue"'', N''7.80-20.17'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUreaNitrogenConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUreaNitrogenConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUreaNitrogenConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUreaNitrogenSystemNormalValue"'', N''2.8-7.2'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUreaNitrogenSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUreaNitrogenSystemUnit"'', N''mmol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUreaNitrogenSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUricAcidConventionalNormalValue"'', N''2.35-7.06'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUricAcidConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUricAcidConventionalUnit"'', N''mg/dL'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUricAcidConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUricAcidSystemNormalValue"'', N''0.14-0.42'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUricAcidSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."BloodUricAcidSystemUnit"'', N''umol/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."BloodUricAcidSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ALTSGPTConventionalNormalValue"'', N''0-32'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ALTSGPTConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ALTSGPTConventionalUnit"'', N''U/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ALTSGPTConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ALTSGPTSystemNormalValue"'', N''0-32'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ALTSGPTSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ALTSGPTSystemUnit"'', N''U/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ALTSGPTSystemUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ASTSGOTConventionalNormalValue"'', N''0-31'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ASTSGOTConventionalNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ASTSGOTConventionalUnit"'', N''U/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ASTSGOTConventionalUnit"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ASTSGOTSystemNormalValue"'', N''0-31'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ASTSGOTSystemNormalValue"'') IS NULL;'
+Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."ASTSGOTSystemUnit"'', N''U/L'') WHERE ModuleId = 11 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."ASTSGOTSystemUnit"'') IS NULL;'
+Emit ''
 Emit @"
 -- ===== Summary =====
 SELECT SourceTable AS SkippedSourceTable, LegacyId, Reason FROM #skipped ORDER BY SourceTable, LegacyId;

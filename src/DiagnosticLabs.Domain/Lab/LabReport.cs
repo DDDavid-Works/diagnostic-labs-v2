@@ -61,6 +61,11 @@ public class LabReport : SoftDeletableEntity
 
     public string? PathologistLicense { get; set; }
 
+    /// <summary>The second medical technologist, for the forms signed by two (the licence is copied the same way as the others).</summary>
+    public string? MedicalTechnologist2 { get; set; }
+
+    public string? MedicalTechnologist2License { get; set; }
+
     public LabReportPhoto? Photo { get; set; }
 }
 

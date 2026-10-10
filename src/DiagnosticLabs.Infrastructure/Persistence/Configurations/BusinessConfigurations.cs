@@ -277,6 +277,8 @@ internal sealed class LabReportConfiguration : IEntityTypeConfiguration<LabRepor
         builder.Property(r => r.Pathologist).HasMaxLength(100);
         builder.Property(r => r.MedicalTechnologistLicense).HasMaxLength(50);
         builder.Property(r => r.PathologistLicense).HasMaxLength(50);
+        builder.Property(r => r.MedicalTechnologist2).HasMaxLength(100);
+        builder.Property(r => r.MedicalTechnologist2License).HasMaxLength(50);
         builder.HasOne(r => r.Patient).WithMany().HasForeignKey(r => r.PatientId);
         builder.HasOne(r => r.PatientRegistration).WithMany().HasForeignKey(r => r.PatientRegistrationId);
         builder.HasOne(r => r.Photo).WithOne().HasForeignKey<LabReportPhoto>(p => p.LabReportId);

@@ -38,12 +38,11 @@ public class StoolFecalysisServiceTests
     }
 
     private LabResultHeader Header(long? registrationId = null, string? name = "Emma Millstein", bool confirmed = false) => new(
-        registrationId, null, "2026-00000005", name, "26 years old", "Female", "ACME", Today, "NONE", "DR. GUTZ", "DR. GALLEN", confirmed);
+        registrationId, null, "2026-00000005", name, "26 years old", "Female", "ACME", Today, "NONE", "DR. GUTZ", "DR. GALLEN", confirmed, MedicalTechnologist2: "ANN JEANE D. EVARISTO, RMT");
 
     private StoolFecalysisInput Input(LabResultHeader header, long id = 0, byte[]? rowVersion = null) =>
         new(id, header, "BROWN", "FORMED", "RARE MUCUS", rowVersion,
-            Wbc: "2-4", Rbc: "0-2", Bacteria: "FEW", YeastCells: "NONE", FatGlobules: "NONE", OvaParasite: "NO INTESTINAL PARASITES SEEN",
-            MedicalTechnologist2: "ANN JEANE D. EVARISTO, RMT");
+            Wbc: "2-4", Rbc: "0-2", Bacteria: "FEW", YeastCells: "NONE", FatGlobules: "NONE", OvaParasite: "NO INTESTINAL PARASITES SEEN");
 
     // ---------------------------------------------------------------- saving
 
@@ -64,7 +63,7 @@ public class StoolFecalysisServiceTests
         Assert.Equal("RARE MUCUS", saved.Others);
         Assert.Equal(("2-4", "0-2", "FEW", "NONE", "NONE"), (saved.Wbc, saved.Rbc, saved.Bacteria, saved.YeastCells, saved.FatGlobules));
         Assert.Equal("NO INTESTINAL PARASITES SEEN", saved.OvaParasite);
-        Assert.Equal("ANN JEANE D. EVARISTO, RMT", saved.MedicalTechnologist2);
+        Assert.Equal("ANN JEANE D. EVARISTO, RMT", saved.Header.MedicalTechnologist2);
         var row = await db.LabReports.AsNoTracking().SingleAsync();
         Assert.Equal(registration.PatientId, row.PatientId);
         Assert.Equal(LabReportType.StoolFecalysis, row.ReportType);
@@ -140,7 +139,7 @@ public class StoolFecalysisServiceTests
         var longWbc = await service.SaveAsync(Input(Header(null)) with { Wbc = new string('w', 51) });
         var longOva = await service.SaveAsync(Input(Header(null)) with { OvaParasite = new string('o', 101) });
         var longOthers = await service.SaveAsync(Input(Header(null)) with { Others = new string('x', 501) });
-        var longTech = await service.SaveAsync(Input(Header(null)) with { MedicalTechnologist2 = new string('t', 101) });
+        var longTech = await service.SaveAsync(Input(Header(null) with { MedicalTechnologist2 = new string('t', 101) }));
         var unknownRegistration = await service.SaveAsync(Input(Header(999)));
 
         Assert.Contains("name is required", noName.Error.Message, StringComparison.Ordinal);
@@ -168,7 +167,7 @@ public class StoolFecalysisServiceTests
         Assert.Equal("Second Name", edited.Header.PatientName);
         Assert.Equal("YELLOW", reopened.Color);
         Assert.Equal("BLOOD STREAKS", reopened.Others);
-        Assert.Equal(("5-8", null, "ASCARIS OVA SEEN", null), (reopened.Wbc, reopened.Rbc, reopened.OvaParasite, reopened.MedicalTechnologist2));
+        Assert.Equal(("5-8", null, "ASCARIS OVA SEEN", null), (reopened.Wbc, reopened.Rbc, reopened.OvaParasite, reopened.Header.MedicalTechnologist2License));
         Assert.Equal("Repeat", reopened.Header.Remarks);
         Assert.Equal(original, (await db.LabReports.AsNoTracking().SingleAsync()).DateRequested);
         Assert.Equal(1, await db.Set<DiagnosticLabs.Domain.Lab.Reports.StoolFecalysisReport>().CountAsync());
@@ -252,7 +251,7 @@ public class StoolFecalysisServiceTests
         await using var db = _env.CreateDb();
         SignInAsAdmin();
         var service = CreateService(db);
-        var saved = (await service.SaveAsync(new StoolFecalysisInput(0, Header(null) with { MedicalTechnologist = null, Pathologist = null }, null, null, null, null))).Value;
+        var saved = (await service.SaveAsync(new StoolFecalysisInput(0, Header(null) with { MedicalTechnologist = null, Pathologist = null, MedicalTechnologist2 = null }, null, null, null, null))).Value;
 
         var print = (await service.GetPrintableAsync(saved.Id)).Value;
 
@@ -324,13 +323,13 @@ public class StoolFecalysisServiceTests
         await using var db = _env.CreateDb();
         SignInAsAdmin();
         var service = CreateService(db);
-        var header = Header(null) with { MedicalTechnologistLicense = "0133304", PathologistLicense = "095300" };
+        var header = Header(null) with { MedicalTechnologistLicense = "0133304", PathologistLicense = "095300", MedicalTechnologist2License = "031026" };
 
-        var saved = (await service.SaveAsync(Input(header) with { MedicalTechnologist2License = "031026" })).Value;
+        var saved = (await service.SaveAsync(Input(header))).Value;
         var reopened = (await service.GetAsync(saved.Id)).Value;
         var print = (await service.GetPrintableAsync(saved.Id)).Value;
 
-        Assert.Equal(("0133304", "095300", "031026"), (reopened.Header.MedicalTechnologistLicense, reopened.Header.PathologistLicense, reopened.MedicalTechnologist2License));
+        Assert.Equal(("0133304", "095300", "031026"), (reopened.Header.MedicalTechnologistLicense, reopened.Header.PathologistLicense, reopened.Header.MedicalTechnologist2License));
         Assert.Equal(["0133304", "031026", "095300"], print.Signatories.Select(s => s.LicenseNo));
     }
 
@@ -341,7 +340,7 @@ public class StoolFecalysisServiceTests
         SignInAsAdmin();
         var service = CreateService(db);
 
-        var saved = (await service.SaveAsync(Input(Header(null)) with { MedicalTechnologist2License = null })).Value;
+        var saved = (await service.SaveAsync(Input(Header(null) with { MedicalTechnologist2License = null }))).Value;
         var print = (await service.GetPrintableAsync(saved.Id)).Value;
 
         Assert.All(print.Signatories, s => Assert.Null(s.LicenseNo));

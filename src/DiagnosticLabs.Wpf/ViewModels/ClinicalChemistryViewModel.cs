@@ -7,7 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace DiagnosticLabs.Wpf.ViewModels;
 
-/// <summary>Clinical Chemistry: nine tests, each with its normal values (what a new form starts with) and a result. There are no remarks on this form.</summary>
+/// <summary>
+/// Clinical Chemistry: ten tests, each with a result, a unit and a reference range in conventional and in S.I. units. The units and
+/// reference ranges are what a new form starts with (an administrator can change them with the Defaults button); the results are per person.
+/// </summary>
 public partial class ClinicalChemistryViewModel(
     IServiceRunner runner,
     IDialogService dialogs,
@@ -18,58 +21,48 @@ public partial class ClinicalChemistryViewModel(
     : LabResultViewModel<IClinicalChemistryService, ClinicalChemistryDetails, ClinicalChemistryInput>(
         runner, dialogs, user, entryBuilder, preview, ModuleIds.ClinicalChemistry, "Clinical Chemistry", logger)
 {
-    /// <summary>The first cell of the table's header.</summary>
-    public string TableTitle => "Test";
+    public bool ShowRemarks => true;
 
-    public bool ShowRemarks => false;
-
-    public IReadOnlyList<NormalResultRow> Rows { get; } =
-        [.. ClinicalChemistryService.Tests.Select(t => new NormalResultRow(t.Name, t.Label, false))];
+    public IReadOnlyList<UnitResultRow> Rows { get; } = [.. ClinicalChemistryService.Tests.Select(t => new UnitResultRow(t.Name, t.Label))];
 
     protected override EntryField RemarksField => EntryFields.ClinicalChemistryRemarks;
-
-    private NormalResultRow Row(string name) => Rows.First(r => r.Name == name);
 
     protected override ClinicalChemistryInput BuildInput() => new(
         Id,
         BuildHeader(),
-        new ClinicalChemistryData
-        {
-            FBS = Row("FBS").ToEntry(),
-            TotalCholesterol = Row("TotalCholesterol").ToEntry(),
-            Triglycerides = Row("Triglycerides").ToEntry(),
-            HDL = Row("HDL").ToEntry(),
-            BUN = Row("BUN").ToEntry(),
-            Creatinine = Row("Creatinine").ToEntry(),
-            BloodUricAcid = Row("BloodUricAcid").ToEntry(),
-            LDL = Row("LDL").ToEntry(),
-            ALTSGPT = Row("ALTSGPT").ToEntry(),
-        },
+        new ClinicalChemistryData(Rows.ToDictionary(r => r.Name, r => new ChemistryTestEntry(r.Conventional, r.System))),
         RowVersion);
 
     protected override void ShowFields(ClinicalChemistryDetails d)
     {
         ShowHeader(d.Header, d.Photo);
-        Row("FBS").Show(d.Data.FBS);
-        Row("TotalCholesterol").Show(d.Data.TotalCholesterol);
-        Row("Triglycerides").Show(d.Data.Triglycerides);
-        Row("HDL").Show(d.Data.HDL);
-        Row("BUN").Show(d.Data.BUN);
-        Row("Creatinine").Show(d.Data.Creatinine);
-        Row("BloodUricAcid").Show(d.Data.BloodUricAcid);
-        Row("LDL").Show(d.Data.LDL);
-        Row("ALTSGPT").Show(d.Data.ALTSGPT);
+        foreach (var row in Rows)
+        {
+            var test = d.Data.Of(row.Name);
+            row.Show(test.Conventional, test.System);
+        }
+
         RowVersion = d.RowVersion;
     }
 
     protected override void ResetDetail()
     {
         foreach (var row in Rows)
-            row.Show(new NormalResultEntry(null, null));
+            row.Show(ChemistryTestEntry.Empty.Conventional, ChemistryTestEntry.Empty.System);
     }
 
-    protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
-        Rows.Select(r => new DefaultField(r.Name + "NormalValue", () => r.NormalValue, v => r.NormalValue = v));
+    // The units and reference ranges are what a new form starts with (the results are per person).
+    protected override IEnumerable<DefaultField> ExtraDefaultFields()
+    {
+        foreach (var row in Rows)
+        {
+            var r = row;
+            yield return new(r.Name + "ConventionalNormalValue", () => r.ConventionalNormalValue, v => r.ConventionalNormalValue = v);
+            yield return new(r.Name + "ConventionalUnit", () => r.ConventionalUnit, v => r.ConventionalUnit = v);
+            yield return new(r.Name + "SystemNormalValue", () => r.SystemNormalValue, v => r.SystemNormalValue = v);
+            yield return new(r.Name + "SystemUnit", () => r.SystemUnit, v => r.SystemUnit = v);
+        }
+    }
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IClinicalChemistryService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));

@@ -1171,8 +1171,108 @@
   <DataTemplate DataType="{x:Type vm:HematologyViewModel}">
     <ContentControl Content="{Binding}" ContentTemplate="{StaticResource NormalResultForm}" />
   </DataTemplate>
+  <!-- ===================================================== Clinical Chemistry -->
   <DataTemplate DataType="{x:Type vm:ClinicalChemistryViewModel}">
-    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource NormalResultForm}" />
+    <DataTemplate.Resources>
+      <!-- A cell of the table: a line on the right and below, a text box inside -->
+      <Style x:Key="ChemCell" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource PaperLineBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,1,1" />
+        <Setter Property="Padding" Value="3,2" />
+      </Style>
+      <DataTemplate x:Key="ChemRow">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="1.3*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="1.3*" />
+          </Grid.ColumnDefinitions>
+          <Border Grid.Column="0" Style="{StaticResource ChemCell}" Padding="6,3"><TextBlock Text="{Binding Label}" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+          <Border Grid.Column="1" Style="{StaticResource ChemCell}"><TextBox Text="{Binding ConventionalResult, UpdateSourceTrigger=PropertyChanged}" /></Border>
+          <Border Grid.Column="2" Style="{StaticResource ChemCell}"><TextBox Text="{Binding ConventionalUnit, UpdateSourceTrigger=PropertyChanged}" /></Border>
+          <Border Grid.Column="3" Style="{StaticResource ChemCell}"><TextBox Text="{Binding ConventionalNormalValue, UpdateSourceTrigger=PropertyChanged}" /></Border>
+          <Border Grid.Column="4" Style="{StaticResource ChemCell}"><TextBox Text="{Binding SystemResult, UpdateSourceTrigger=PropertyChanged}" /></Border>
+          <Border Grid.Column="5" Style="{StaticResource ChemCell}"><TextBox Text="{Binding SystemUnit, UpdateSourceTrigger=PropertyChanged}" /></Border>
+          <Border Grid.Column="6" Style="{StaticResource ChemCell}"><TextBox Text="{Binding SystemNormalValue, UpdateSourceTrigger=PropertyChanged}" /></Border>
+        </Grid>
+      </DataTemplate>
+    </DataTemplate.Resources>
+    <ctl:CrudLayout FormMaxWidth="940">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Funnel}" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Print}" Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Undo}" Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Sliders}" Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the units and reference ranges every new result starts with (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <!-- The table of the paper form: the test, then result, unit and reference range in conventional and in S.I. units -->
+          <Border Margin="0,6,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="150" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="1.3*" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="1.3*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Style="{StaticResource ChemCell}" Padding="6,3"><TextBlock Text="Test" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" VerticalAlignment="Center" /></Border>
+                <Border Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource ChemCell}"><TextBlock Text="Conventional Units" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="3" Style="{StaticResource ChemCell}"><TextBlock Text="S.I. Units" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ChemCell}"><TextBlock Text="Result" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource ChemCell}"><TextBlock Text="Unit" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource ChemCell}"><TextBlock Text="Reference Range" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Row="1" Grid.Column="4" Style="{StaticResource ChemCell}"><TextBlock Text="Result" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Row="1" Grid.Column="5" Style="{StaticResource ChemCell}"><TextBlock Text="Unit" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Row="1" Grid.Column="6" Style="{StaticResource ChemCell}"><TextBlock Text="Reference Range" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+              </Grid>
+              <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource ChemRow}" />
+            </StackPanel>
+          </Border>
+
+          <ctl:LabResultBottom ShowRemarks="{Binding ShowRemarks}" ShowSecondTechnologist="True" ShowLicenses="True" />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
   </DataTemplate>
   <!-- ===================================================== Annual Physical Exam -->
   <DataTemplate DataType="{x:Type vm:AnnualPhysicalExamViewModel}">
