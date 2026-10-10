@@ -1101,7 +1101,7 @@
                   ToolTip="Put the saved defaults back into the result fields" />
           <Button icn:ButtonIcon.Data="{StaticResource Icon.Sliders}" Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
                   Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
-                  ToolTip="Set the values every new result starts with, such as the normal values (administrators)" />
+                  ToolTip="Set the values every new result starts with, such as the reference values (administrators)" />
         </StackPanel>
       </ctl:CrudLayout.FooterContent>
 
@@ -1109,23 +1109,23 @@
         <StackPanel>
           <ctl:LabResultTop />
 
-          <!-- The table of the paper form: test, normal values (what a new form starts with), result -->
+          <!-- The table of the paper form: test, result, reference values (free text: the unit and any male/female values are typed in; what a new form starts with) -->
           <Border Margin="0,6,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
             <StackPanel>
               <Grid>
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="240" />
                   <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="2*" />
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
                   <TextBlock Text="{Binding TableTitle}" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
                 </Border>
                 <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
-                  <TextBlock Text="Normal Values" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
+                  <TextBlock Text="Results" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
                 </Border>
                 <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
-                  <TextBlock Text="Result" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
+                  <TextBlock Text="Reference Values" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
                 </Border>
               </Grid>
               <ItemsControl ItemsSource="{Binding Rows}">
@@ -1135,7 +1135,7 @@
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="240" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="2*" />
                       </Grid.ColumnDefinitions>
                       <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
                         <TextBlock Text="{Binding Label}">
@@ -1151,10 +1151,10 @@
                         </TextBlock>
                       </Border>
                       <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
-                        <TextBox Text="{Binding NormalValue, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Text="{Binding Result, UpdateSourceTrigger=PropertyChanged}" />
                       </Border>
                       <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
-                        <TextBox Text="{Binding Result, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Text="{Binding NormalValue, UpdateSourceTrigger=PropertyChanged}" />
                       </Border>
                     </Grid>
                   </DataTemplate>
@@ -1163,7 +1163,7 @@
             </StackPanel>
           </Border>
 
-          <ctl:LabResultBottom ShowRemarks="{Binding ShowRemarks}" />
+          <ctl:LabResultBottom ShowRemarks="{Binding ShowRemarks}" ShowSecondTechnologist="True" ShowLicenses="True" />
         </StackPanel>
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>

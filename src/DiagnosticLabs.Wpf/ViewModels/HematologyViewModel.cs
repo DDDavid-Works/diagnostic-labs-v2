@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DiagnosticLabs.Wpf.ViewModels;
 
-/// <summary>One line of a "test, normal values, result" table: what it is called, its normal values and its result.</summary>
+/// <summary>One line of the hematology table: what it is called, its reference values (what a new form starts with) and its result.</summary>
 public sealed partial class NormalResultRow(string name, string label, bool indented) : ObservableObject
 {
     public string Name { get; } = name;
@@ -44,17 +44,17 @@ public partial class HematologyViewModel(
         runner, dialogs, user, entryBuilder, preview, ModuleIds.Hematology, "Hematology", logger)
 {
     /// <summary>The first cell of the table's header.</summary>
-    public string TableTitle => "Complete Blood Count";
+    public string TableTitle => "Tests";
 
     public bool ShowRemarks => true;
 
     /// <summary>The table of the form, in the order of the printed form.</summary>
     public IReadOnlyList<NormalResultRow> Rows { get; } =
     [
-        new("Hematocrit", "Hematocrit", false), new("Hemoglobin", "Hemoglobin", false), new("WBCCount", "White Blood Cell Count", false),
+        new("Hematocrit", "Hematocrit", false), new("Hemoglobin", "Hemoglobin", false), new("RBCCount", "Red Blood Cell Count", false),
+        new("WBCCount", "White Blood Cell Count", false),
         new("Neutrophils", "Neutrophils", true), new("Lymphocytes", "Lymphocytes", true), new("Eosinophils", "Eosinophils", true),
-        new("Monocytes", "Monocytes", true), new("Basophils", "Basophils", true), new("Stab", "Stab", true),
-        new("PlateletCount", "Platelet Count", false),
+        new("Monocytes", "Monocytes", true), new("Basophils", "Basophils", true), new("PlateletCount", "Platelet Count", false),
     ];
 
     protected override EntryField RemarksField => EntryFields.HematologyRemarks;
@@ -68,13 +68,13 @@ public partial class HematologyViewModel(
         {
             Hematocrit = Row("Hematocrit").ToEntry(),
             Hemoglobin = Row("Hemoglobin").ToEntry(),
+            RBCCount = Row("RBCCount").ToEntry(),
             WBCCount = Row("WBCCount").ToEntry(),
             Neutrophils = Row("Neutrophils").ToEntry(),
             Lymphocytes = Row("Lymphocytes").ToEntry(),
             Eosinophils = Row("Eosinophils").ToEntry(),
             Monocytes = Row("Monocytes").ToEntry(),
             Basophils = Row("Basophils").ToEntry(),
-            Stab = Row("Stab").ToEntry(),
             PlateletCount = Row("PlateletCount").ToEntry(),
         },
         RowVersion);
@@ -84,13 +84,13 @@ public partial class HematologyViewModel(
         ShowHeader(d.Header, d.Photo);
         Row("Hematocrit").Show(d.Data.Hematocrit);
         Row("Hemoglobin").Show(d.Data.Hemoglobin);
+        Row("RBCCount").Show(d.Data.RBCCount);
         Row("WBCCount").Show(d.Data.WBCCount);
         Row("Neutrophils").Show(d.Data.Neutrophils);
         Row("Lymphocytes").Show(d.Data.Lymphocytes);
         Row("Eosinophils").Show(d.Data.Eosinophils);
         Row("Monocytes").Show(d.Data.Monocytes);
         Row("Basophils").Show(d.Data.Basophils);
-        Row("Stab").Show(d.Data.Stab);
         Row("PlateletCount").Show(d.Data.PlateletCount);
         RowVersion = d.RowVersion;
     }

@@ -5,15 +5,17 @@ using DiagnosticLabs.Domain.Lab.Reports;
 
 namespace DiagnosticLabs.Application.LabResults;
 
-/// <summary>One line of a "test, normal values, result" table (Hematology, Clinical Chemistry): the normal values printed for it and the result.</summary>
+/// <summary>One line of the hematology table: its reference values (free text, with the unit and any male/female values typed in) and the result.</summary>
 public sealed record NormalResultEntry(string? NormalValue, string? Result);
 
-/// <summary>The ten lines of the hematology table, in the order of the printed form.</summary>
+/// <summary>The ten lines of the hematology table, in the order of the printed form (Stab is no longer on it).</summary>
 public sealed record HematologyData
 {
     public NormalResultEntry Hematocrit { get; init; } = new(null, null);
 
     public NormalResultEntry Hemoglobin { get; init; } = new(null, null);
+
+    public NormalResultEntry RBCCount { get; init; } = new(null, null);
 
     public NormalResultEntry WBCCount { get; init; } = new(null, null);
 
@@ -27,7 +29,6 @@ public sealed record HematologyData
 
     public NormalResultEntry Basophils { get; init; } = new(null, null);
 
-    public NormalResultEntry Stab { get; init; } = new(null, null);
 
     public NormalResultEntry PlateletCount { get; init; } = new(null, null);
 }
@@ -48,22 +49,26 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
     /// <summary>The lines of the table with the name each is printed and saved under.</summary>
     public static readonly (string Name, string Label)[] Tests =
     [
-        ("Hematocrit", "Hematocrit"), ("Hemoglobin", "Hemoglobin"), ("WBCCount", "White Blood Cell Count"), ("Neutrophils", "Neutrophils"),
-        ("Lymphocytes", "Lymphocytes"), ("Eosinophils", "Eosinophils"), ("Monocytes", "Monocytes"), ("Basophils", "Basophils"),
-        ("Stab", "Stab"), ("PlateletCount", "Platelet Count"),
+        ("Hematocrit", "Hematocrit"), ("Hemoglobin", "Hemoglobin"), ("RBCCount", "Red Blood Cell Count"), ("WBCCount", "White Blood Cell Count"),
+        ("Neutrophils", "Neutrophils"), ("Lymphocytes", "Lymphocytes"), ("Eosinophils", "Eosinophils"), ("Monocytes", "Monocytes"),
+        ("Basophils", "Basophils"), ("PlateletCount", "Platelet Count"),
     ];
 
     protected override string Title => "Hematology";
 
     protected override ReportLayout Layout => ReportLayout.Hematology;
 
+    protected override string FooterText => ElectronicNote;
+
+    protected override bool HasSecondTechnologist => true;
+
     protected override LabResultHeader HeaderOf(HematologyInput input) => input.Header;
 
     private static IEnumerable<(string Name, NormalResultEntry Entry)> Entries(HematologyData d) =>
     [
-        ("Hematocrit", d.Hematocrit), ("Hemoglobin", d.Hemoglobin), ("WBCCount", d.WBCCount), ("Neutrophils", d.Neutrophils),
-        ("Lymphocytes", d.Lymphocytes), ("Eosinophils", d.Eosinophils), ("Monocytes", d.Monocytes), ("Basophils", d.Basophils),
-        ("Stab", d.Stab), ("PlateletCount", d.PlateletCount),
+        ("Hematocrit", d.Hematocrit), ("Hemoglobin", d.Hemoglobin), ("RBCCount", d.RBCCount), ("WBCCount", d.WBCCount),
+        ("Neutrophils", d.Neutrophils), ("Lymphocytes", d.Lymphocytes), ("Eosinophils", d.Eosinophils), ("Monocytes", d.Monocytes),
+        ("Basophils", d.Basophils), ("PlateletCount", d.PlateletCount),
     ];
 
     protected override IEnumerable<string> ValidateDetail(HematologyInput input)
@@ -72,7 +77,7 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
         foreach (var (name, entry) in Entries(input.Data))
         {
             var label = Tests.First(t => t.Name == name).Label;
-            Max(errors, entry.NormalValue, ValueMaxLength, $"{label} normal values");
+            Max(errors, entry.NormalValue, ValueMaxLength, $"{label} reference values");
             Max(errors, entry.Result, ValueMaxLength, $"{label} result");
         }
 
@@ -86,6 +91,8 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
         e.HematocritResult = Clean(d.Hematocrit.Result);
         e.HemoglobinNValue = Clean(d.Hemoglobin.NormalValue);
         e.HemoglobinResult = Clean(d.Hemoglobin.Result);
+        e.RBCCountNValue = Clean(d.RBCCount.NormalValue);
+        e.RBCCountResult = Clean(d.RBCCount.Result);
         e.WBCCountNValue = Clean(d.WBCCount.NormalValue);
         e.WBCCountResult = Clean(d.WBCCount.Result);
         e.NeutrophilsNValue = Clean(d.Neutrophils.NormalValue);
@@ -98,8 +105,6 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
         e.MonocytesResult = Clean(d.Monocytes.Result);
         e.BasophilsNValue = Clean(d.Basophils.NormalValue);
         e.BasophilsResult = Clean(d.Basophils.Result);
-        e.StabNValue = Clean(d.Stab.NormalValue);
-        e.StabResult = Clean(d.Stab.Result);
         e.PlateletCountNValue = Clean(d.PlateletCount.NormalValue);
         e.PlateletCountResult = Clean(d.PlateletCount.Result);
     }
@@ -108,13 +113,13 @@ public sealed class HematologyService(IAppDbContext db, ICurrentUser currentUser
     {
         Hematocrit = new(e.HematocritNValue, e.HematocritResult),
         Hemoglobin = new(e.HemoglobinNValue, e.HemoglobinResult),
+        RBCCount = new(e.RBCCountNValue, e.RBCCountResult),
         WBCCount = new(e.WBCCountNValue, e.WBCCountResult),
         Neutrophils = new(e.NeutrophilsNValue, e.NeutrophilsResult),
         Lymphocytes = new(e.LymphocytesNValue, e.LymphocytesResult),
         Eosinophils = new(e.EosinophilsNValue, e.EosinophilsResult),
         Monocytes = new(e.MonocytesNValue, e.MonocytesResult),
         Basophils = new(e.BasophilsNValue, e.BasophilsResult),
-        Stab = new(e.StabNValue, e.StabResult),
         PlateletCount = new(e.PlateletCountNValue, e.PlateletCountResult),
     };
 

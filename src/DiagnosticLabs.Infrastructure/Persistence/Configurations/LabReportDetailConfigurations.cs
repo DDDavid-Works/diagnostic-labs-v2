@@ -61,6 +61,8 @@ internal sealed class HematologyReportConfiguration : IEntityTypeConfiguration<H
         builder.Property(e => e.HematocritResult).HasMaxLength(100);
         builder.Property(e => e.HemoglobinNValue).HasMaxLength(100);
         builder.Property(e => e.HemoglobinResult).HasMaxLength(100);
+        builder.Property(e => e.RBCCountNValue).HasMaxLength(100);
+        builder.Property(e => e.RBCCountResult).HasMaxLength(100);
         builder.Property(e => e.WBCCountNValue).HasMaxLength(100);
         builder.Property(e => e.WBCCountResult).HasMaxLength(100);
         builder.Property(e => e.NeutrophilsNValue).HasMaxLength(100);

@@ -1,5 +1,6 @@
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Board;
+using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Domain.Billing;
 using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Domain.Identity;
@@ -20,7 +21,10 @@ public class RegistrationBoardServiceTests
 
     private void SignInAsAdmin() => _env.Session.SignIn(new AuthenticatedUser(1, "admin", "Admin", true, false, []));
 
-    private DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
+    private DateOnly Today => LocalTime.ToLocalDate(DateTime.UtcNow);
+
+    // Midday of today: the registrations of "today" must not depend on what time of day the test happens to run.
+    private DateTime Noon => LocalTime.ToUtc(Today, new TimeSpan(12, 0, 0));
 
     /// <summary>Services Stool (module 5), Urinalysis (module 6) and Medical Examination (module 14, a form that is not built yet).</summary>
     private async Task<(Service Stool, Service Urinalysis, Service MedicalExam)> SeedServicesAsync(AppDbContext db)
@@ -74,10 +78,10 @@ public class RegistrationBoardServiceTests
         await using var db = _env.CreateDb();
         SignInAsAdmin();
         var (stool, _, _) = await SeedServicesAsync(db);
-        var first = await RegisterAsync(db, "Ana Cruz", "BADC-1", DateTime.UtcNow.AddHours(-2), 100m, stool);
-        var second = await RegisterAsync(db, "Ben Reyes", "BADC-2", DateTime.UtcNow.AddHours(-1), 100m, stool);
-        await RegisterAsync(db, "Old Visit", "BADC-3", DateTime.UtcNow.AddDays(-5), 100m, stool);
-        await RegisterAsync(db, "Default Patient", RegistrationBoardService.DefaultRegistrationCode, DateTime.UtcNow, 0m);
+        var first = await RegisterAsync(db, "Ana Cruz", "BADC-1", Noon.AddHours(-2), 100m, stool);
+        var second = await RegisterAsync(db, "Ben Reyes", "BADC-2", Noon.AddHours(-1), 100m, stool);
+        await RegisterAsync(db, "Old Visit", "BADC-3", Noon.AddDays(-5), 100m, stool);
+        await RegisterAsync(db, "Default Patient", RegistrationBoardService.DefaultRegistrationCode, Noon, 0m);
 
         var page = (await CreateService(db).SearchAsync(new BoardSearch(null, From: Today, To: Today))).Value;
 

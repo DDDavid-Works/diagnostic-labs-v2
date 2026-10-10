@@ -11,6 +11,10 @@ public class HematologyReport : LabReportDetail
 
     public string? HemoglobinResult { get; set; }
 
+    public string? RBCCountNValue { get; set; }
+
+    public string? RBCCountResult { get; set; }
+
     public string? WBCCountNValue { get; set; }
 
     public string? WBCCountResult { get; set; }
@@ -35,6 +39,7 @@ public class HematologyReport : LabReportDetail
 
     public string? BasophilsResult { get; set; }
 
+    // Stab is no longer on the printed form: the columns stay (and keep what old results held) but the screen and the printout do not use them.
     public string? StabNValue { get; set; }
 
     public string? StabResult { get; set; }
