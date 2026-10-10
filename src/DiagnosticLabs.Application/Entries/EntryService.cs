@@ -50,6 +50,28 @@ public static class EntryFields
     public static readonly EntryField UrinalysisCrystals = new("Crystals", EntryKind.SingleLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisOthers = new("Others", EntryKind.MultiLine, ModuleIds.Urinalysis);
     public static readonly EntryField UrinalysisRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Urinalysis);
+
+    // Annual Physical Exam
+    public static readonly EntryField ApeEnt = new("ENT", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeGastroenterology = new("Gastroenterology", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeRespiratory = new("Respiratory", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeIntegumentarySkin = new("Integumentary/Skin", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeCardiology = new("Cardiology", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApePsychology = new("Psychology", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeEndocrinology = new("Endocrinology", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeObGyneUrology = new("OB-Gyne/Urology", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeMusculoskeletal = new("Musculo-skeletal", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeInfectious = new("Infectious/Communicable", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeNeurological = new("Neurological", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeSurgical = new("Surgical", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeVitalSignsBy = new("Vital Signs Done By", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeHeightWeightBy = new("Height and Weight Done By", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeOthersPast = new("Others", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeMedications = new("Medications", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeReviewOfSystems = new("Review of Systems", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeAllergies = new("Allergies", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeBmiCategory = new("BMI Category", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExam);
+    public static readonly EntryField ApeFindings = new("Findings", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExam);
 }
 
 public sealed record SingleLineEntry(long Id, string Value);

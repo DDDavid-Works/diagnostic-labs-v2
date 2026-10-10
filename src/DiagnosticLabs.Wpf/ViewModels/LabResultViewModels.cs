@@ -238,6 +238,11 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     protected abstract void ResetDetail();
 
+    /// <summary>Called when a registration or patient fills the patient block, so a screen can take over more of their details (birth date, civil status, contact).</summary>
+    protected virtual void OnPersonPicked(DateOnly? dateOfBirth, string? civilStatus, string? contactNumbers)
+    {
+    }
+
     /// <summary>The list-picked fields of this screen. They load their lists, reset, take defaults and get their "Edit entries..." command from here.</summary>
     protected virtual IEnumerable<ChoiceField> ChoiceFields => [];
 
@@ -479,6 +484,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
                 Sex = r.Sex;
                 if (!string.IsNullOrWhiteSpace(r.CompanyName))
                     CompanyOrPhysician = r.CompanyName;
+                OnPersonPicked(r.DateOfBirth, r.CivilStatus, r.ContactNumbers);
             }
         }
         finally
@@ -563,6 +569,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
                 PatientName = p.PatientName;
                 Age = p.Age;
                 Sex = p.Sex;
+                OnPersonPicked(p.DateOfBirth, p.CivilStatus, p.ContactNumbers);
             }
             finally
             {

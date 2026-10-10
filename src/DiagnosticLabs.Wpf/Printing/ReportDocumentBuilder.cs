@@ -30,6 +30,9 @@ public static class ReportDocumentBuilder
             case ReportLayout.Urinalysis:
                 UrinalysisLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.AnnualPhysicalExam:
+                AnnualPhysicalExamLayout.Draw(canvas, report);
+                break;
             default:
                 throw new NotSupportedException($"There is no page design for {report.Layout}.");
         }
@@ -291,5 +294,387 @@ internal static class UrinalysisLayout
         PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, 1.33);
 
         PageDrawing.PutFooter(canvas, report, remarksBottom);
+    }
+}
+
+/// <summary>
+/// The annual physical exam ("Medical Examination Report"). Unlike the other forms it has a centred letterhead, no photo box or title bar,
+/// and is built from boxed sections in Calibri. Every position, line and size is measured from the client's printed form (one Letter page).
+/// A long text grows its box and moves everything below it down.
+/// </summary>
+internal static class AnnualPhysicalExamLayout
+{
+    private static readonly FontFamily Calibri = new("Calibri");
+    private static readonly FontFamily Arial = new("Arial");
+    private static readonly FontFamily Wingdings = new("Wingdings");
+
+    private const double Size = 13;
+    private const double Small = 10;
+    private const string Check = "ü"; // a check mark in Wingdings
+
+    private static Dictionary<string, string?> _v = [];
+
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        _v = new Dictionary<string, string?>(report.Fields ?? new Dictionary<string, string?>());
+
+        Header(canvas, report.Letterhead);
+        PersonBox(canvas);
+
+        // ---- past medical history -------------------------------------------------------------------
+        Label(canvas, "PAST MEDICAL HISTORY:", 31.7, 231.4);
+        Fill(canvas, 30.5, 212.4, 782.5, 215.1);
+        Fill(canvas, 30.2, 237.2, 782.5, 238.5);
+
+        string[,] history =
+        {
+            { "EYES, EARS, NOSE, THROAT", "ENT", "GASTROENTEROLOGY", "Gastroenterology" },
+            { "RESPIRATORY", "Respiratory", "INTEGUMENTARY/SKIN", "IntegumentarySkin" },
+            { "CARDIOLOGY", "Cardiology", "PSYCHOLOGY", "Psychology" },
+            { "ENDOCRINOLOGY", "Endocrinology", "OB-GYNE/UROLOGY", "OBGyneUrology" },
+            { "MUSCULOSKELETAL", "Muscoloskeletal", "INFECTIOUS/COMMUNICABLE", "InfectiousCommunicable" },
+            { "NEUROLOGY", "Neurological", "SURGICAL", "Surgical" },
+        };
+        double[] historyBaselines = [253.5, 271.2, 289.7, 308.4, 327.2, 345.5];
+        for (var i = 0; i < history.GetLength(0); i++)
+        {
+            Text(canvas, history[i, 0], 33.5, historyBaselines[i]);
+            Text(canvas, Value(history[i, 1]), 216.9, historyBaselines[i] - 0.3, width: 188);
+            Text(canvas, history[i, 2], 411.5, historyBaselines[i]);
+            Text(canvas, Value(history[i, 3]), 598.3, historyBaselines[i] - 0.3, width: 182);
+        }
+
+        foreach (var y in new[] { 256.1, 275.1, 293.5, 311.7, 329.7, 348.1 })
+            Fill(canvas, 30.2, y, 782.5, y + 1.3);
+
+        foreach (var x in new[] { 213.3, 408.0, 596.7 })
+            Fill(canvas, x, 238.7, x + 1.4, 348.7);
+
+        // Others (a text that can grow the box)
+        Text(canvas, "OTHERS", 33.5, 363.1);
+        var others = Wrapped(canvas, Value("OthersPast"), 79.3, 362.8, 700, Size);
+        var s1 = Math.Max(0, others - 384.2 + 3);
+        Fill(canvas, 30.2, 237.9, 31.5, 385.2 + s1);
+        Fill(canvas, 781.5, 237.2, 782.9, 384.5 + s1);
+        Fill(canvas, 30.2, 384.2 + s1, 782.5, 385.5 + s1);
+
+        // ---- medications / allergies / review of systems ----------------------------------------------
+        var top2 = 387.1 + s1;
+        Fill(canvas, 30.3, top2, 782.3, top2 + 1.3);
+        Text(canvas, "MEDICATIONS", 33.5, 402.2 + s1);
+        Text(canvas, "ALLERGIES", 411.5, 402.2 + s1);
+        var meds = Wrapped(canvas, Value("Medications"), 33.5, 418.4 + s1, 368, Size);
+        var allergies = Wrapped(canvas, Value("Allergies"), 411.5, 418.4 + s1, 366, Size);
+        var s2 = Math.Max(0, Math.Max(meds, allergies) - (421.4 + s1) + 3);
+
+        var mid = 421.4 + s1 + s2;
+        Fill(canvas, 30.9, mid, 782.0, mid + 1.3);
+        Fill(canvas, 408.0, top2 + 0.4, 409.3, mid + 0.1);
+
+        Text(canvas, "REVIEW OF SYSTEMS", 33.5, 437.3 + s1 + s2);
+        var ros = Wrapped(canvas, Value("ReviewOfSystems"), 149.3, 437.0 + s1 + s2, 630, Size);
+        var s3 = Math.Max(0, ros - (461.7 + s1 + s2) + 3);
+
+        var bottom2 = 461.7 + s1 + s2 + s3;
+        Fill(canvas, 30.2, bottom2, 782.3, bottom2 + 1.4);
+        Fill(canvas, 30.2, top2 + 0.4, 31.5, bottom2 + 1.2);
+        Fill(canvas, 781.5, top2 + 0.4, 782.9, bottom2 + 1.2);
+
+        var S = s1 + s2 + s3;
+
+        // ---- present medical history -------------------------------------------------------------------
+        Fill(canvas, 30.2, 466.9 + S, 782.2, 469.5 + S);
+        Label(canvas, "PRESENT MEDICAL HISTORY:", 31.7, 483.4 + S);
+        Fill(canvas, 30.0, 488.5 + S, 781.8, 489.9 + S);
+        Fill(canvas, 30.2, 489.5 + S, 31.5, 527.5 + S);
+        Fill(canvas, 781.5, 489.4 + S, 782.9, 527.4 + S);
+        Fill(canvas, 30.2, 506.7 + S, 782.0, 508.1 + S);
+        Fill(canvas, 30.2, 526.4 + S, 782.0, 527.7 + S);
+
+        Text(canvas, "Smoking:", 32.8, 504.2 + S);
+        YesNo(canvas, Value("IsSmoking"), 504.2 + S, 505.9 + S);
+        Text(canvas, "Since when:", 284.8, 504.2 + S);
+        Text(canvas, Value("SmokingSinceWhen"), 352.0, 503.9 + S, width: 55);
+        Text(canvas, "# of Sticks per day:", 413.5, 504.2 + S);
+        Text(canvas, Value("NumberOfSticksPerDay"), 516.0, 503.9 + S, width: 60);
+
+        Text(canvas, "Drinking (Alcoholic Beverages):", 32.8, 522.5 + S);
+        YesNo(canvas, Value("IsDrinking"), 522.5 + S, 524.3 + S);
+        Text(canvas, "Since when:", 284.8, 522.5 + S);
+        Text(canvas, Value("DrinkingSinceWhen"), 352.0, 522.2 + S, width: 55);
+        Text(canvas, "# of Bottles:", 413.5, 522.5 + S);
+        Text(canvas, Value("NumberOfBottles"), 480.0, 522.2 + S, width: 80);
+        Option(canvas, "Daily", 578.9, 522.5 + S, 524.3 + S, Value("DrinkingFrequency") == "Daily", 564.4);
+        Option(canvas, "Weekly", 649.5, 522.5 + S, 524.3 + S, Value("DrinkingFrequency") == "Weekly", 635.0);
+        Option(canvas, "Occasional", 721.5, 522.5 + S, 524.3 + S, Value("DrinkingFrequency") == "Occasional", 707.0);
+
+        Text(canvas, "LMP (First day of last menstrual period):", 31.7, 541.7 + S);
+        Text(canvas, Value("LMP"), 251.2, 541.4 + S, width: 138);
+        Fill(canvas, 251.2, 545.5 + S, 392.2, 546.9 + S);
+        Fill(canvas, 409.0, 545.5 + S, 425.0, 546.9 + S);
+        Fill(canvas, 499.5, 545.5 + S, 515.5, 546.9 + S);
+        Text(canvas, "Regular", 425.3, 541.7 + S);
+        Text(canvas, "Irregular", 516.0, 541.7 + S);
+        if (Value("LMPType") == "Regular")
+            Mark(canvas, 410.5, 543.4 + S);
+        else if (Value("LMPType") == "Irregular")
+            Mark(canvas, 501.0, 543.4 + S);
+
+        Fill(canvas, 30.2, 547.4 + S, 782.0, 548.7 + S);
+
+        // ---- vital signs and visual acuity ---------------------------------------------------------------
+        Fill(canvas, 30.2, 547.5 + S, 31.5, 630.2 + S);
+        foreach (var x in new[] { 130.2, 345.5, 444.2, 781.5 })
+            Fill(canvas, x, 547.5 + S, x + 1.4, 630.2 + S);
+
+        Fill(canvas, 182.2, 548.2 + S, 183.5, 630.2 + S);
+        Fill(canvas, 234.2, 548.2 + S, 235.5, 630.2 + S);
+        Fill(canvas, 30.2, 565.1 + S, 782.0, 566.4 + S);
+        Fill(canvas, 533.5, 565.7 + S, 534.9, 630.4 + S);
+        Fill(canvas, 635.5, 565.7 + S, 636.9, 630.4 + S);
+        Fill(canvas, 583.7, 566.2 + S, 585.0, 630.9 + S);
+        Fill(canvas, 30.2, 587.4 + S, 346.7, 588.7 + S);
+        Fill(canvas, 445.2, 587.4 + S, 637.0, 588.7 + S);
+        Fill(canvas, 31.0, 628.7 + S, 782.0, 630.1 + S);
+
+        Text(canvas, "Vital Signs", 32.2, 562.1 + S);
+        Text(canvas, "1st", 134.9, 562.1 + S);
+        Text(canvas, "2nd", 186.2, 562.1 + S);
+        Text(canvas, "Measurements", 236.2, 562.1 + S);
+        Text(canvas, "BMI Category", 347.5, 562.1 + S);
+        Text(canvas, "Visual Acuity", 446.9, 562.1 + S);
+
+        Text(canvas, "BP Reading (mm/Hg)", 32.2, 578.5 + S, Small);
+        Text(canvas, Value("BP1st"), 134.9, 577.7 + S, Small, width: 45);
+        Text(canvas, Value("BP2nd"), 185.3, 577.7 + S, Small, width: 45);
+        Text(canvas, "Cardiac Rate (bpm)", 32.2, 601.8 + S, Small);
+        Text(canvas, Value("CardiacRate1st"), 134.5, 600.9 + S, Small, width: 45);
+        Text(canvas, Value("CardiacRate2nd"), 185.8, 601.1 + S, Small, width: 45);
+        Text(canvas, "Height (feet):", 236.5, 578.5 + S, Small);
+        Text(canvas, Value("Height"), 297.5, 577.7 + S, Small, width: 45);
+        Text(canvas, "Weight (Kg):", 236.2, 601.8 + S, Small);
+        Text(canvas, Value("Weight"), 298.5, 601.1 + S, Small, width: 45);
+        Text(canvas, Value("BMICategory"), 348.8, 593.8 + S, Small, width: 93);
+
+        Text(canvas, "Right Eye", 537.8, 577.1 + S, Small);
+        Text(canvas, "Left Eye", 589.1, 577.1 + S, Small);
+        Text(canvas, "Far w/ eyeglasses", 446.9, 601.7 + S, Small);
+        Text(canvas, "Far w/o eyeglasses", 446.9, 620.4 + S, Small);
+        Text(canvas, Value("VARightEyeWGlasses"), 538.5, 601.7 + S, Small, width: 44);
+        Text(canvas, Value("VALeftEyeWGlasses"), 589.0, 601.7 + S, Small, width: 44);
+        Text(canvas, Value("VARightEyeWOGlasses"), 538.5, 620.4 + S, Small, width: 44);
+        Text(canvas, Value("VALeftEyeWOGlasses"), 589.0, 620.4 + S, Small, width: 44);
+
+        Text(canvas, "Normal", 657.5, 578.7 + S, Small);
+        Text(canvas, "EOR", 657.5, 594.7 + S, Small);
+        Text(canvas, "Corrected with", 657.5, 610.0 + S, Small);
+        Text(canvas, "eyeglasses/contact lenses", 657.5, 623.1 + S, Small);
+        switch (Value("VisualAcuity"))
+        {
+            case "Normal":
+                Mark(canvas, 639.5, 582.8 + S);
+                break;
+            case "EOR":
+                Mark(canvas, 639.5, 598.8 + S);
+                break;
+            case "Corrected":
+                Mark(canvas, 639.5, 614.1 + S);
+                break;
+        }
+
+        // ---- physical examination -----------------------------------------------------------------------
+        Label(canvas, "PHYSICAL EXAMINATION:", 31.7, 648.5 + S);
+        Text(canvas, "N - Normal or None; F - With Findings, if with Findings, describe", 31.7, 666.5 + S);
+
+        Fill(canvas, 30.2, 670.4 + S, 31.5, 785.2 + S);
+        Fill(canvas, 30.2, 670.4 + S, 782.0, 671.7 + S);
+        Fill(canvas, 781.5, 670.4 + S, 782.9, 785.2 + S);
+        foreach (var x in new[] { 225.7, 251.5, 277.5, 481.5, 506.9, 533.5, 729.7, 755.7 })
+            Fill(canvas, x, 671.1 + S, x + 1.4, 784.7 + S);
+
+        foreach (var y in new[] { 689.1, 707.7, 727.1, 745.7, 764.4, 783.7 })
+            Fill(canvas, 31.2, y + S, 781.9, y + 1.4 + S);
+
+        double[] headerX = [234.1, 261.3, 490.1, 516.5, 738.1, 764.0];
+        string[] headerText = ["N", "F", "N", "F", "N", "F"];
+        for (var i = 0; i < headerX.Length; i++)
+            Text(canvas, headerText[i], headerX[i], 685.7 + S);
+
+        (string Label, string Field)[][] groups =
+        [
+            [("Skin", "Skin"), ("Head, Scalp", "HeadScalp"), ("Eyes", "Eyes"), ("Ears", "Ears"), ("Nose", "Nose")],
+            [("Teeth, Tonsils, Throat, Pharynx", "TeethTonsilsThroatPharynx"), ("Neck, Lymph Nodes, Thyroid", "NeckLymphNodesThyroid"),
+             ("Thorax, Breast", "ThoraxBreast"), ("Heart, Lungs", "HeartLungs"), ("Abdomen, Liver, Spleen", "AbdomenLiverSpleen")],
+            [("Inguinal Area, Genitals, Anus", "InguinalAreaGenitalsAnus"), ("Extremities, Spine", "ExtremetiesSpine"), ("Tattoo", "Tattoo"),
+             ("Mass, Cyst", "MassCyst"), ("Others", "OthersPE")],
+        ];
+        double[] labelX = [33.0, 281.0, 537.0];
+        double[] nX = [232.0, 487.4, 736.1];
+        double[] fX = [258.2, 514.0, 762.5];
+        double[] rowText = [704.4, 723.5, 743.1, 761.1, 780.4];
+        double[] rowMark = [706.2, 725.7, 744.7, 763.7, 782.7];
+        for (var g = 0; g < groups.Length; g++)
+        {
+            for (var r = 0; r < groups[g].Length; r++)
+            {
+                Text(canvas, groups[g][r].Label, labelX[g], rowText[r] + S);
+                var state = Value(groups[g][r].Field);
+                if (state == "N")
+                    Mark(canvas, nX[g], rowMark[r] + S);
+                else if (state == "F")
+                    Mark(canvas, fX[g], rowMark[r] + S);
+            }
+        }
+
+        // ---- findings (a text that can grow the box) -------------------------------------------------------
+        Text(canvas, "Findings:", 33.3, 801.9 + S);
+        var findings = Wrapped(canvas, Value("Findings"), 86.5, 801.6 + S, 690, Size);
+        var s4 = Math.Max(0, findings - (827.9 + S) + 6);
+        PageDrawing.PutRect(canvas, 30.2, 787.2 + S, 752.7, 41.4 + s4, null, Brushes.Black, 1.33);
+        var T = S + s4;
+
+        // ---- consent, signatures, who took the measurements ----------------------------------------------------
+        Italic(canvas, "I certify that the answers and statements I provided are all true and correct to the best of my knowledge, and I understand that ", 849.2 + T);
+        Italic(canvas, "non-disclosure and/or misdeclaration of any of the above items from part of my application and/or may be use for any administrative ", 865.4 + T);
+        Italic(canvas, "action, I also give my consent for a thorough physical examination.", 881.6 + T);
+        Italic(canvas, $"I hereby authorized {report.Letterhead.CompanyName}, to share and transmit my medical record and results to our HR department/clinic.", 906.5 + T);
+
+        Fill(canvas, 31.3, 942.5 + T, 346.0, 943.9 + T);
+        Fill(canvas, 466.0, 945.2 + T, 780.7, 946.5 + T);
+        Text(canvas, "Applicant’s/Employee’s Signature over Printed Name", 49.9, 957.9 + T);
+        Text(canvas, "Physician", 599.0, 960.5 + T);
+
+        Text(canvas, "Vital Signs Done By:", 31.3, 987.7 + T);
+        Text(canvas, Value("VitalSignsBy"), 193.7, 987.4 + T, width: 159);
+        Fill(canvas, 193.7, 990.0 + T, 352.9, 991.3 + T);
+        Text(canvas, "Height and Weight Done By:", 31.3, 1006.7 + T);
+        Text(canvas, Value("HeightWeightBy"), 193.7, 1006.4 + T, width: 159);
+        Fill(canvas, 193.7, 1008.7 + T, 352.9, 1010.0 + T);
+    }
+
+    private static string? Value(string name) => _v.TryGetValue(name, out var value) ? value : null;
+
+    private static void Header(Canvas canvas, ReportLetterhead letterhead)
+    {
+        Centered(canvas, letterhead.CompanyName, 42.7, 16, Arial, bold: true);
+        Centered(canvas, letterhead.Address, 60.5, Size, Arial, bold: false);
+        Centered(canvas, letterhead.ContactNumbers, 78.0, Size, Arial, bold: false);
+        Centered(canvas, letterhead.Email, 94.3, Size, Arial, bold: false);
+        Centered(canvas, "MEDICAL EXAMINATION REPORT", 123.4, 14, Calibri, bold: true);
+
+        Text(canvas, "Date:", 686.0, 138.0);
+        Text(canvas, Value("Date"), 717.0, 137.7, width: 64);
+        Fill(canvas, 717.0, 142.7, 781.5, 144.1);
+    }
+
+    private static void PersonBox(Canvas canvas)
+    {
+        Fill(canvas, 30.5, 147.3, 782.5, 148.6);
+        Fill(canvas, 30.2, 147.9, 31.5, 207.3);
+        Fill(canvas, 345.9, 148.3, 347.2, 207.3);
+        Fill(canvas, 548.2, 148.6, 549.5, 207.3);
+        Fill(canvas, 781.5, 148.6, 782.9, 207.3);
+        Fill(canvas, 30.5, 185.9, 782.5, 187.3);
+        Fill(canvas, 103.9, 186.1, 105.2, 206.4);
+        Fill(canvas, 233.9, 186.5, 235.2, 206.9);
+        Fill(canvas, 30.5, 205.9, 782.5, 207.3);
+
+        Text(canvas, "Name:", 32.7, 161.7);
+        Text(canvas, Value("Name"), 74.5, 161.4, width: 268);
+        Text(canvas, "Company Name:", 348.3, 161.7);
+        Text(canvas, Value("CompanyName"), 348.3, 178.9, width: 196);
+        Text(canvas, "Department/Agency:", 550.7, 161.7);
+        Text(canvas, Value("DepartmentOrAgency"), 550.7, 178.9, width: 228);
+
+        Text(canvas, "Age:", 32.0, 201.1);
+        Text(canvas, (Value("Age") ?? string.Empty).Replace(" years old", string.Empty).Replace(" year old", string.Empty), 58.5, 200.8);
+        Text(canvas, "Birth Date:", 108.0, 201.1);
+        Text(canvas, Value("BirthDate"), 167.5, 201.4, width: 64);
+        Text(canvas, "Gender:", 236.5, 201.1);
+        Text(canvas, Value("Sex"), 281.5, 200.8, width: 62);
+        Text(canvas, "Civil Status:", 348.3, 201.1);
+        Text(canvas, Value("CivilStatus"), 413.9, 200.8, width: 132);
+        Text(canvas, "Contact No.:", 550.0, 201.1);
+        Text(canvas, Value("ContactNo"), 622.5, 200.8, width: 158);
+    }
+
+    // ---- small drawing helpers --------------------------------------------------------------------------
+
+    private static void Fill(Canvas canvas, double x1, double y1, double x2, double y2) =>
+        PageDrawing.PutRect(canvas, x1, y1, x2 - x1, y2 - y1, Brushes.Black, null, 0);
+
+    private static TextBlock Block(string? value, double size, FontFamily family, bool bold, bool italic, double? width, TextAlignment alignment = TextAlignment.Left)
+    {
+        var block = new TextBlock
+        {
+            Text = value ?? string.Empty,
+            FontFamily = family,
+            FontSize = size,
+            FontWeight = bold ? FontWeights.Bold : FontWeights.Normal,
+            FontStyle = italic ? FontStyles.Italic : FontStyles.Normal,
+            TextAlignment = alignment,
+            TextWrapping = width is null ? TextWrapping.NoWrap : TextWrapping.Wrap,
+            Foreground = Brushes.Black,
+        };
+        if (width is { } w)
+            block.Width = w;
+
+        block.Measure(new Size(width ?? double.PositiveInfinity, double.PositiveInfinity));
+        return block;
+    }
+
+    private static TextBlock Place(Canvas canvas, TextBlock block, double x, double baseline)
+    {
+        Canvas.SetLeft(block, x);
+        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        canvas.Children.Add(block);
+        return block;
+    }
+
+    private static void Text(Canvas canvas, string? value, double x, double baseline, double size = Size, double? width = null)
+    {
+        if (!string.IsNullOrEmpty(value))
+            Place(canvas, Block(value, size, Calibri, bold: false, italic: false, width: width), x, baseline);
+    }
+
+    private static void Label(Canvas canvas, string value, double x, double baseline) => Text(canvas, value, x, baseline);
+
+    private static void Italic(Canvas canvas, string value, double baseline) =>
+        Place(canvas, Block(value, Size, Calibri, bold: false, italic: true, width: null), 31.3, baseline);
+
+    private static void Centered(Canvas canvas, string? value, double baseline, double size, FontFamily family, bool bold)
+    {
+        if (!string.IsNullOrEmpty(value))
+            Place(canvas, Block(value, size, family, bold, italic: false, width: ReportDocumentBuilder.PageWidth, alignment: TextAlignment.Center), 0, baseline);
+    }
+
+    /// <summary>Wrapped text whose first line sits on <paramref name="firstBaseline"/>; returns where its last line ends.</summary>
+    private static double Wrapped(Canvas canvas, string? value, double x, double firstBaseline, double width, double size)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return 0;
+
+        var block = Place(canvas, Block(value, size, Calibri, bold: false, italic: false, width: width), x, firstBaseline);
+        return Canvas.GetTop(block) + block.DesiredSize.Height;
+    }
+
+    private static void Mark(Canvas canvas, double x, double baseline) =>
+        Place(canvas, Block(Check, 16, Wingdings, bold: false, italic: false, width: null), x, baseline);
+
+    private static void YesNo(Canvas canvas, string? answer, double textBaseline, double markBaseline)
+    {
+        Text(canvas, "No", 215.5, textBaseline);
+        Text(canvas, "Yes", 254.7, textBaseline);
+        if (answer == "No")
+            Mark(canvas, 201.0, markBaseline);
+        else if (answer == "Yes")
+            Mark(canvas, 240.2, markBaseline);
+    }
+
+    private static void Option(Canvas canvas, string text, double x, double textBaseline, double markBaseline, bool selected, double markX)
+    {
+        Text(canvas, text, x, textBaseline);
+        if (selected)
+            Mark(canvas, markX, markBaseline);
     }
 }

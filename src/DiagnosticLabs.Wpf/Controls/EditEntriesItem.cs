@@ -5,5 +5,6 @@ public sealed class EditEntriesItem(string text)
 {
     public string Text { get; } = text;
 
-    public override string ToString() => Text;
+    // Empty on purpose: a combo box matches typed letters against this text, and typing "E" must not pick the row and open the builder.
+    public override string ToString() => string.Empty;
 }

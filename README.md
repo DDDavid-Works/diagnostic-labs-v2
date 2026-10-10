@@ -57,7 +57,7 @@ sqlcmd -S <server> -d DiagnosticLabsV2 -E -C -I -b -W -i db\verify-migration.sql
 | Patients | Done (paged search, create/edit/soft-delete, concurrency check, audit log; a patient with registrations can not be deleted). Age is computed from the birth date, or typed as free text when the birth date is unknown. |
 | Patient Registrations | Done (see below) |
 | Payments | Done (see below) |
-| Lab Results | Stool/Fecalysis and Urinalysis done (see below); the other 9 types follow the same pattern |
+| Lab Results | Stool/Fecalysis, Urinalysis and Annual Physical Exam done (see below); the other 8 types follow the same pattern |
 | Companies, Departments, Services, Packages, Discounts | Done (shared list + editor screen; delete switches a row off, "Show inactive" brings it back) |
 | Items, Item Locations | Built and tested, but hidden: the legacy `Modules` table has them switched off (`IsActive = 0`, ids 21 and 22). Set `IsActive = 1` to show them in the menu |
 | Users and permissions | Done (per-user permission grid, temporary passwords, reset/unlock, last-admin safeguards) |

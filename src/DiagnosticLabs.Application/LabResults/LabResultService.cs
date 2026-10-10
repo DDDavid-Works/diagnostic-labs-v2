@@ -81,6 +81,9 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
     protected abstract IReadOnlyList<PrintText> ResultTexts(TDetail detail);
 
+    /// <summary>Every value by name, for page designs (like the annual physical exam) that place each one at its own spot.</summary>
+    protected virtual IReadOnlyDictionary<string, string?> PrintFields(LabReport report, TDetail detail) => new Dictionary<string, string?>();
+
     protected override DbSet<LabReport> Set => Db.LabReports;
 
     protected override IQueryable<LabReport> ForListing(IQueryable<LabReport> q) =>
@@ -279,6 +282,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
             ResultLines(detail),
             texts,
             [new PrintSignatory("Medical Technologist", report.MedicalTechnologist), new PrintSignatory("Pathologist", report.Pathologist)],
-            FooterNote));
+            FooterNote,
+            PrintFields(report, detail)));
     }
 }

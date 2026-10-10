@@ -4,14 +4,8 @@
              xmlns:ctl="clr-namespace:DiagnosticLabs.Wpf.Controls">
   <!-- The end of every lab result form, as on paper: the Remarks box, then the two signatories with their captions under a line. -->
   <StackPanel>
-    <DockPanel Margin="0,4,0,2">
-      <ctl:TemplatePicker DockPanel.Dock="Right" Width="230" Options="{Binding RemarksTemplates}" EditCommand="{Binding EditRemarksTemplatesCommand}" />
-      <TextBlock Text="Remarks:" Style="{StaticResource PaperLabel}" />
-    </DockPanel>
-    <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White">
-      <TextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
-               MinHeight="46" MaxHeight="76" VerticalScrollBarVisibility="Auto" />
-    </Border>
+    <TextBlock Text="Remarks:" Style="{StaticResource PaperLabel}" Margin="0,4,0,2" />
+    <ctl:TemplateTextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" Options="{Binding RemarksTemplates}" EditCommand="{Binding EditRemarksTemplatesCommand}" MinHeight="46" MaxHeight="76" />
 
     <Grid Margin="0,6,0,0">
       <Grid.ColumnDefinitions>

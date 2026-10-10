@@ -41,12 +41,13 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid Grid.Column="0">
-              <TextBox Tag="Autofocus" Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}"
+              <TextBox Padding="6,5,28,5" Tag="Autofocus" Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}"
                        ToolTip="Type a registration code and press Enter, or start typing a patient name. Leave empty for a result without a registration.">
                 <TextBox.InputBindings>
                   <KeyBinding Key="Return" Command="{Binding FindCommand}" />
                 </TextBox.InputBindings>
               </TextBox>
+              <Path Style="{StaticResource SearchGlyph}" />
               <Popup PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}" Placement="Bottom" StaysOpen="True"
                      Width="{Binding PlacementTarget.ActualWidth, RelativeSource={RelativeSource Self}}">
                 <Popup.Style>
@@ -109,7 +110,7 @@
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="Auto" MinWidth="125" />
+        <ColumnDefinition Width="Auto" MinWidth="170" />
         <ColumnDefinition Width="*" MinWidth="60" />
         <ColumnDefinition Width="16" />
         <ColumnDefinition Width="Auto" MinWidth="100" />
@@ -120,7 +121,7 @@
 
       <TextBlock Grid.Row="0" Grid.Column="0" Text="Patient Code:" Style="{StaticResource PaperLabel}" />
       <Grid Grid.Row="0" Grid.Column="1" Margin="0,2">
-        <TextBox Text="{Binding PatientCode, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsPatientLocked}"
+        <TextBox Padding="6,5,28,5" Text="{Binding PatientCode, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsPatientLocked}"
                  ToolTip="Type a patient code or name to look the patient up (not available once a registration is loaded)">
           <TextBox.Style>
             <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
@@ -131,6 +132,7 @@
               </Style.Triggers>
             </Style>          </TextBox.Style>
         </TextBox>
+        <Path Style="{StaticResource SearchGlyph}" Visibility="{Binding CanLookUpPatient, Converter={StaticResource BoolToVis}}" />
           <Popup PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}" Placement="Bottom" StaysOpen="True"
                  MinWidth="260" Width="{Binding PlacementTarget.ActualWidth, RelativeSource={RelativeSource Self}}">
             <Popup.Style>
@@ -181,7 +183,7 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBox Grid.Column="0" Text="{Binding PatientName, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsPatientLocked}"
+        <TextBox Grid.Column="0" Padding="6,5,28,5" Text="{Binding PatientName, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsPatientLocked}"
                  ToolTip="Type a patient name or code to look the patient up (not available once a registration is loaded)">
           <TextBox.Style>
             <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
@@ -192,6 +194,7 @@
               </Style.Triggers>
             </Style>          </TextBox.Style>
         </TextBox>
+        <Path Grid.Column="0" Style="{StaticResource SearchGlyph}" Visibility="{Binding CanLookUpPatient, Converter={StaticResource BoolToVis}}" />
         <Button Grid.Column="1" Content="Different patient" Margin="6,0,0,0" MinWidth="0" Padding="8,2" Command="{Binding ChangePatientCommand}"
                 Visibility="{Binding HasPatient, Converter={StaticResource BoolToVis}}"
                 ToolTip="Stop using this patient and type the details in (or look up another patient)" />

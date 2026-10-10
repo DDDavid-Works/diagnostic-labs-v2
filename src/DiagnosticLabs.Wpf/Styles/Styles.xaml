@@ -17,6 +17,38 @@
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
   </Style>
 
+  <!-- Check boxes follow the text boxes: a light 1px border and a soft tick instead of the stock black -->
+  <Style TargetType="CheckBox">
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+    <Setter Property="Background" Value="White" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <StackPanel Orientation="Horizontal" Background="Transparent" SnapsToDevicePixels="True">
+            <Border x:Name="Box" Width="16" Height="16" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" BorderThickness="1"
+                    BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}">
+              <Path x:Name="Tick" Data="M 3,8 L 6.5,11.5 L 12.5,4.5" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" />
+            </Border>
+            <ContentPresenter Margin="6,0,0,0" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.5" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style TargetType="ComboBox">
     <Setter Property="Padding" Value="6,5" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -71,6 +103,22 @@
   </Style>
 
   <!-- A row in a type-ahead popup. Buttons click without taking focus, so the text box keeps the cursor (list items would not select). -->
+  <!-- A faint magnifying glass laid over the right end of a field that searches as you type -->
+  <Style x:Key="SearchGlyph" TargetType="Path">
+    <Setter Property="Data" Value="M 6,1 A 5,5 0 1 0 6,11 A 5,5 0 1 0 6,1 M 9.6,9.6 L 14,14" />
+    <Setter Property="Stroke" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="StrokeThickness" Value="1.5" />
+    <Setter Property="StrokeStartLineCap" Value="Round" />
+    <Setter Property="StrokeEndLineCap" Value="Round" />
+    <Setter Property="Width" Value="15" />
+    <Setter Property="Height" Value="15" />
+    <Setter Property="Opacity" Value="0.55" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,0,9,0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
   <Style x:Key="SuggestionButton" TargetType="Button">
     <Setter Property="Focusable" Value="False" />
     <Setter Property="Cursor" Value="Hand" />

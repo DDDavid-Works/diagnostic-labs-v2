@@ -17,10 +17,15 @@ public sealed record ResultRegistration(
     string? Sex,
     string? CompanyName,
     string BatchName,
-    IReadOnlyList<string> Services);
+    IReadOnlyList<string> Services,
+    DateOnly? DateOfBirth = null,
+    string? CivilStatus = null,
+    string? ContactNumbers = null);
 
 /// <summary>A patient as the top of a result form shows them once picked from the patient list.</summary>
-public sealed record ResultPatient(long PatientId, string PatientCode, string PatientName, string? Age, string? Sex);
+public sealed record ResultPatient(
+    long PatientId, string PatientCode, string PatientName, string? Age, string? Sex,
+    DateOnly? DateOfBirth = null, string? CivilStatus = null, string? ContactNumbers = null);
 
 /// <summary>A registration offered while typing in the registration box.</summary>
 public sealed record ResultRegistrationMatch(long Id, string RegistrationCode, string PatientName, DateOnly Date);
@@ -87,7 +92,10 @@ public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser current
             r.Patient.Sex,
             r.Company?.CompanyName,
             r.BatchName,
-            [.. r.Services.Where(s => !s.IsDeleted).OrderBy(s => s.Id).Select(s => s.Service.ServiceName)]));
+            [.. r.Services.Where(s => !s.IsDeleted).OrderBy(s => s.Id).Select(s => s.Service.ServiceName)],
+            r.Patient.DateOfBirth,
+            r.Patient.CivilStatus,
+            r.Patient.ContactNumbers));
     }
 
     public async Task<Result<IReadOnlyList<ResultRegistrationMatch>>> SuggestAsync(int moduleId, string text, CancellationToken cancellationToken = default)
@@ -148,6 +156,6 @@ public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser current
         var p = await db.Patients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == patientId, cancellationToken);
         return p is null
             ? Result<ResultPatient>.Failure(Errors.NotFound("Patient"))
-            : Result<ResultPatient>.Success(new ResultPatient(p.Id, p.PatientCode, p.PatientName, AgeCalculator.Describe(p.DateOfBirth, Today) ?? p.Age, p.Sex));
+            : Result<ResultPatient>.Success(new ResultPatient(p.Id, p.PatientCode, p.PatientName, AgeCalculator.Describe(p.DateOfBirth, Today) ?? p.Age, p.Sex, p.DateOfBirth, p.CivilStatus, p.ContactNumbers));
     }
 }

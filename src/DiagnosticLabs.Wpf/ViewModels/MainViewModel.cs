@@ -24,6 +24,7 @@ public partial class MainViewModel(
         [ModuleIds.PatientRegistrations] = sp => sp.GetRequiredService<RegistrationsViewModel>(),
         [ModuleIds.StoolFecalysis] = sp => sp.GetRequiredService<StoolFecalysisViewModel>(),
         [ModuleIds.Urinalysis] = sp => sp.GetRequiredService<UrinalysisViewModel>(),
+        [ModuleIds.AnnualPhysicalExam] = sp => sp.GetRequiredService<AnnualPhysicalExamViewModel>(),
         [ModuleIds.Payments] = sp => sp.GetRequiredService<PaymentsViewModel>(),
         [ModuleIds.Patients] = sp => sp.GetRequiredService<PatientsViewModel>(),
         [ModuleIds.Companies] = sp => sp.GetRequiredService<CompaniesViewModel>(),

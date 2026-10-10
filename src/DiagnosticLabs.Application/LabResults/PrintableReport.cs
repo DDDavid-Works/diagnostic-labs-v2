@@ -5,6 +5,7 @@ public enum ReportLayout
 {
     StoolFecalysis,
     Urinalysis,
+    AnnualPhysicalExam,
 }
 
 /// <summary>The company block at the top of a printout, from Company Setup.</summary>
@@ -30,4 +31,5 @@ public sealed record PrintableReport(
     IReadOnlyList<PrintLine> ResultLines,
     IReadOnlyList<PrintText> ResultTexts,
     IReadOnlyList<PrintSignatory> Signatories,
-    string FooterNote);
+    string FooterNote,
+    IReadOnlyDictionary<string, string?>? Fields = null);
