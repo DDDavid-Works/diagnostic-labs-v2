@@ -436,6 +436,8 @@ public partial class PaymentsViewModel(
     /// <summary>Shows a registration: its discount becomes the form's discount and, for a new payment, the amount is the balance.</summary>
     private void ApplyRegistration(RegistrationBalance balance, bool payBalance)
     {
+        // Loading the registration (and the balance it suggests) is not something typed into the form.
+        var wasClean = !IsDirty;
         _loading = true;
         try
         {
@@ -458,6 +460,9 @@ public partial class PaymentsViewModel(
 
         ClearSuggestions();
         NotifyAmounts();
+
+        if (wasClean)
+            MarkClean();
     }
 
     /// <summary>Loads the discounts on offer, plus the one a registration already has even if it was switched off since.</summary>

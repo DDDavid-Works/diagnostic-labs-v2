@@ -38,7 +38,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     string title,
     string entityName,
     bool hasActiveFlag,
-    ILogger logger) : ViewModelBase(logger), ICrudScreen
+    ILogger logger) : ViewModelBase(logger), ICrudScreen, IDirtyForm
     where TService : ICrudService<TListItem, TDetails, TInput>
     where TListItem : class, IHasId
     where TDetails : IHasId
@@ -168,7 +168,19 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         if (_suppressOpen || value is null || value.Id == Id)
             return;
 
-        _ = RunAsync(() => OpenAsync(value.Id));
+        _ = OpenSelectedAsync(value.Id);
+    }
+
+    // Opening another record from the list would throw away unsaved changes, so ask first (and put the selection back on a "no").
+    private async Task OpenSelectedAsync(long id)
+    {
+        if (!await ConfirmLeaveAsync())
+        {
+            SelectInList(IsNew ? null : Id);
+            return;
+        }
+
+        await RunAsync(() => OpenAsync(id));
     }
 
     // ----- commands -----
@@ -179,7 +191,22 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         await LoadPageAsync();
         StartNew();
         await OnReadyAsync();
+
+        // A screen opened from elsewhere (the home screen) can ask for one record to be shown.
+        if (_requestedOpenId != 0)
+        {
+            var id = _requestedOpenId;
+            _requestedOpenId = 0;
+            await OpenAsync(id);
+        }
+
+        MarkClean();
     });
+
+    private long _requestedOpenId;
+
+    /// <summary>Asks for this record to be opened as soon as the screen is ready.</summary>
+    public void RequestOpen(long id) => _requestedOpenId = id;
 
     [RelayCommand]
     private Task SearchAsync() => RunAsync(() =>
@@ -215,7 +242,11 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
     private void ToggleSearch() => IsSearchVisible = !IsSearchVisible;
 
     [RelayCommand]
-    private void NewRecord() => BeginNewRecord();
+    private async Task NewRecordAsync()
+    {
+        if (await ConfirmLeaveAsync())
+            BeginNewRecord();
+    }
 
     /// <summary>Shows an empty form; <paramref name="keepMessage"/> leaves the last status line (e.g. "Saved") in place.</summary>
     protected void BeginNewRecord(bool keepMessage = false)
@@ -358,6 +389,7 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         ResetFields();
         OnPropertyChanged(nameof(CanSave));
         OnRecordChanged();
+        MarkClean();
     }
 
     private void Show(TDetails details)
@@ -366,6 +398,64 @@ public abstract partial class CrudViewModel<TService, TListItem, TDetails, TInpu
         ShowFields(details);
         OnPropertyChanged(nameof(CanSave));
         OnRecordChanged();
+        MarkClean();
+    }
+
+    // ----- unsaved changes -----
+    // The form is "dirty" when what it would save differs from what it looked like when it was loaded, cleared or last saved.
+    private string? _baseline;
+
+    private readonly ILogger _dirtyLog = logger;
+
+    private string? Snapshot()
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Serialize(BuildInput());
+        }
+        catch (Exception ex)
+        {
+            _dirtyLog.LogDebug(ex, "The form of {Screen} could not be compared with its saved state", GetType().Name);
+            return null;
+        }
+    }
+
+    /// <summary>Takes the form as it is now as the "nothing changed" state (after loading, clearing or saving; also after a lookup filled it in).</summary>
+    protected void MarkClean() => _baseline = Snapshot();
+
+    public bool IsDirty => _baseline is not null && Snapshot() is { } now && now != _baseline;
+
+    /// <summary>Whether "save" is offered when the user is asked about leaving (a screen in a special mode can allow it though the form itself is locked).</summary>
+    protected virtual bool CanSaveBeforeLeaving => CanSave;
+
+    /// <summary>What to call this form when asking about its changes.</summary>
+    protected virtual string DirtyName => IsNew ? "The new " + entityName.ToLowerInvariant() : CurrentName;
+
+    public async Task<bool> ConfirmLeaveAsync()
+    {
+        if (!IsDirty)
+            return true;
+
+        if (!CanSaveBeforeLeaving)
+            return dialogs.Confirm($"{DirtyName} has changes, but you are not allowed to save them. Leave without saving?", Title);
+
+        switch (dialogs.AskToSave($"{DirtyName} has changes that are not saved. Do you want to save them?", Title))
+        {
+            case SaveChoice.Save:
+                return await SaveForLeavingAsync();
+            case SaveChoice.Discard:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Saves the open record before the user leaves; <c>false</c> keeps them here (the reason is on screen).</summary>
+    protected virtual async Task<bool> SaveForLeavingAsync()
+    {
+        var saved = false;
+        await RunAsync(async () => saved = await SaveCoreAsync());
+        return saved;
     }
 
     IAsyncRelayCommand ICrudScreen.InitializeCommand => InitializeCommand;

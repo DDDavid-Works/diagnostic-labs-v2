@@ -14,8 +14,11 @@ public partial class CompanySetupViewModel(
     IServiceRunner runner,
     ICurrentUser currentUser,
     IFileDialogService files,
-    ILogger<CompanySetupViewModel> logger) : ViewModelBase(logger)
+    IDialogService dialogs,
+    ILogger<CompanySetupViewModel> logger) : ViewModelBase(logger), IDirtyForm
 {
+    // What the form looked like when it was loaded or last saved, to tell whether it has unsaved changes.
+    private string? _baseline;
     private byte[] _rowVersion = [];
     private long _id;
     private byte[]? _logo;
@@ -113,6 +116,31 @@ public partial class CompanySetupViewModel(
         ClearMessage();
     }
 
+    private string Snapshot() => string.Join("\u001f", CompanyName, SubCompanyName, Tagline, Address, ContactNumbers, Email, Code,
+        _logo is null ? "-" : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(_logo)));
+
+    public bool IsDirty => _baseline is not null && Snapshot() != _baseline;
+
+    public async Task<bool> ConfirmLeaveAsync()
+    {
+        if (!IsDirty)
+            return true;
+
+        if (!CanSave)
+            return dialogs.Confirm("The company details have changes, but you are not allowed to save them. Leave without saving?", "Company Setup");
+
+        switch (dialogs.AskToSave("The company details have changes that are not saved. Do you want to save them?", "Company Setup"))
+        {
+            case SaveChoice.Save:
+                await SaveAsync();
+                return !IsDirty;
+            case SaveChoice.Discard:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private void Show(CompanySetupDetails d)
     {
         _id = d.Id;
@@ -126,5 +154,6 @@ public partial class CompanySetupViewModel(
         Email = d.Email ?? string.Empty;
         Code = d.Code ?? string.Empty;
         LogoImage = ImageLoader.FromBytes(d.Logo);
+        _baseline = Snapshot();
     }
 }

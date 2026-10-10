@@ -13,6 +13,9 @@
     <DataTemplate DataType="{x:Type vm:CompanySetupViewModel}">
       <views:CompanySetupView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+      <views:HomeView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
       <views:PlaceholderView />
     </DataTemplate>
@@ -24,11 +27,15 @@
             BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,0,1">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-          <Button Content="Change password" Command="{Binding ChangePasswordCommand}" />
+          <Button Content="Close module" Margin="0,0,8,0" Command="{Binding CloseModuleCommand}"
+                Visibility="{Binding CanCloseModule, Converter={StaticResource BoolToVis}}" ToolTip="Close this module and show the registrations" />
+        <Button Content="Change password" Command="{Binding ChangePasswordCommand}" />
           <Button Content="Sign out" Margin="8,0,0,0" Click="SignOut_OnClick" />
         </StackPanel>
         <ToggleButton DockPanel.Dock="Left" Content="&#x2630;" MinWidth="0" Padding="9,4" Margin="0,0,12,0" Cursor="Hand"
                       IsChecked="{Binding IsMenuVisible, Mode=TwoWay}" ToolTip="Show or hide the menu" VerticalAlignment="Center" />
+        <Button DockPanel.Dock="Left" Content="Home" Margin="0,0,12,0" Padding="12,4" MinWidth="0" Command="{Binding GoHomeCommand}"
+                ToolTip="Today's registrations" VerticalAlignment="Center" />
         <TextBlock Text="Diagnostic Labs" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
         <TextBlock Text="{Binding Greeting}" VerticalAlignment="Center" Margin="18,0,0,0"
                    Foreground="{StaticResource MutedTextBrush}" />

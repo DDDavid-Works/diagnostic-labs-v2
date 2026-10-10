@@ -50,8 +50,47 @@ public partial class MainViewModel(
 
     public ObservableCollection<MenuGroup> Menu { get; } = [];
 
+    // The first thing after signing in is the list of today's registrations (it is created when the menu has loaded).
     [ObservableProperty]
     private object _currentPage = new PlaceholderViewModel("Welcome", "Pick a module from the menu on the left.");
+
+    private bool _navigating;
+
+    /// <summary>The module on screen can be closed to show the list of registrations again (not offered on the list itself).</summary>
+    public bool CanCloseModule => CurrentPage is not HomeViewModel;
+
+    partial void OnCurrentPageChanged(object value) => OnPropertyChanged(nameof(CanCloseModule));
+
+    /// <summary>
+    /// Whether the screen on show may be left: <c>true</c> when its form has no changes, or the user saved them or chose to leave them out.
+    /// Everything that replaces the screen (another module, Home, closing it, signing out, closing the window) asks this first.
+    /// </summary>
+    public async Task<bool> CanLeaveAsync() => CurrentPage is not IDirtyForm form || await form.ConfirmLeaveAsync();
+
+    private async Task NavigateAsync(Func<object> next)
+    {
+        if (_navigating)
+            return;
+
+        _navigating = true;
+        try
+        {
+            if (await CanLeaveAsync())
+                CurrentPage = next();
+        }
+        finally
+        {
+            _navigating = false;
+        }
+    }
+
+    /// <summary>Back to the list of registrations (a fresh one, so it shows what has changed).</summary>
+    [RelayCommand]
+    private Task GoHomeAsync() => NavigateAsync(() => services.GetRequiredService<HomeViewModel>());
+
+    /// <summary>Closes the module on show and shows the list of registrations.</summary>
+    [RelayCommand]
+    private Task CloseModuleAsync() => NavigateAsync(() => services.GetRequiredService<HomeViewModel>());
 
     /// <summary>The left menu can be hidden to give the working screen the full width (small monitors).</summary>
     [ObservableProperty]
@@ -74,28 +113,52 @@ public partial class MainViewModel(
     private Task LoadMenuAsync() => RunAsync(async () =>
     {
         navigation.PaymentHandler = OpenPayment;
+        navigation.ResultHandler = OpenResult;
         var groups = await runner.RunAsync<IMenuService, IReadOnlyList<MenuGroup>>(s => s.GetMenuAsync());
         Menu.Clear();
         foreach (var group in groups)
             Menu.Add(group);
+
+        CurrentPage = services.GetRequiredService<HomeViewModel>();
     });
 
     /// <summary>Opens Payments with a registration already loaded (from "Pay now" on the registration screen).</summary>
-    private void OpenPayment(long registrationId)
+    private void OpenPayment(long registrationId) => _ = NavigateAsync(() =>
     {
         var payments = services.GetRequiredService<PaymentsViewModel>();
         payments.RequestRegistration(registrationId);
-        CurrentPage = payments;
+        return payments;
+    });
+
+    /// <summary>Opens a result screen on a registration: the result that was made when there is one, otherwise a new result.</summary>
+    private void OpenResult(int moduleId, long registrationId, long? resultId)
+    {
+        if (!Pages.TryGetValue(moduleId, out var factory))
+            return;
+
+        _ = NavigateAsync(() =>
+        {
+            var page = factory(services);
+            if (page is ILabResultScreen screen)
+            {
+                if (resultId is { } id)
+                    screen.RequestResult(id);
+                else
+                    screen.RequestRegistration(registrationId);
+            }
+
+            return page;
+        });
     }
 
     [RelayCommand]
-    private void OpenModule(MenuItem? item)
+    private Task OpenModuleAsync(MenuItem? item)
     {
         if (item is null)
-            return;
+            return Task.CompletedTask;
 
-        CurrentPage = Pages.TryGetValue(item.ModuleId, out var factory)
+        return NavigateAsync(() => Pages.TryGetValue(item.ModuleId, out var factory)
             ? factory(services)
-            : new PlaceholderViewModel(item.Name, "This module has not been migrated to the new app yet. Use the old app for now.");
+            : new PlaceholderViewModel(item.Name, "This module has not been migrated to the new app yet. Use the old app for now."));
     }
 }

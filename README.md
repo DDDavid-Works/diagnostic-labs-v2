@@ -58,6 +58,8 @@ sqlcmd -S <server> -d DiagnosticLabsV2 -E -C -I -b -W -i db\verify-migration.sql
 | Patient Registrations | Done (see below) |
 | Payments | Done (see below) |
 | Lab Results | Stool/Fecalysis, Urinalysis, Hematology, Serology, Immunology, Pregnancy Test, Clinical Chemistry (1 and 2), Annual Physical Exam and Annual Physical Exam Page 2 (the Medical Examination Report, saved in the Medical Examination tables) done (see below) |
+| Home | The first screen after signing in: the registrations of today (or any day, company, name, status), each with its payment state and a chip per result form that is ticked once the result exists; a chip opens that result screen on the registration, Pay opens Payments. Paged. |
+| Closing and unsaved changes | **Close module** (top right) shows the Home list again. Every form tells when it has changes that are not saved: leaving it for another module, Home, Close, sign out, closing the window, New, or another record in its list asks to Save, leave the changes out, or stay. Looking up a registration or patient does not count as a change. |
 | Companies, Departments, Services, Packages, Discounts | Done (shared list + editor screen; delete switches a row off, "Show inactive" brings it back) |
 | Items, Item Locations | Built and tested, but hidden: the legacy `Modules` table has them switched off (`IsActive = 0`, ids 21 and 22). Set `IsActive = 1` to show them in the menu |
 | Users and permissions | Done (per-user permission grid, temporary passwords, reset/unlock, last-admin safeguards) |

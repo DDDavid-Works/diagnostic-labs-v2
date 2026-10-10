@@ -95,11 +95,13 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     int moduleId,
     string title,
     ILogger logger)
-    : CrudViewModel<TService, LabResultListItem, TDetails, TInput>(runner, dialogs, user, moduleId, title, title, hasActiveFlag: false, logger)
+    : CrudViewModel<TService, LabResultListItem, TDetails, TInput>(runner, dialogs, user, moduleId, title, title, hasActiveFlag: false, logger), ILabResultScreen
     where TService : ICrudService<LabResultListItem, TDetails, TInput>, ILabResultPrinting
     where TDetails : IHasId
     where TInput : ICrudInput
 {
+    private long _requestedRegistrationId;
+
     private readonly int _module = moduleId;
     private readonly IDialogService _dialogs = dialogs;
     private readonly ILogger _log = logger;
@@ -365,6 +367,21 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         await LoadDefaultsAsync();
     }
 
+    // Opened from the home screen on a registration: the registration is loaded into the new result, which fills the patient block.
+    protected override async Task OnReadyAsync()
+    {
+        if (_requestedRegistrationId != 0)
+        {
+            var id = _requestedRegistrationId;
+            _requestedRegistrationId = 0;
+            await LoadRegistrationAsync(id, fillPatient: true);
+        }
+    }
+
+    public void RequestRegistration(long registrationId) => _requestedRegistrationId = registrationId;
+
+    public void RequestResult(long resultId) => RequestOpen(resultId);
+
     // Opening a record or starting a new one ends the "set defaults" mode (except when the mode itself starts the new form).
     protected override void OnRecordChanged()
     {
@@ -469,6 +486,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     /// <summary>Shows a registration; for a new result it also fills the patient block (code, name, age, sex, company).</summary>
     private void ApplyRegistration(ResultRegistration r, bool fillPatient)
     {
+        // Loading the registration is context for the result, not something typed into it: a form that was untouched stays untouched.
+        var wasClean = !IsDirty;
         _loading = true;
         try
         {
@@ -491,6 +510,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         {
             _loading = false;
         }
+
+        if (wasClean)
+            MarkClean();
     }
 
     // ------------------------------------------------------------------ patient lookup (only without a registration)
@@ -561,6 +583,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             }
 
             var p = result.Value;
+            var wasClean = !IsDirty;
             _loading = true;
             try
             {
@@ -575,6 +598,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
             {
                 _loading = false;
             }
+
+            if (wasClean)
+                MarkClean();
 
             ClearMessage();
         });
@@ -710,8 +736,12 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     /// <summary>Shows a new form carrying the current defaults to edit them; patient and registration are switched off.</summary>
     [RelayCommand(CanExecute = nameof(CanSetDefaults))]
-    private void EnterDefaults()
+    private async Task EnterDefaultsAsync()
     {
+        // Showing the defaults replaces the form, so changes in it would be lost.
+        if (!await ConfirmLeaveAsync())
+            return;
+
         _enteringDefaults = true;
         try
         {
@@ -726,6 +756,18 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         OnPropertyChanged(nameof(CanSave));
         OnPropertyChanged(nameof(CanDelete));
         PrintCommand.NotifyCanExecuteChanged();
+    }
+
+    protected override bool CanSaveBeforeLeaving => IsSettingDefaults ? CanSetDefaults : base.CanSaveBeforeLeaving;
+
+    // While the defaults are being set, "save" means saving the defaults.
+    protected override async Task<bool> SaveForLeavingAsync()
+    {
+        if (!IsSettingDefaults)
+            return await base.SaveForLeavingAsync();
+
+        await SaveDefaultsAsync();
+        return !IsSettingDefaults;
     }
 
     [RelayCommand]
