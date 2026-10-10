@@ -17,6 +17,7 @@ public enum LabReportType
     ClinicalChemistry2 = 9,
     MedicalExamination = 10,
     AnnualPhysicalExam = 12,
+    PhysicalExamination = 13,
 }
 
 /// <summary>

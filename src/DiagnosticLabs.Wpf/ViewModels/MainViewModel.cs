@@ -25,6 +25,7 @@ public partial class MainViewModel(
         [ModuleIds.StoolFecalysis] = sp => sp.GetRequiredService<StoolFecalysisViewModel>(),
         [ModuleIds.Urinalysis] = sp => sp.GetRequiredService<UrinalysisViewModel>(),
         [ModuleIds.Hematology] = sp => sp.GetRequiredService<HematologyViewModel>(),
+        [ModuleIds.PhysicalExamination] = sp => sp.GetRequiredService<PhysicalExaminationViewModel>(),
         [ModuleIds.Serology] = sp => sp.GetRequiredService<SerologyViewModel>(),
         [ModuleIds.Immunology] = sp => sp.GetRequiredService<ImmunologyViewModel>(),
         [ModuleIds.PregnancyTest] = sp => sp.GetRequiredService<PregnancyTestViewModel>(),

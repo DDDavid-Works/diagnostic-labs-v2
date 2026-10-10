@@ -29,6 +29,9 @@ public static class ModuleIds
     public const int CompanySetup = 26;
     public const int Users = 27;
 
+    /// <summary>The printed "Laboratory Results" sheet, called Physical Examination in the app (added after the legacy modules).</summary>
+    public const int PhysicalExamination = 29;
+
     /// <summary>Change Password is available to every signed-in user from the header, so it is not a permission module.</summary>
     public const int ChangePassword = 28;
 }

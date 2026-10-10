@@ -962,6 +962,32 @@ UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."MonocytesNormalVa
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BasophilsNormalValue"', N'0.0-0.01%') WHERE ModuleId = 7 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BasophilsNormalValue"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."PlateletCountNormalValue"', N'150-400 ' + NCHAR(215) + N'10' + NCHAR(8313) + N'/L') WHERE ModuleId = 7 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."PlateletCountNormalValue"') IS NULL;
 
+-- Physical Examination (a form added after the legacy app): its module record, billable service and the normal values of its blood count as saved defaults
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 29)
+BEGIN
+    DECLARE @serviceId bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Physical Examination' ORDER BY Id);
+    IF @serviceId IS NULL
+    BEGIN
+        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Physical Examination', N'Physical Examination', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+        SET @serviceId = SCOPE_IDENTITY();
+    END
+    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+    SELECT 29, ModuleTypeId, N'Physical Examination', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 14, 1, @serviceId FROM Modules WHERE Id = 6;
+END
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 29) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 29)
+    INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (29, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HematocritNValue"', N'0.42 - 0.52') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HematocritNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HematocritFemaleNValue"', N'0.37 - 0.47') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HematocritFemaleNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HemoglobinNValue"', N'140 - 170 g/l') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HemoglobinNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HemoglobinFemaleNValue"', N'120 - 150 g/l') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HemoglobinFemaleNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."WBCCountNValue"', N'5 - 10 x 10' + NCHAR(8313) + N'/L') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."WBCCountNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."SegmentersNValue"', N'0.50 - 0.70') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."SegmentersNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LymphocytesNValue"', N'0.10 - 0.40') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LymphocytesNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."EosinophilsNValue"', N'0 - 0.05') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."EosinophilsNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."MonocytesNValue"', N'0 - 0.07') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."MonocytesNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BasophilsNValue"', N'0 - 0.01') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BasophilsNValue"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."StabNValue"', N'0 - 0.05') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."StabNValue"') IS NULL;
+
 -- ===== Summary =====
 SELECT SourceTable AS SkippedSourceTable, LegacyId, Reason FROM #skipped ORDER BY SourceTable, LegacyId;
 

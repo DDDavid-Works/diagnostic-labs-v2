@@ -2028,4 +2028,214 @@
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>
   </DataTemplate>
+  <!-- ===================================================== Physical Examination (the printed "Laboratory Results" sheet) -->
+  <DataTemplate DataType="{x:Type vm:PhysicalExaminationViewModel}">
+    <ctl:CrudLayout FormMaxWidth="940">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Funnel}" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Print}" Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Undo}" Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Sliders}" Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the normal values every new result starts with (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <!-- The sheet: the blood count and the blood typing side by side, then urinalysis and fecalysis, then Others; each section has its own date -->
+          <Grid Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="1.15*" />
+              <ColumnDefinition Width="10" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Grid.Column="0" VerticalAlignment="Top">
+              <StackPanel>
+              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1"><DockPanel Margin="6,4,6,4"><TextBlock DockPanel.Dock="Left" Text="Date:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,8,0" /><DatePicker SelectedDate="{Binding Dates[CbcDate].Value}" HorizontalAlignment="Left" Width="175" /></DockPanel></Border>
+              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="0,3,0,4"><TextBlock Text="COMPLETE BLOOD COUNT" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                  <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,1,1,1" Padding="4,2"><TextBlock Text="Normal Values" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                  <Border Grid.Row="0" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,1,0,1" Padding="4,2"><TextBlock Text="Patient Result" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                  <Border Grid.Row="1" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="HEMATOCRIT:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="1" Grid.Column="2" Grid.RowSpan="3" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[HematocritResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="2" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBlock Text="Male:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="14,0,0,0" /></Border>
+                  <Border Grid.Row="2" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[HematocritNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="3" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBlock Text="Female:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="14,0,0,0" /></Border>
+                  <Border Grid.Row="3" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[HematocritFemaleNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="4" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="HEMOGLOBIN:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="4" Grid.Column="2" Grid.RowSpan="3" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[HemoglobinResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="5" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBlock Text="Male:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="14,0,0,0" /></Border>
+                  <Border Grid.Row="5" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[HemoglobinNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="6" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBlock Text="Female:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="14,0,0,0" /></Border>
+                  <Border Grid.Row="6" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[HemoglobinFemaleNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="7" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="WHITE BLOOD CELL COUNT:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="8" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[WBCCountNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="7" Grid.Column="2" Grid.RowSpan="2" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[WBCCountResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="9" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Segmenters:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="9" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[SegmentersNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="9" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[SegmentersResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="10" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Lymphocytes:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="10" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[LymphocytesNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="10" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[LymphocytesResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="11" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Eosinophils:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="11" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[EosinophilsNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="11" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[EosinophilsResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="12" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Monocytes:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="12" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[MonocytesNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="12" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[MonocytesResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="13" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Basophils:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="13" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[BasophilsNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="13" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[BasophilsResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="14" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Stab:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="14" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><TextBox Text="{Binding Cells[StabNValue].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+                  <Border Grid.Row="14" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1" Padding="4,2"><TextBox Text="{Binding Cells[StabResult].Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+              </Grid>
+              </StackPanel>
+            </Border>
+            <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Grid.Column="2" VerticalAlignment="Top">
+              <StackPanel>
+              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1"><DockPanel Margin="6,4,6,4"><TextBlock DockPanel.Dock="Left" Text="Date:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,8,0" /><DatePicker SelectedDate="{Binding Dates[BloodTypingDate].Value}" HorizontalAlignment="Left" Width="175" /></DockPanel></Border>
+              <Grid Margin="6,0,6,6">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Blood Typing:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                <ctl:ChoiceBox Grid.Row="0" Grid.Column="1" Margin="0,2" ItemsSource="{Binding Choices[BloodTyping].Items}" Text="{Binding Choices[BloodTyping].Value}" EditCommand="{Binding Choices[BloodTyping].EditCommand}" />
+                <TextBlock Grid.Row="1" Text="Rh Typing:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                <ctl:ChoiceBox Grid.Row="1" Grid.Column="1" Margin="0,2" ItemsSource="{Binding Choices[RhTyping].Items}" Text="{Binding Choices[RhTyping].Value}" EditCommand="{Binding Choices[RhTyping].EditCommand}" />
+              </Grid>
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="1.7*" />
+              <ColumnDefinition Width="10" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Grid.Column="0" VerticalAlignment="Top">
+              <StackPanel>
+              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1"><DockPanel Margin="6,4,6,4"><TextBlock DockPanel.Dock="Left" Text="Date:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,8,0" /><TextBlock DockPanel.Dock="Right" Text="URINALYSIS" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" VerticalAlignment="Center" /><DatePicker SelectedDate="{Binding Dates[UrinalysisDate].Value}" HorizontalAlignment="Left" Width="175" /></DockPanel></Border>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="112" /><ColumnDefinition Width="*" /><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                  <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Color:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineColor].Items}" Text="{Binding Choices[UrineColor].Value}" EditCommand="{Binding Choices[UrineColor].EditCommand}" /></Border>
+                  <Border Grid.Row="1" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Appearance:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="1" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineAppearance].Items}" Text="{Binding Choices[UrineAppearance].Value}" EditCommand="{Binding Choices[UrineAppearance].EditCommand}" /></Border>
+                  <Border Grid.Row="2" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Reaction:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="2" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineReaction].Items}" Text="{Binding Choices[UrineReaction].Value}" EditCommand="{Binding Choices[UrineReaction].EditCommand}" /></Border>
+                  <Border Grid.Row="3" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="SP. Gravity:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="3" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineSPGravity].Items}" Text="{Binding Choices[UrineSPGravity].Value}" EditCommand="{Binding Choices[UrineSPGravity].EditCommand}" /></Border>
+                  <Border Grid.Row="4" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Albumin:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="4" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineAlbumin].Items}" Text="{Binding Choices[UrineAlbumin].Value}" EditCommand="{Binding Choices[UrineAlbumin].EditCommand}" /></Border>
+                  <Border Grid.Row="5" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Sugar:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="5" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineSugar].Items}" Text="{Binding Choices[UrineSugar].Value}" EditCommand="{Binding Choices[UrineSugar].EditCommand}" /></Border>
+                  <Border Grid.Row="6" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Pus Cells:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="6" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrinePusCells].Items}" Text="{Binding Choices[UrinePusCells].Value}" EditCommand="{Binding Choices[UrinePusCells].EditCommand}" /></Border>
+                  <Border Grid.Row="7" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Red Cells:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="7" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineRedCells].Items}" Text="{Binding Choices[UrineRedCells].Value}" EditCommand="{Binding Choices[UrineRedCells].EditCommand}" /></Border>
+                  <Border Grid.Row="0" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Mucus Threads:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="0" Grid.Column="3" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineMucusThreads].Items}" Text="{Binding Choices[UrineMucusThreads].Value}" EditCommand="{Binding Choices[UrineMucusThreads].EditCommand}" /></Border>
+                  <Border Grid.Row="1" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Epithelial Cells:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="1" Grid.Column="3" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineEpithelialCells].Items}" Text="{Binding Choices[UrineEpithelialCells].Value}" EditCommand="{Binding Choices[UrineEpithelialCells].EditCommand}" /></Border>
+                  <Border Grid.Row="2" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Amorphous Urates/PO4:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="2" Grid.Column="3" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineAmorphousUratesPO4].Items}" Text="{Binding Choices[UrineAmorphousUratesPO4].Value}" EditCommand="{Binding Choices[UrineAmorphousUratesPO4].EditCommand}" /></Border>
+                  <Border Grid.Row="3" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Bacteria:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="3" Grid.Column="3" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineBacteria].Items}" Text="{Binding Choices[UrineBacteria].Value}" EditCommand="{Binding Choices[UrineBacteria].EditCommand}" /></Border>
+                  <Border Grid.Row="4" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Crystals:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="4" Grid.Column="3" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineCrystals].Items}" Text="{Binding Choices[UrineCrystals].Value}" EditCommand="{Binding Choices[UrineCrystals].EditCommand}" /></Border>
+                  <Border Grid.Row="5" Grid.Column="2" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Casts:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="5" Grid.Column="3" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[UrineCasts].Items}" Text="{Binding Choices[UrineCasts].Value}" EditCommand="{Binding Choices[UrineCasts].EditCommand}" /></Border>
+                  <Border Grid.Row="8" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Others:" Style="{StaticResource PaperLabel}" VerticalAlignment="Top" Margin="0,6,0,0" /></Border>
+                  <Border Grid.Row="8" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:TemplateTextBox Text="{Binding Cells[UrineOthers].Value, UpdateSourceTrigger=PropertyChanged}" Options="{Binding UrineOthersTemplates}" EditCommand="{Binding EditUrineOthersTemplatesCommand}" MinHeight="46" MaxHeight="70" /></Border>
+              </Grid>
+              </StackPanel>
+            </Border>
+            <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Grid.Column="2" VerticalAlignment="Top">
+              <StackPanel>
+              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1"><DockPanel Margin="6,4,6,4"><TextBlock DockPanel.Dock="Left" Text="Date:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,8,0" /><TextBlock DockPanel.Dock="Right" Text="FECALYSIS" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" VerticalAlignment="Center" /><DatePicker SelectedDate="{Binding Dates[FecalysisDate].Value}" HorizontalAlignment="Left" Width="175" /></DockPanel></Border>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                  <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Color:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[FecalysisColor].Items}" Text="{Binding Choices[FecalysisColor].Value}" EditCommand="{Binding Choices[FecalysisColor].EditCommand}" /></Border>
+                  <Border Grid.Row="1" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="Consistency:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+                  <Border Grid.Row="1" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:ChoiceBox ItemsSource="{Binding Choices[FecalysisConsistency].Items}" Text="{Binding Choices[FecalysisConsistency].Value}" EditCommand="{Binding Choices[FecalysisConsistency].EditCommand}" /></Border>
+                  <Border Grid.Row="2" Grid.Column="0" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,2"><TextBlock Text="RESULT:" Style="{StaticResource PaperLabel}" VerticalAlignment="Top" Margin="0,6,0,0" /></Border>
+                  <Border Grid.Row="2" Grid.Column="1" Grid.RowSpan="1" Grid.ColumnSpan="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2"><ctl:TemplateTextBox Text="{Binding Cells[FecalysisResult].Value, UpdateSourceTrigger=PropertyChanged}" Options="{Binding FecalysisResultTemplates}" EditCommand="{Binding EditFecalysisResultTemplatesCommand}" MinHeight="70" MaxHeight="120" /></Border>
+              </Grid>
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <Border Margin="0,10,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Padding="6,4,6,6">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="OTHERS:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
+              <ctl:TemplateTextBox Text="{Binding Cells[Others].Value, UpdateSourceTrigger=PropertyChanged}" Options="{Binding OthersTemplates}" EditCommand="{Binding EditOthersTemplatesCommand}" MinHeight="54" MaxHeight="100" />
+            </DockPanel>
+          </Border>
+
+          <ctl:LabResultBottom ShowRemarks="{Binding ShowRemarks}" />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
 </ResourceDictionary>

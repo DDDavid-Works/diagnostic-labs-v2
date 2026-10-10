@@ -317,3 +317,53 @@ internal sealed class MedicalExaminationReportConfiguration : IEntityTypeConfigu
     }
 }
 
+internal sealed class PhysicalExaminationReportConfiguration : IEntityTypeConfiguration<PhysicalExaminationReport>
+{
+    public void Configure(EntityTypeBuilder<PhysicalExaminationReport> builder)
+    {
+        builder.ToTable("PhysicalExaminationReports");
+        builder.HasKey(e => e.LabReportId);
+        builder.HasOne(e => e.LabReport).WithOne().HasForeignKey<PhysicalExaminationReport>(e => e.LabReportId);
+        builder.Property(e => e.HematocritNValue).HasMaxLength(100);
+        builder.Property(e => e.HematocritFemaleNValue).HasMaxLength(100);
+        builder.Property(e => e.HematocritResult).HasMaxLength(100);
+        builder.Property(e => e.HemoglobinNValue).HasMaxLength(100);
+        builder.Property(e => e.HemoglobinFemaleNValue).HasMaxLength(100);
+        builder.Property(e => e.HemoglobinResult).HasMaxLength(100);
+        builder.Property(e => e.WBCCountNValue).HasMaxLength(100);
+        builder.Property(e => e.WBCCountResult).HasMaxLength(100);
+        builder.Property(e => e.SegmentersNValue).HasMaxLength(100);
+        builder.Property(e => e.SegmentersResult).HasMaxLength(100);
+        builder.Property(e => e.LymphocytesNValue).HasMaxLength(100);
+        builder.Property(e => e.LymphocytesResult).HasMaxLength(100);
+        builder.Property(e => e.EosinophilsNValue).HasMaxLength(100);
+        builder.Property(e => e.EosinophilsResult).HasMaxLength(100);
+        builder.Property(e => e.MonocytesNValue).HasMaxLength(100);
+        builder.Property(e => e.MonocytesResult).HasMaxLength(100);
+        builder.Property(e => e.BasophilsNValue).HasMaxLength(100);
+        builder.Property(e => e.BasophilsResult).HasMaxLength(100);
+        builder.Property(e => e.StabNValue).HasMaxLength(100);
+        builder.Property(e => e.StabResult).HasMaxLength(100);
+        builder.Property(e => e.BloodTyping).HasMaxLength(50);
+        builder.Property(e => e.RhTyping).HasMaxLength(50);
+        builder.Property(e => e.UrineColor).HasMaxLength(50);
+        builder.Property(e => e.UrineAppearance).HasMaxLength(50);
+        builder.Property(e => e.UrineReaction).HasMaxLength(50);
+        builder.Property(e => e.UrineSPGravity).HasMaxLength(50);
+        builder.Property(e => e.UrineAlbumin).HasMaxLength(50);
+        builder.Property(e => e.UrineSugar).HasMaxLength(50);
+        builder.Property(e => e.UrinePusCells).HasMaxLength(50);
+        builder.Property(e => e.UrineRedCells).HasMaxLength(50);
+        builder.Property(e => e.UrineMucusThreads).HasMaxLength(50);
+        builder.Property(e => e.UrineEpithelialCells).HasMaxLength(50);
+        builder.Property(e => e.UrineAmorphousUratesPO4).HasMaxLength(50);
+        builder.Property(e => e.UrineBacteria).HasMaxLength(50);
+        builder.Property(e => e.UrineCrystals).HasMaxLength(50);
+        builder.Property(e => e.UrineCasts).HasMaxLength(50);
+        builder.Property(e => e.FecalysisColor).HasMaxLength(50);
+        builder.Property(e => e.FecalysisConsistency).HasMaxLength(50);
+        builder.Property(e => e.UrineOthers).HasMaxLength(500);
+        builder.Property(e => e.FecalysisResult).HasMaxLength(500);
+        builder.Property(e => e.Others).HasMaxLength(500);
+    }
+}

@@ -48,6 +48,9 @@ public static class ReportDocumentBuilder
             case ReportLayout.AnnualPhysicalExam:
                 AnnualPhysicalExamLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.PhysicalExamination:
+                PhysicalExaminationLayout.Draw(canvas, report);
+                break;
             default:
                 throw new NotSupportedException($"There is no page design for {report.Layout}.");
         }
@@ -1286,4 +1289,222 @@ internal static class AnnualPhysicalExamLayout
         if (selected)
             Mark(canvas, markX, markBaseline);
     }
+}/// <summary>
+/// Physical Examination: the client's printed "LABORATORY RESULTS" sheet. A centred letterhead with the logo, the company, patient, age and sex lines,
+/// then boxes placed as on the sheet: the complete blood count beside the blood typing, urinalysis beside fecalysis (each with its own date), the Others box
+/// and the two signatories. The positions are scaled from a photo of the sheet (not a scan), so they are close but not exact; the labels are as printed.
+/// </summary>
+internal static class PhysicalExaminationLayout
+{
+    private static readonly PageStyle Style = PageStyle.Fine;
+    private const double Left = 32.0;
+    private const double Right = 784.0;
+    private const double Size = 11.5;
+
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        var fields = report.Fields ?? new Dictionary<string, string?>();
+        string? F(string name) => fields.TryGetValue(name, out var v) ? v : null;
+        var line = Style.Line;
+
+        PutLetterhead(canvas, report.Letterhead);
+
+        // Company, patient, age and sex on their lines
+        PageDrawing.PutText(canvas, "Company Name:", Left, 148.0, Size, bold: true);
+        PageDrawing.PutRule(canvas, 150.0, 151.0, 320.0, line);
+        PageDrawing.PutFit(canvas, PageDrawing.Line(report, "Company/Physician"), 154.0, 147.0, 312.0, Size);
+        PageDrawing.PutText(canvas, "Patient Name:", Left, 166.0, Size, bold: true);
+        PageDrawing.PutRule(canvas, 150.0, 169.0, 320.0, line);
+        PageDrawing.PutFit(canvas, PageDrawing.Line(report, "Patient Name"), 154.0, 165.0, 312.0, Size);
+        PageDrawing.PutText(canvas, "Age:", 484.0, 166.0, Size, bold: true);
+        PageDrawing.PutRule(canvas, 516.0, 169.0, 80.0, line);
+        PageDrawing.PutFit(canvas, PageDrawing.Line(report, "Age"), 520.0, 165.0, 74.0, Size);
+        PageDrawing.PutText(canvas, "Sex:", 612.0, 166.0, Size, bold: true);
+        PageDrawing.PutRule(canvas, 642.0, 169.0, 142.0, line);
+        PageDrawing.PutFit(canvas, PageDrawing.Line(report, "Sex"), 646.0, 165.0, 134.0, Size);
+
+        PageDrawing.PutText(canvas, report.Title.ToUpperInvariant(), Left, 204.0, 14.0, bold: true, width: Right - Left, alignment: TextAlignment.Center);
+
+        DrawBloodCount(canvas, F, line);
+        DrawBloodTyping(canvas, F, line);
+        DrawUrinalysis(canvas, F, line);
+        DrawFecalysis(canvas, F, line);
+
+        // Others: a box across the page; a long text grows it (nothing is placed below except the signatures)
+        PageDrawing.PutRect(canvas, Left, 776.0, Right - Left, 62.0, null, Brushes.Black, line);
+        PageDrawing.PutText(canvas, "OTHERS:", Left + 4.0, 791.0, Size, bold: true);
+        PageDrawing.PutFlow(canvas, F("Others"), Left + 70.0, 791.0, Right - Left - 78.0, Size);
+
+        PutSignatories(canvas, report, line);
+    }
+
+    /// <summary>The logo and the company block, centred as on the sheet.</summary>
+    private static void PutLetterhead(Canvas canvas, ReportLetterhead letterhead)
+    {
+        if (ImageLoader.FromBytes(letterhead.Logo) is { } logo)
+        {
+            var image = new Image { Source = logo, Width = 84, Height = 84, Stretch = Stretch.Uniform };
+            Canvas.SetLeft(image, Left + 8.0);
+            Canvas.SetTop(image, 34.0);
+            canvas.Children.Add(image);
+        }
+
+        // The company block is centred in the space to the right of the logo; a long name is set smaller so it never runs into the logo.
+        const double textLeft = Left + 104.0, width = Right - textLeft;
+        PageDrawing.PutFit(canvas, letterhead.CompanyName, textLeft, 59.0, width, 20.0, bold: true, center: true);
+        var y = 80.0;
+        foreach (var text in new[] { letterhead.SubCompanyName, letterhead.Address, letterhead.ContactNumbers, letterhead.Email })
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                continue;
+
+            PageDrawing.PutFit(canvas, text, textLeft, y, width, 10.5, center: true);
+            y += 15.0;
+        }
+    }
+
+    /// <summary>A section's date strip: "Date:" and the date, and the section's name at the right when it has one.</summary>
+    private static void PutDateStrip(Canvas canvas, double x, double y, double width, double height, string? date, string? title, double line)
+    {
+        PageDrawing.PutRect(canvas, x, y, width, height, null, Brushes.Black, line);
+        PageDrawing.PutText(canvas, "Date:", x + 4.0, y + height - 6.0, Size, bold: true);
+        PageDrawing.PutText(canvas, date, x + 40.0, y + height - 6.0, Size, bold: false);
+        if (title is not null)
+            PageDrawing.PutText(canvas, title, x, y + height - 6.0, Size, bold: true, width: width - 6.0, alignment: TextAlignment.Right);
+    }
+
+    private static void DrawBloodCount(Canvas canvas, Func<string, string?> f, double line)
+    {
+        const double x = Left, width = 340.0, resultX = 288.0, normalX = 150.0;
+        PutDateStrip(canvas, x, 212.0, width, 19.0, f("CbcDate"), null, line);
+        PageDrawing.PutRect(canvas, x, 231.0, width, 21.0, null, Brushes.Black, line);
+        PageDrawing.PutText(canvas, "COMPLETE BLOOD COUNT", x, 246.0, 12.0, bold: true, width: width, alignment: TextAlignment.Center);
+
+        // header: normal values and the patient result
+        PageDrawing.PutRect(canvas, x, 252.0, width, 25.0, null, Brushes.Black, line);
+        PageDrawing.PutVerticalRule(canvas, resultX, 252.0, 283.0, line);
+        PageDrawing.PutText(canvas, "NORMAL VALUES", x, 268.0, 10.0, bold: false, width: resultX - x, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "PATIENT", resultX, 262.0, 9.5, bold: false, width: x + width - resultX, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "RESULT", resultX, 273.0, 9.5, bold: false, width: x + width - resultX, alignment: TextAlignment.Center);
+
+        // One box for the table and a rule between the tests (a box around every row would draw the shared lines twice).
+        const double tableTop = 277.0, tableBottom = 535.0;
+        PageDrawing.PutRect(canvas, x, tableTop, width, tableBottom - tableTop, null, Brushes.Black, line);
+        var y = tableTop;
+        foreach (var (name, label, gendered) in PhysicalExaminationFields.CbcTests)
+        {
+            var rows = gendered ? 3 : (name == "WBCCount" ? 2 : 1);
+            var height = gendered ? 52.0 : (name == "WBCCount" ? 32.0 : 20.3);
+            if (y > tableTop)
+                PageDrawing.PutRule(canvas, x, y, width, line);
+
+            PageDrawing.PutText(canvas, label, x + 3.0, y + (rows == 1 ? 14.0 : 13.0), 10.0, bold: false);
+            var result = f(name + "Result");
+            if (gendered)
+            {
+                PageDrawing.PutText(canvas, "Male:", x + 24.0, y + 30.0, 9.5, bold: false);
+                PageDrawing.PutFit(canvas, f(name + "NValue"), normalX, y + 30.0, resultX - normalX - 4.0, 10.0);
+                PageDrawing.PutText(canvas, "Female:", x + 24.0, y + 46.0, 9.5, bold: false);
+                PageDrawing.PutFit(canvas, f(name + "FemaleNValue"), normalX, y + 46.0, resultX - normalX - 4.0, 10.0);
+            }
+            else if (name == "WBCCount")
+            {
+                PageDrawing.PutFit(canvas, f(name + "NValue"), x + 12.0, y + 28.0, resultX - x - 16.0, 10.0);
+            }
+            else
+            {
+                PageDrawing.PutFit(canvas, f(name + "NValue"), normalX, y + 14.0, resultX - normalX - 4.0, 10.0);
+            }
+
+            PageDrawing.PutFit(canvas, result, resultX + 3.0, y + (rows == 1 ? 14.0 : 15.0), x + width - resultX - 6.0, Size, center: true);
+            y += height;
+        }
+
+        PageDrawing.PutVerticalRule(canvas, resultX, tableTop, tableBottom - tableTop, line);
+    }
+
+    private static void DrawBloodTyping(Canvas canvas, Func<string, string?> f, double line)
+    {
+        const double x = 382.0, width = 402.0;
+        PutDateStrip(canvas, x, 212.0, width, 24.0, f("BloodTypingDate"), null, line);
+        PageDrawing.PutRect(canvas, x, 238.0, width, 297.0, null, Brushes.Black, line);
+        PageDrawing.PutRule(canvas, x, 285.0, width, line);
+        PageDrawing.PutText(canvas, "Blood Typing:", x + 4.0, 256.0, Size, bold: false);
+        PageDrawing.PutFit(canvas, f("BloodTyping"), x + 100.0, 256.0, width - 108.0, Size);
+        PageDrawing.PutText(canvas, "Rh Typing:", x + 4.0, 276.0, Size, bold: false);
+        PageDrawing.PutFit(canvas, f("RhTyping"), x + 100.0, 276.0, width - 108.0, Size);
+    }
+
+    private static void DrawUrinalysis(Canvas canvas, Func<string, string?> f, double line)
+    {
+        const double x = Left, width = 451.0, splitX = 258.0, top = 556.0, rowHeight = 22.0;
+        PutDateStrip(canvas, x, top, width, 19.0, f("UrinalysisDate"), "URINALYSIS", line);
+        var left = new (string Name, string Label)[]
+        {
+            ("UrineColor", "Color:"), ("UrineAppearance", "Appearance:"), ("UrineReaction", "Reaction:"), ("UrineSPGravity", "SP. Gravity:"),
+            ("UrineAlbumin", "Albumin:"), ("UrineSugar", "Sugar:"), ("UrinePusCells", "Pus Cells:"), ("UrineRedCells", "Red Cells:"),
+        };
+        var right = new (string Name, string Label)[]
+        {
+            ("UrineMucusThreads", "Mucus Threads:"), ("UrineEpithelialCells", "Epithelial Cells:"), ("UrineAmorphousUratesPO4", "Amorphous Urates/PO4:"),
+            ("UrineBacteria", "Bacteria:"), ("UrineCrystals", "Crystals:"), ("UrineCasts", "Casts:"),
+        };
+
+        var rowsTop = top + 19.0;
+        PageDrawing.PutRect(canvas, x, rowsTop, width, left.Length * rowHeight, null, Brushes.Black, line);
+        PageDrawing.PutVerticalRule(canvas, x + splitX, rowsTop, left.Length * rowHeight, line);
+        for (var i = 1; i < left.Length; i++)
+            PageDrawing.PutRule(canvas, x, rowsTop + (i * rowHeight), splitX, line);
+
+        for (var i = 0; i < left.Length; i++)
+        {
+            var baseline = rowsTop + (i * rowHeight) + 15.0;
+            PageDrawing.PutText(canvas, left[i].Label, x + 4.0, baseline, 10.5, bold: false);
+            PageDrawing.PutFit(canvas, f(left[i].Name), x + 86.0, baseline, splitX - 90.0, Size);
+        }
+
+        for (var i = 1; i <= right.Length; i++)
+            PageDrawing.PutRule(canvas, x + splitX, rowsTop + (i * rowHeight), width - splitX, line);
+
+        for (var i = 0; i < right.Length; i++)
+        {
+            var baseline = rowsTop + (i * rowHeight) + 15.0;
+            PageDrawing.PutText(canvas, right[i].Label, x + splitX + 4.0, baseline, 10.5, bold: false);
+            PageDrawing.PutFit(canvas, f(right[i].Name), x + splitX + 124.0, baseline, width - splitX - 128.0, Size);
+        }
+
+        var othersTop = rowsTop + (right.Length * rowHeight);
+        PageDrawing.PutText(canvas, "Others:", x + splitX + 4.0, othersTop + 15.0, 10.5, bold: false);
+        PageDrawing.PutFlow(canvas, f("UrineOthers"), x + splitX + 56.0, othersTop + 15.0, width - splitX - 60.0, 10.5);
+    }
+
+    private static void DrawFecalysis(Canvas canvas, Func<string, string?> f, double line)
+    {
+        const double x = 493.0, width = 291.0, top = 556.0;
+        PutDateStrip(canvas, x, top, width, 19.0, f("FecalysisDate"), "FECALYSIS", line);
+        const double bottom = 575.0 + 176.0;
+        PageDrawing.PutRect(canvas, x, 575.0, width, bottom - 575.0, null, Brushes.Black, line);
+        PageDrawing.PutRule(canvas, x, 597.0, width, line);
+        PageDrawing.PutRule(canvas, x, 619.0, width, line);
+        PageDrawing.PutText(canvas, "Color:", x + 4.0, 590.0, 10.5, bold: false);
+        PageDrawing.PutFit(canvas, f("FecalysisColor"), x + 90.0, 590.0, width - 96.0, Size);
+        PageDrawing.PutText(canvas, "Consistency:", x + 4.0, 612.0, 10.5, bold: false);
+        PageDrawing.PutFit(canvas, f("FecalysisConsistency"), x + 90.0, 612.0, width - 96.0, Size);
+        PageDrawing.PutText(canvas, "RESULT:", x + 4.0, 634.0, 10.5, bold: false);
+        PageDrawing.PutFlow(canvas, f("FecalysisResult"), x + 60.0, 634.0, width - 66.0, Size);
+    }
+
+    /// <summary>The two signatories: a line each with the name above it and the caption under it.</summary>
+    private static void PutSignatories(Canvas canvas, PrintableReport report, double line)
+    {
+        var slots = new[] { (X: 40.0, Width: 290.0), (X: 457.0, Width: 298.0) };
+        for (var i = 0; i < report.Signatories.Count && i < slots.Length; i++)
+        {
+            var (x, width) = slots[i];
+            PageDrawing.PutFit(canvas, report.Signatories[i].Name, x, 899.0, width, Size, bold: true, center: true);
+            PageDrawing.PutRule(canvas, x, 905.0, width, line);
+            PageDrawing.PutText(canvas, report.Signatories[i].Role, x, 920.0, 12.0, bold: false, width: width, alignment: TextAlignment.Center);
+        }
+    }
 }
+

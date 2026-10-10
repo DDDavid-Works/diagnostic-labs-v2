@@ -2329,3 +2329,105 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010164750_PhysicalExamination'
+)
+BEGIN
+    CREATE TABLE [PhysicalExaminationReports] (
+        [LabReportId] bigint NOT NULL,
+        [CbcDate] date NULL,
+        [BloodTypingDate] date NULL,
+        [UrinalysisDate] date NULL,
+        [FecalysisDate] date NULL,
+        [HematocritNValue] nvarchar(100) NULL,
+        [HematocritFemaleNValue] nvarchar(100) NULL,
+        [HematocritResult] nvarchar(100) NULL,
+        [HemoglobinNValue] nvarchar(100) NULL,
+        [HemoglobinFemaleNValue] nvarchar(100) NULL,
+        [HemoglobinResult] nvarchar(100) NULL,
+        [WBCCountNValue] nvarchar(100) NULL,
+        [WBCCountResult] nvarchar(100) NULL,
+        [SegmentersNValue] nvarchar(100) NULL,
+        [SegmentersResult] nvarchar(100) NULL,
+        [LymphocytesNValue] nvarchar(100) NULL,
+        [LymphocytesResult] nvarchar(100) NULL,
+        [EosinophilsNValue] nvarchar(100) NULL,
+        [EosinophilsResult] nvarchar(100) NULL,
+        [MonocytesNValue] nvarchar(100) NULL,
+        [MonocytesResult] nvarchar(100) NULL,
+        [BasophilsNValue] nvarchar(100) NULL,
+        [BasophilsResult] nvarchar(100) NULL,
+        [StabNValue] nvarchar(100) NULL,
+        [StabResult] nvarchar(100) NULL,
+        [BloodTyping] nvarchar(50) NULL,
+        [RhTyping] nvarchar(50) NULL,
+        [UrineColor] nvarchar(50) NULL,
+        [UrineAppearance] nvarchar(50) NULL,
+        [UrineReaction] nvarchar(50) NULL,
+        [UrineSPGravity] nvarchar(50) NULL,
+        [UrineAlbumin] nvarchar(50) NULL,
+        [UrineSugar] nvarchar(50) NULL,
+        [UrinePusCells] nvarchar(50) NULL,
+        [UrineRedCells] nvarchar(50) NULL,
+        [UrineMucusThreads] nvarchar(50) NULL,
+        [UrineEpithelialCells] nvarchar(50) NULL,
+        [UrineAmorphousUratesPO4] nvarchar(50) NULL,
+        [UrineBacteria] nvarchar(50) NULL,
+        [UrineCrystals] nvarchar(50) NULL,
+        [UrineCasts] nvarchar(50) NULL,
+        [FecalysisColor] nvarchar(50) NULL,
+        [FecalysisConsistency] nvarchar(50) NULL,
+        [UrineOthers] nvarchar(500) NULL,
+        [FecalysisResult] nvarchar(500) NULL,
+        [Others] nvarchar(500) NULL,
+        CONSTRAINT [PK_PhysicalExaminationReports] PRIMARY KEY ([LabReportId]),
+        CONSTRAINT [FK_PhysicalExaminationReports_LabReports_LabReportId] FOREIGN KEY ([LabReportId]) REFERENCES [LabReports] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010164750_PhysicalExamination'
+)
+BEGIN
+
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 29)
+                    BEGIN
+                        DECLARE @serviceId bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Physical Examination' ORDER BY Id);
+                        IF @serviceId IS NULL
+                        BEGIN
+                            INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Physical Examination', N'Physical Examination', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+                            SET @serviceId = SCOPE_IDENTITY();
+                        END
+                        INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+                        SELECT 29, ModuleTypeId, N'Physical Examination', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 14, 1, @serviceId FROM Modules WHERE Id = 6;
+                    END
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 29) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 29)
+                        INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (29, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HematocritNValue"', N'0.42 - 0.52') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HematocritNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HematocritFemaleNValue"', N'0.37 - 0.47') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HematocritFemaleNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HemoglobinNValue"', N'140 - 170 g/l') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HemoglobinNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."HemoglobinFemaleNValue"', N'120 - 150 g/l') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."HemoglobinFemaleNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."WBCCountNValue"', N'5 - 10 x 10' + NCHAR(8313) + N'/L') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."WBCCountNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."SegmentersNValue"', N'0.50 - 0.70') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."SegmentersNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LymphocytesNValue"', N'0.10 - 0.40') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LymphocytesNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."EosinophilsNValue"', N'0 - 0.05') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."EosinophilsNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."MonocytesNValue"', N'0 - 0.07') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."MonocytesNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BasophilsNValue"', N'0 - 0.01') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BasophilsNValue"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."StabNValue"', N'0 - 0.05') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."StabNValue"') IS NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010164750_PhysicalExamination'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010164750_PhysicalExamination', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

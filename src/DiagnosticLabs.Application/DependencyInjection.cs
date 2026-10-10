@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IStoolFecalysisService, StoolFecalysisService>();
         services.AddScoped<IUrinalysisService, UrinalysisService>();
         services.AddScoped<IHematologyService, HematologyService>();
+        services.AddScoped<IPhysicalExaminationService, PhysicalExaminationService>();
         services.AddScoped<ISerologyService, SerologyService>();
         services.AddScoped<IImmunologyService, ImmunologyService>();
         services.AddScoped<IPregnancyTestService, PregnancyTestService>();
