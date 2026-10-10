@@ -1,6 +1,7 @@
 ﻿<UserControl x:Class="DiagnosticLabs.Wpf.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls"
              xmlns:vm="clr-namespace:DiagnosticLabs.Wpf.ViewModels"
              Loaded="OnLoaded">
   <UserControl.Resources>
@@ -21,8 +22,8 @@
             </Border>
             <ControlTemplate.Triggers>
               <DataTrigger Binding="{Binding IsMade}" Value="True">
-                <Setter TargetName="Bd" Property="Background" Value="#EAF4EC" />
-                <Setter TargetName="Bd" Property="BorderBrush" Value="#A5D6A7" />
+                <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverTintBrush}" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
                 <Setter TargetName="Mark" Property="Text" Value="&#x2714;" />
                 <Setter TargetName="Mark" Property="Foreground" Value="{StaticResource SuccessBrush}" />
               </DataTrigger>
@@ -52,7 +53,7 @@
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
         <Button Content="Today" Command="{Binding TodayCommand}" ToolTip="Today's registrations, no other filter" />
         <Button Content="All days" Margin="8,0,0,0" Command="{Binding AllDaysCommand}" ToolTip="Remove the date limit" />
-        <Button Content="Refresh" Margin="8,0,0,0" Command="{Binding RefreshCommand}" ToolTip="Load the list again" />
+        <Button icn:ButtonIcon.Data="{StaticResource Icon.Refresh}" Content="Refresh" Margin="8,0,0,0" Command="{Binding RefreshCommand}" ToolTip="Load the list again" />
       </StackPanel>
       <TextBlock Text="Registrations" Style="{StaticResource PageTitle}" />
     </DockPanel>
@@ -119,9 +120,9 @@
                   </StackPanel>
 
                   <StackPanel Grid.Column="1" Margin="0,0,14,0">
-                    <Button Content="Pay" HorizontalAlignment="Left" MinWidth="86" Padding="14,6" IsEnabled="{Binding CanPay}"
-                            Command="{Binding DataContext.PayCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                            CommandParameter="{Binding}" ToolTip="Open the payment of this registration" />
+                    <Button icn:ButtonIcon.Data="{StaticResource Icon.Pay}" Content="Pay" HorizontalAlignment="Left" MinWidth="86" Padding="14,6" IsEnabled="{Binding CanPay}"
+                            CommandParameter="{Binding}"
+                            Command="{Binding DataContext.PayCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Open the payment of this registration" />
                     <TextBlock Text="{Binding PaymentText}" Margin="0,5,0,0" FontSize="12" TextWrapping="Wrap">
                       <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -151,8 +152,8 @@
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
                         <Button Style="{StaticResource ChipButton}" IsEnabled="{Binding CanOpen}" ToolTip="{Binding ToolTip}"
-                                Command="{Binding DataContext.OpenChipCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}" />
+                                CommandParameter="{Binding}"
+                                Command="{Binding DataContext.OpenChipCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
@@ -174,8 +175,8 @@
         <ComboBox Width="70" ItemsSource="{Binding PageSizes}" SelectedItem="{Binding PageSize}" />
       </StackPanel>
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-        <Button Content="&#x25C2; Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoPrevious}" />
-        <Button Content="Next &#x25B8;" Margin="8,0,0,0" Command="{Binding NextPageCommand}" IsEnabled="{Binding CanGoNext}" />
+        <Button icn:ButtonIcon.Data="{StaticResource Icon.Previous}" Content="Previous" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoPrevious}" />
+        <Button icn:ButtonIcon.Data="{StaticResource Icon.Next}" icn:ButtonIcon.AtEnd="True" Content="Next" Margin="8,0,0,0" Command="{Binding NextPageCommand}" IsEnabled="{Binding CanGoNext}" />
         <TextBlock Text="{Binding PageDisplay}" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource MutedTextBrush}" />
         <TextBlock Text="{Binding Message}" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource DangerBrush}" />
       </StackPanel>

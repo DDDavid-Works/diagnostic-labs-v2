@@ -33,7 +33,7 @@
                 </Border>
                 <ControlTemplate.Triggers>
                   <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="Bd" Property="Background" Value="#EEF0F3" />
+                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource ReadOnlyFillBrush}" />
                   </Trigger>
                 </ControlTemplate.Triggers>
               </ControlTemplate>

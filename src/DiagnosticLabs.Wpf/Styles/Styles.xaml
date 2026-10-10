@@ -1,20 +1,50 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls">
 
   <!-- Colours -->
-  <SolidColorBrush x:Key="AccentBrush" Color="#2F6FED" />
-  <SolidColorBrush x:Key="AccentHoverBrush" Color="#2559C4" />
+  <SolidColorBrush x:Key="AccentBrush" Color="#2F7D4F" />
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="#256640" />
   <SolidColorBrush x:Key="DangerBrush" Color="#C62828" />
   <SolidColorBrush x:Key="SuccessBrush" Color="#2E7D32" />
-  <SolidColorBrush x:Key="PanelBrush" Color="#F6F7F9" />
-  <SolidColorBrush x:Key="BorderBrushSoft" Color="#D9DDE3" />
-  <SolidColorBrush x:Key="MutedTextBrush" Color="#6B7280" />
+  <SolidColorBrush x:Key="WindowBrush" Color="#FAFDFA" />
+  <SolidColorBrush x:Key="PanelBrush" Color="#F1F7F1" />
+  <SolidColorBrush x:Key="BorderBrushSoft" Color="#C5D8C8" />
+  <SolidColorBrush x:Key="StrongBorderBrush" Color="#9DB8A2" />
+  <SolidColorBrush x:Key="MutedTextBrush" Color="#5F6F63" />
+  <SolidColorBrush x:Key="HoverTintBrush" Color="#E1EFE3" />
+  <Color x:Key="SelectedTintColor">#C4E6CB</Color>
+  <SolidColorBrush x:Key="SelectedTintBrush" Color="{StaticResource SelectedTintColor}" />
+  <SolidColorBrush x:Key="ReadOnlyFillBrush" Color="#EEF3EE" />
+  <SolidColorBrush x:Key="GridLineBrush" Color="#E3ECE4" />
+  <SolidColorBrush x:Key="DangerTintBrush" Color="#FBEAEA" />
 
   <!-- Controls (implicit, so every screen looks the same) -->
   <Style TargetType="TextBox">
     <Setter Property="Padding" Value="6,5" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+            <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.6" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <!-- Check boxes follow the text boxes: a light 1px border and a soft tick instead of the stock black -->
@@ -122,12 +152,61 @@
   <Style TargetType="DatePicker">
     <Setter Property="Padding" Value="4,4" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+    <Style.Triggers>
+      <Trigger Property="IsKeyboardFocusWithin" Value="True">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
 
+  <!-- Buttons: the template only draws what the style sets, and the style's triggers do hover/press/focus, so Primary and Danger can override them. -->
   <Style TargetType="Button">
     <Setter Property="Padding" Value="14,6" />
     <Setter Property="MinWidth" Value="80" />
     <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Background" Value="White" />
+    <Setter Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" SnapsToDevicePixels="True">
+            <DockPanel Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+              <Path x:Name="Glyph" DockPanel.Dock="Left" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="None"
+                    Data="{Binding Path=(icn:ButtonIcon.Data), RelativeSource={RelativeSource TemplatedParent}}"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}" StrokeThickness="1.5"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+              <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True" />
+            </DockPanel>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="icn:ButtonIcon.Data" Value="{x:Null}">
+              <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger Property="icn:ButtonIcon.AtEnd" Value="True">
+              <Setter TargetName="Glyph" Property="DockPanel.Dock" Value="Right" />
+              <Setter TargetName="Glyph" Property="Margin" Value="6,0,0,0" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsKeyboardFocused" Value="True">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{StaticResource SelectedTintBrush}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Opacity" Value="0.5" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
 
   <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -135,8 +214,12 @@
     <Setter Property="Foreground" Value="White" />
     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
     <Style.Triggers>
-      <Trigger Property="IsEnabled" Value="False">
-        <Setter Property="Opacity" Value="0.5" />
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
       </Trigger>
     </Style.Triggers>
   </Style>
@@ -144,6 +227,65 @@
   <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
     <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource DangerTintBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{StaticResource DangerTintBrush}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Toggle buttons (hamburger, Search / Hide list): same look; checked = green tint and outline -->
+  <Style TargetType="ToggleButton">
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Background" Value="White" />
+    <Setter Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" SnapsToDevicePixels="True">
+            <DockPanel Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+              <Path x:Name="Glyph" DockPanel.Dock="Left" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="None"
+                    Data="{Binding Path=(icn:ButtonIcon.Data), RelativeSource={RelativeSource TemplatedParent}}"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}" StrokeThickness="1.5"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+              <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True" />
+            </DockPanel>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="icn:ButtonIcon.Data" Value="{x:Null}">
+              <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger Property="icn:ButtonIcon.AtEnd" Value="True">
+              <Setter TargetName="Glyph" Property="DockPanel.Dock" Value="Right" />
+              <Setter TargetName="Glyph" Property="Margin" Value="6,0,0,0" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsKeyboardFocused" Value="True">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </Trigger>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Opacity" Value="0.5" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
 
   <Style x:Key="MenuButton" TargetType="Button">
@@ -160,7 +302,7 @@
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="#E6ECF9" />
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverTintBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -198,7 +340,7 @@
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="#E6ECF9" />
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverTintBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -213,7 +355,7 @@
     <Setter Property="Margin" Value="0,0,6,0" />
   </Style>
 
-  <SolidColorBrush x:Key="PaperLineBrush" Color="#CBD0D8" />
+  <SolidColorBrush x:Key="PaperLineBrush" Color="#C5D8C8" />
   <SolidColorBrush x:Key="PaperTitleBrush" Color="#E1E100" />
 
   <Style x:Key="FieldLabel" TargetType="TextBlock">
@@ -236,13 +378,27 @@
     </Style.Triggers>
   </Style>
 
+  <Style TargetType="DataGridColumnHeader">
+    <Setter Property="Background" Value="{StaticResource HoverTintBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="8,4" />
+  </Style>
+
   <Style TargetType="DataGrid">
+    <Style.Resources>
+      <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="{StaticResource SelectedTintColor}" />
+      <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{StaticResource SelectedTintColor}" />
+      <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black" />
+      <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="Black" />
+    </Style.Resources>
     <Setter Property="AutoGenerateColumns" Value="False" />
     <Setter Property="IsReadOnly" Value="True" />
     <Setter Property="SelectionMode" Value="Single" />
     <Setter Property="HeadersVisibility" Value="Column" />
     <Setter Property="GridLinesVisibility" Value="Horizontal" />
-    <Setter Property="HorizontalGridLinesBrush" Value="#ECEEF2" />
+    <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
     <Setter Property="Background" Value="White" />
     <Setter Property="RowHeight" Value="30" />

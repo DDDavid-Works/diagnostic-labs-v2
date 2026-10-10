@@ -1,6 +1,7 @@
 <UserControl x:Class="DiagnosticLabs.Wpf.Views.CompanySetupView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls"
              Loaded="OnLoaded">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -88,8 +89,8 @@
                 </Grid>
               </Border>
               <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <Button Content="Choose..." Command="{Binding ChooseLogoCommand}" />
-                <Button Content="Remove" Margin="8,0,0,0" Command="{Binding RemoveLogoCommand}" IsEnabled="{Binding HasLogo}" />
+                <Button icn:ButtonIcon.Data="{StaticResource Icon.Folder}" Content="Choose..." Command="{Binding ChooseLogoCommand}" />
+                <Button icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Remove" Margin="8,0,0,0" Command="{Binding RemoveLogoCommand}" IsEnabled="{Binding HasLogo}" />
               </StackPanel>
               <TextBlock Text="PNG, JPG, GIF or BMP, up to 2 MB. It is printed on reports." TextWrapping="Wrap"
                          Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" />
@@ -100,8 +101,8 @@
         <StackPanel Grid.Row="1" Margin="0,14,0,0">
           <TextBlock Text="{Binding Message}" Style="{StaticResource StatusText}" Margin="0,0,0,10" />
           <StackPanel Orientation="Horizontal">
-            <Button Content="Save" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" />
-            <Button Content="Discard changes" Margin="8,0,0,0" Command="{Binding RevertCommand}" />
+            <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" />
+            <Button icn:ButtonIcon.Data="{StaticResource Icon.Cancel}" Content="Discard changes" Margin="8,0,0,0" Command="{Binding RevertCommand}" />
           </StackPanel>
         </StackPanel>
       </Grid>

@@ -1,6 +1,7 @@
 <UserControl x:Class="DiagnosticLabs.Wpf.Controls.CrudLayout"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls"
              x:Name="Root"
              Loaded="OnLoaded">
   <UserControl.Resources>
@@ -24,12 +25,12 @@
                     Padding="14,6" MinWidth="96" Cursor="Hand" VerticalAlignment="Center"
                     ToolTip="Show or hide the list of records (Ctrl+F)">
         <ToggleButton.Style>
-          <Style TargetType="ToggleButton">
-            <Setter Property="Content" Value="Search &#x25B8;" />
+          <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="Content" Value="Search" />
+            <Setter Property="icn:ButtonIcon.Data" Value="{StaticResource Icon.List}" />
             <Style.Triggers>
               <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Content" Value="Hide list &#x25C2;" />
-                <Setter Property="Background" Value="#E6ECF9" />
+                <Setter Property="Content" Value="Hide list" />
               </Trigger>
             </Style.Triggers>
           </Style>
@@ -69,10 +70,10 @@
                       Visibility="{Binding HasActiveFlag, Converter={StaticResource BoolToVis}}" />
             <TextBlock Text="{Binding Message}" Style="{StaticResource StatusText}" Margin="0,0,0,10" />
             <StackPanel Orientation="Horizontal">
-              <Button Content="New" Command="{Binding NewRecordCommand}" IsEnabled="{Binding CanCreate}" />
-              <Button Content="Save" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="New" Command="{Binding NewRecordCommand}" IsEnabled="{Binding CanCreate}" />
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
                       Click="Save_OnClick" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" />
-              <Button Content="Delete" Style="{StaticResource DangerButton}" Margin="8,0,0,0"
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Delete" Style="{StaticResource DangerButton}" Margin="8,0,0,0"
                       Command="{Binding DeleteCommand}" IsEnabled="{Binding CanDelete}" />
               <ContentControl Content="{Binding FooterContent, ElementName=Root}" Margin="8,0,0,0" IsTabStop="False" />
             </StackPanel>
@@ -98,7 +99,7 @@
           </Grid.ColumnDefinitions>
           <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                    ToolTip="Search" KeyDown="SearchBox_OnKeyDown" />
-          <Button Grid.Column="1" Content="Search" Margin="8,0,0,0" Command="{Binding SearchCommand}" />
+          <Button Grid.Column="1" icn:ButtonIcon.Data="{StaticResource Icon.Search}" Content="Search" Margin="8,0,0,0" Command="{Binding SearchCommand}" />
         </Grid>
 
         <StackPanel Grid.Row="1">
@@ -111,9 +112,9 @@
         <ContentControl Grid.Row="2" Content="{Binding GridContent, ElementName=Root}" />
 
         <DockPanel Grid.Row="3" Margin="0,10,0,0" LastChildFill="False">
-          <Button DockPanel.Dock="Left" Content="Previous" Command="{Binding PreviousPageCommand}"
+          <Button DockPanel.Dock="Left" icn:ButtonIcon.Data="{StaticResource Icon.Previous}" Content="Previous" Command="{Binding PreviousPageCommand}"
                   IsEnabled="{Binding CanGoPrevious}" />
-          <Button DockPanel.Dock="Left" Content="Next" Margin="8,0,0,0" Command="{Binding NextPageCommand}"
+          <Button DockPanel.Dock="Left" icn:ButtonIcon.Data="{StaticResource Icon.Next}" icn:ButtonIcon.AtEnd="True" Content="Next" Margin="8,0,0,0" Command="{Binding NextPageCommand}"
                   IsEnabled="{Binding CanGoNext}" />
           <TextBlock DockPanel.Dock="Left" Text="{Binding PageDisplay}" VerticalAlignment="Center" Margin="14,0,0,0"
                      Foreground="{StaticResource MutedTextBrush}" />
