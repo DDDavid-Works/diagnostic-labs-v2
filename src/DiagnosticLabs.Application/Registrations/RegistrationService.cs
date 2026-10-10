@@ -99,7 +99,7 @@ public sealed class RegistrationService(IAppDbContext db, ICurrentUser currentUs
         q.Include(r => r.Patient).Include(r => r.Company);
 
     protected override IQueryable<PatientRegistration> ForEditing(IQueryable<PatientRegistration> q) =>
-        q.Include(r => r.Patient).Include(r => r.Services).ThenInclude(s => s.Service);
+        q.Include(r => r.Patient).Include(r => r.DiscountSteps).Include(r => r.Services).ThenInclude(s => s.Service);
 
     protected override IQueryable<PatientRegistration> Matches(IQueryable<PatientRegistration> q, string word) =>
         q.Where(r => r.RegistrationCode.Contains(word) || r.Patient.PatientName.Contains(word) || r.Patient.PatientCode.Contains(word));
@@ -249,7 +249,10 @@ public sealed class RegistrationService(IAppDbContext db, ICurrentUser currentUs
         registration.AmountDue = input.AmountDue;
 
         // A percentage discount follows the price, and no discount may exceed it.
-        registration.DiscountTotal = BillingMath.DiscountTotal(registration.AmountDue, registration.DiscountAmount, registration.DiscountPercentage);
+        var steps = registration.DiscountSteps.Where(s => !s.IsDeleted).OrderBy(s => s.Sequence).Select(s => new DiscountStep(s.Amount, s.Percentage)).ToList();
+        registration.DiscountTotal = steps.Count > 0
+            ? BillingMath.DiscountTotal(registration.AmountDue, steps)
+            : BillingMath.DiscountTotal(registration.AmountDue, registration.DiscountAmount, registration.DiscountPercentage);
 
         var patient = registration.Patient;
         if (input.PatientRowVersion is { Length: > 0 } && patient.Id != 0 && patient.Id == input.PatientId)

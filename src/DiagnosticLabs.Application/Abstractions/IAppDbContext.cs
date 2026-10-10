@@ -31,6 +31,8 @@ public interface IAppDbContext
 
     DbSet<PatientRegistrationService> PatientRegistrationServices { get; }
 
+    DbSet<PatientRegistrationDiscountStep> PatientRegistrationDiscountSteps { get; }
+
     DbSet<Payment> Payments { get; }
 
     DbSet<Service> Services { get; }

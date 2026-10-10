@@ -81,6 +81,10 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
     protected abstract IReadOnlyList<PrintText> ResultTexts(TDetail detail);
 
+    /// <summary>The two names printed under lines at the foot of the page (the medical technologist and the pathologist unless a form says otherwise).</summary>
+    protected virtual IReadOnlyList<PrintSignatory> Signatories(LabReport report, TDetail detail) =>
+        [new PrintSignatory("Medical Technologist", report.MedicalTechnologist), new PrintSignatory("Pathologist", report.Pathologist)];
+
     /// <summary>Every value by name, for page designs (like the annual physical exam) that place each one at its own spot.</summary>
     protected virtual IReadOnlyDictionary<string, string?> PrintFields(LabReport report, TDetail detail) => new Dictionary<string, string?>();
 
@@ -281,7 +285,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
             patient,
             ResultLines(detail),
             texts,
-            [new PrintSignatory("Medical Technologist", report.MedicalTechnologist), new PrintSignatory("Pathologist", report.Pathologist)],
+            Signatories(report, detail),
             FooterNote,
             PrintFields(report, detail)));
     }

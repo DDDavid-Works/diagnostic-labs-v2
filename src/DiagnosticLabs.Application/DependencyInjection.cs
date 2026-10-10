@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<IClinicalChemistryService, ClinicalChemistryService>();
         services.AddScoped<IClinicalChemistry1Service, ClinicalChemistry1Service>();
         services.AddScoped<IClinicalChemistry2Service, ClinicalChemistry2Service>();
+        services.AddScoped<IMedicalExaminationService, MedicalExaminationService>();
         services.AddScoped<IAnnualPhysicalExamService, AnnualPhysicalExamService>();
         services.AddScoped<IReferenceLookups, ReferenceLookups>();
         services.AddScoped<ICompanyService, CompanyService>();

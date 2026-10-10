@@ -42,6 +42,9 @@ public static class ReportDocumentBuilder
             case ReportLayout.ClinicalChemistry2:
                 ClinicalChemistry2Layout.Draw(canvas, report);
                 break;
+            case ReportLayout.MedicalExamination:
+                MedicalExaminationLayout.Draw(canvas, report);
+                break;
             case ReportLayout.AnnualPhysicalExam:
                 AnnualPhysicalExamLayout.Draw(canvas, report);
                 break;
@@ -494,6 +497,237 @@ internal static class ClinicalChemistry2Layout
 
         PageDrawing.PutFooter(canvas, report, bottom, Style);
     }
+}
+/// <summary>
+/// The Medical Examination Report, printed as Annual Physical Exam Page 2. Like the first APE page it has a centred letterhead and its own
+/// person box, and no "computer generated" line; the laboratory/X-ray table and the classification sit side by side, then three text boxes
+/// and the physician's signature block. Every position is measured from the client's printed form (one Letter page, Crystal Reports).
+/// A long text grows its box and moves everything below it down.
+/// </summary>
+internal static class MedicalExaminationLayout
+{
+    private static readonly FontFamily Calibri = new("Calibri");
+    private static readonly FontFamily Arial = new("Arial");
+    private static readonly FontFamily Wingdings = new("Wingdings");
+
+    private const double Center = 425.7; // the letterhead and the title are centred here
+    private static Dictionary<string, string?> _v = [];
+
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        _v = new Dictionary<string, string?>(report.Fields ?? new Dictionary<string, string?>());
+
+        // ---- letterhead and title -------------------------------------------------------------------
+        Centered(canvas, report.Letterhead.CompanyName, 42.9, 14, Arial, bold: true);
+        Centered(canvas, report.Letterhead.Address, 59.1, 11.9, Arial, bold: false);
+        Centered(canvas, report.Letterhead.ContactNumbers, 76.6, 11.9, Arial, bold: false);
+        Centered(canvas, report.Letterhead.Email, 92.9, 11.9, Arial, bold: false);
+        Centered(canvas, "MEDICAL EXAMINATION REPORT", 115.7, 12, Calibri, bold: true);
+
+        Text(canvas, "Date:", 681.0, 135.9);
+        Text(canvas, Value("Date"), 712.0, 135.9, 11.9, Arial, width: 63);
+        Line(canvas, 712.0, 139.9, 775.7);
+
+        // ---- person box ---------------------------------------------------------------------------------
+        Box(canvas, 31.5, 142.7, 775.7, 184.7);
+        Line(canvas, 31.0, 163.7, 776.5);
+        Vertical(canvas, 395.9, 142.5, 184.7);
+        Vertical(canvas, 145.5, 164.2, 185.0);
+        Vertical(canvas, 255.3, 163.9, 184.7);
+
+        Label(canvas, "Name", 36.2, 157.5, 53.5);
+        Text(canvas, Value("Name"), 78.4, 157.5, 11.9, Arial, width: 312);
+        Label(canvas, "Contact No.", 398.7, 157.5, 448.3);
+        Text(canvas, Value("ContactNo"), 471.9, 157.5, 11.9, Arial, width: 300);
+        Label(canvas, "Age", 36.7, 178.3, 53.5);
+        Text(canvas, Value("Age"), 60.0, 178.3, 11.9, Arial, width: 84);
+        Label(canvas, "Gender", 148.5, 178.3, 184.5);
+        Text(canvas, Value("Sex"), 191.0, 178.3, 11.9, Arial, width: 62);
+        Label(canvas, "Civil Status", 257.7, 178.3, 305.8);
+        Text(canvas, Value("CivilStatus"), 313.0, 178.3, 11.9, Arial, width: 80);
+        Label(canvas, "Company Name", 400.7, 178.3, 471.4);
+        Text(canvas, Value("CompanyName"), 478.0, 178.3, 11.9, Arial, width: 296);
+
+        // ---- laboratory / X-ray results (left) and classification (right) -----------------------------------
+        Text(canvas, "V. LABORATORY / X-RAY RESULTS:", 32.5, 200.9);
+        Text(canvas, "VI. CLASSIFICATION:", 493.3, 200.9, 12);
+
+        Box(canvas, 33.7, 208.3, 479.8, 404.7);
+        foreach (var y in new[] { 229.0, 251.0, 273.9, 296.3, 319.0, 363.0 })
+            Line(canvas, 33.0, y, 479.0);
+
+        foreach (var x in new[] { 159.7, 266.3, 373.3 })
+            Vertical(canvas, x, 208.5, 405.0);
+
+        (string Label, string? Label2, string Key, string N, string F, double LabelBaseline, double CheckBaseline)[] rows =
+        [
+            ("Chest X-Ray", null, "ChestXray", "Normal", "With Findings", 222.3, 222.3),
+            ("CBC", null, "CBC", "Normal", "With Findings", 245.0, 245.0),
+            ("Urinalysis", null, "Urinalysis", "Normal", "With Findings", 267.3, 267.3),
+            ("Fecalysis", null, "Fecalysis", "Normal", "With Findings", 290.3, 290.9),
+            ("HBsAg", null, "HBsAg", "Non-Reactive", "Reactive", 312.3, 312.3),
+            ("Drug Test: METH/THC", "(2 Panel)", "DrugTest2Panel", "Negative", "Positive", 335.0, 335.0),
+            ("Drug Test: COC/PCP", "(4 Panel) OPI, AMP", "DrugTest4Panel", "Negative", "Positive", 378.0, 378.6),
+        ];
+        foreach (var (label, label2, key, n, f, labelBaseline, checkBaseline) in rows)
+        {
+            Text(canvas, label, 36.7, labelBaseline);
+            if (label2 is not null)
+                Text(canvas, label2, 36.7, labelBaseline + 16.2);
+
+            var state = Value(key);
+            Tick(canvas, 164.2, checkBaseline, state == "N");
+            Text(canvas, n, 184.3, labelBaseline);
+            Tick(canvas, 272.3, checkBaseline, state == "F");
+            Text(canvas, f, 293.7, labelBaseline);
+            Text(canvas, Value(key + "Remarks"), 377.0, labelBaseline, 11.9, Arial, width: 100);
+        }
+
+        Box(canvas, 491.3, 208.3, 774.7, 404.7);
+        foreach (var y in new[] { 249.3, 288.0, 324.7, 365.3 })
+            Line(canvas, 491.0, y, 774.5);
+
+        (string Code, string Line1, string? Line2, double Indent, double Baseline)[] classes =
+        [
+            ("Fit", "A - Fit for employment.", null, 0, 226.0),
+            ("Fit2", "B - Fit for employment;", "with minor ailment/defect.", 534.0, 264.7),
+            ("Acceptable", "C - Acceptable employment;", "defect may not be easily corrected.", 532.0, 302.0),
+            ("Unfit", "D - Unfit for employment.", null, 0, 340.7),
+            ("Pending", "PENDING - Incomplete medical laboratory", "exam.", 520.0, 380.0),
+        ];
+        foreach (var (code, line1, line2, indent, baseline) in classes)
+        {
+            Tick(canvas, 496.7, baseline, Value("Classification") == code);
+            Text(canvas, line1, 520.0, baseline, 12);
+            if (line2 is not null)
+                Text(canvas, line2, indent, baseline + 16.2, 12);
+        }
+
+        // ---- the three text boxes (each grows with its text) -------------------------------------------------
+        var shift = 0.0;
+        shift += TextBox(canvas, "Medical/Surgical History:", report, "Medical/Surgical History", 430.2, 488.9, 39.2, shift);
+        shift += TextBox(canvas, "Assessment:", report, "Assessment", 511.3, 627.3, 38.7, shift);
+        shift += TextBox(canvas, "Remarks:", report, "Remarks", 649.7, 708.3, 37.0, shift);
+
+        // ---- who did the assessment, and the physician -------------------------------------------------------
+        var foot = 708.3 + shift + 21.4;
+        Text(canvas, "Assessment Done By:", 42.7, foot);
+        Text(canvas, Value("AssessmentDoneBy"), 162.1, foot, width: 330);
+        Text(canvas, "Noted By:", 511.2, foot);
+
+        const double signLeft = 511.2, signWidth = 262.0;
+        TextCentered(canvas, Value("PhysicianName"), signLeft, signWidth, foot + 33.5);
+        TextCentered(canvas, Value("PhysicianLicense"), signLeft, signWidth, foot + 52.0);
+        Line(canvas, signLeft, foot + 58.2, signLeft + signWidth);
+        TextCentered(canvas, "Physician in Charge", signLeft, signWidth, foot + 72.8);
+    }
+
+    private static string? Value(string name) => _v.TryGetValue(name, out var value) ? value : null;
+
+    /// <summary>
+    /// One of the text boxes: the label above it and the box with its text. The box is where it is measured, moved down by what the boxes
+    /// above it have grown; it grows when its text is long. Returns by how much it grew.
+    /// </summary>
+    private static double TextBox(Canvas canvas, string label, PrintableReport report, string key, double top, double bottom, double textX, double shift)
+    {
+        var y = top + shift;
+        Text(canvas, label, 35.7, y - 7.5);
+
+        var text = report.ResultTexts.FirstOrDefault(t => t.Label == key)?.Text;
+        var block = Block(text, 11.9, Arial, bold: false, italic: false, width: 728);
+        var textTop = y + 16.7 - block.BaselineOffset;
+        Canvas.SetLeft(block, textX);
+        Canvas.SetTop(block, textTop);
+        canvas.Children.Add(block);
+
+        var measured = bottom + shift;
+        var end = Math.Max(measured, textTop + block.DesiredSize.Height + 8);
+        Box(canvas, 33.7, y, 774.7, end);
+        return end - measured;
+    }
+    private static TextBlock Block(string? value, double size, FontFamily family, bool bold, bool italic, double? width)
+    {
+        var block = new TextBlock
+        {
+            Text = value ?? string.Empty,
+            FontFamily = family,
+            FontSize = size,
+            FontWeight = bold ? FontWeights.Bold : FontWeights.Normal,
+            FontStyle = italic ? FontStyles.Italic : FontStyles.Normal,
+            TextWrapping = width is null ? TextWrapping.NoWrap : TextWrapping.Wrap,
+            Foreground = Brushes.Black,
+        };
+        if (width is { } w)
+            block.Width = w;
+
+        block.Measure(new Size(width ?? double.PositiveInfinity, double.PositiveInfinity));
+        return block;
+    }
+
+    private static void Text(Canvas canvas, string? value, double x, double baseline, double size = 10.9, FontFamily? family = null, double? width = null)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+
+        var block = Block(value, size, family ?? Calibri, bold: false, italic: false, width);
+        Canvas.SetLeft(block, x);
+        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        canvas.Children.Add(block);
+    }
+
+    private static void TextCentered(Canvas canvas, string? value, double left, double width, double baseline)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+
+        var block = Block(value, 10.9, Calibri, bold: false, italic: false, width: width);
+        block.TextAlignment = TextAlignment.Center;
+        Canvas.SetLeft(block, left);
+        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        canvas.Children.Add(block);
+    }
+
+    private static void Centered(Canvas canvas, string? value, double baseline, double size, FontFamily family, bool bold)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+
+        var block = Block(value, size, family, bold, italic: false, width: 560);
+        block.TextAlignment = TextAlignment.Center;
+        Canvas.SetLeft(block, Center - 280);
+        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        canvas.Children.Add(block);
+    }
+
+    /// <summary>A label with its colon drawn separately, where the form puts it.</summary>
+    private static void Label(Canvas canvas, string label, double x, double baseline, double colonX)
+    {
+        Text(canvas, label, x, baseline);
+        Text(canvas, ":", colonX, baseline);
+    }
+
+    /// <summary>The form's "[ ]" with a check mark inside when ticked.</summary>
+    private static void Tick(Canvas canvas, double x, double baseline, bool ticked)
+    {
+        Text(canvas, "[", x, baseline, 12);
+        Text(canvas, "]", x + 13.3, baseline, 12);
+        if (!ticked)
+            return;
+
+        var mark = Block("ü", 12, Wingdings, bold: false, italic: false, width: null);
+        Canvas.SetLeft(mark, x + 3.9);
+        Canvas.SetTop(mark, baseline - 0.6 - mark.BaselineOffset);
+        canvas.Children.Add(mark);
+    }
+
+    private static void Line(Canvas canvas, double x1, double y, double x2) =>
+        PageDrawing.PutRect(canvas, x1, y - 0.5, x2 - x1, 1, Brushes.Black, null, 0);
+
+    private static void Vertical(Canvas canvas, double x, double y1, double y2) =>
+        PageDrawing.PutRect(canvas, x - 0.5, y1, 1, y2 - y1, Brushes.Black, null, 0);
+
+    private static void Box(Canvas canvas, double x1, double y1, double x2, double y2) =>
+        PageDrawing.PutRect(canvas, x1 - 0.5, y1 - 0.5, x2 - x1 + 1, y2 - y1 + 1, null, Brushes.Black, 1);
 }
 /// <summary>
 /// Hematology: a table of ten lines in three columns (test, normal values, result; the last two are centred), then the Remarks box.

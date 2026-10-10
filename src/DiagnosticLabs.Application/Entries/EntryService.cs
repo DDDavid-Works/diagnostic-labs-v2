@@ -62,6 +62,13 @@ public static class EntryFields
     public static readonly EntryField ClinicalChemistry1Result = new("Result", EntryKind.MultiLine, ModuleIds.ClinicalChemistry1);
     public static readonly EntryField ClinicalChemistry1Remarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalChemistry1);
     public static readonly EntryField ClinicalChemistry2Remarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalChemistry2);
+    // Annual Physical Exam Page 2 (the Medical Examination Report)
+    public static readonly EntryField MerAssessmentDoneBy = new("Assessment Done By", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExamPage2);
+    public static readonly EntryField MerPhysicianName = new("Physician Name", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExamPage2);
+    public static readonly EntryField MerPhysicianLicense = new("Physician License", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExamPage2);
+    public static readonly EntryField MerMedicalSurgicalHistory = new("Medical/Surgical History", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExamPage2);
+    public static readonly EntryField MerAssessment = new("Assessment", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExamPage2);
+    public static readonly EntryField MerRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.AnnualPhysicalExamPage2);
     public static readonly EntryField HematologyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Hematology);
     public static readonly EntryField UrinalysisRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Urinalysis);
 

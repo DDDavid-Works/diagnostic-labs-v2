@@ -2,6 +2,7 @@ using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Billing;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Domain.Billing;
+using DiagnosticLabs.Domain.Registrations;
 using Microsoft.EntityFrameworkCore;
 
 namespace DiagnosticLabs.Application.Payments;
@@ -22,7 +23,8 @@ public sealed record PaymentDetails(
     long Id, long RegistrationId, DateOnly PaymentDate, PaymentType Type, decimal Amount, byte[] RowVersion) : IHasId;
 
 /// <summary>
-/// One payment, plus the discount given on its registration (a percentage or a fixed amount, never both).
+/// One payment, plus the discount given on its registration: either a maintained discount (<see cref="DiscountId"/>, whose details are
+/// applied one after another) or a typed one-off discount (a percentage or a fixed amount, never both).
 /// A charge records that the registration is billed to its company: it has no amount and settles the balance.
 /// </summary>
 public sealed record PaymentInput(
@@ -37,6 +39,9 @@ public sealed record PaymentInput(
     long? DiscountId = null) : ICrudInput;
 
 public sealed record PaymentServiceLine(string ServiceName, decimal Price);
+
+/// <summary>One step of a maintained discount as given to a registration: what it is and what it took off.</summary>
+public sealed record DiscountStepLine(decimal? Amount, decimal? Percentage, decimal Cut);
 
 /// <summary>What the payment screen shows about a registration. <see cref="Paid"/> leaves out the payment being edited.</summary>
 public sealed record RegistrationBalance(
@@ -56,7 +61,8 @@ public sealed record RegistrationBalance(
     decimal Paid,
     decimal Balance,
     bool IsCharged,
-    long? DiscountId = null);
+    long? DiscountId = null,
+    IReadOnlyList<DiscountStepLine>? DiscountSteps = null);
 
 /// <summary>A registration offered while typing in the find box.</summary>
 public sealed record RegistrationMatch(long Id, string RegistrationCode, string PatientName, DateOnly Date, decimal Balance);
@@ -87,7 +93,11 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
             .Include(p => p.PatientRegistration).ThenInclude(r => r.Company);
 
     protected override IQueryable<Payment> ForEditing(IQueryable<Payment> q) =>
-        q.Include(p => p.PatientRegistration).ThenInclude(r => r.Patient);
+        q.Include(p => p.PatientRegistration).ThenInclude(r => r.Patient)
+            .Include(p => p.PatientRegistration).ThenInclude(r => r.DiscountSteps);
+
+    // What the discount will be when this save is applied, worked out while validating (see ValidateAsync).
+    private IReadOnlyList<DiscountStep>? _stepsToGive;
 
     protected override IQueryable<Payment> Matches(IQueryable<Payment> q, string word) =>
         q.Where(p => p.PatientRegistration.RegistrationCode.Contains(word)
@@ -171,25 +181,42 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
                 errors.Add("A payment can not be moved to a different registration.");
         }
 
-        if (input.DiscountAmount is { } amount && amount > registration.AmountDue)
-            errors.Add("The discount can not be more than the price.");
-
+        // A maintained discount gives all its details, one after another. A registration that already has this discount keeps the
+        // details it was given; a different (or newly chosen) discount is copied from the discount as it is now.
+        IReadOnlyList<DiscountStep>? steps = null;
+        _stepsToGive = null;
         if (input.DiscountId is { } discountId)
         {
-            var options = await Db.DiscountDetails.AsNoTracking().Where(d => d.DiscountId == discountId).Select(d => new { d.Amount, d.Percentage }).ToListAsync(cancellationToken);
-            var current = await Db.PatientRegistrations.AsNoTracking().Where(r => r.Id == input.RegistrationId).Select(r => r.DiscountId).FirstOrDefaultAsync(cancellationToken);
-            var active = await Db.Discounts.AsNoTracking().AnyAsync(d => d.Id == discountId && (d.IsActive || current == discountId), cancellationToken);
-
-            var given = input.DiscountPercentage is { } p ? options.Any(o => o.Percentage == p) : options.Any(o => o.Amount == (input.DiscountAmount ?? 0m));
+            var current = await Db.PatientRegistrations.AsNoTracking().Where(r => r.Id == input.RegistrationId)
+                .Select(r => new { r.DiscountId, Steps = r.DiscountSteps.OrderBy(s => s.Sequence).Select(s => new DiscountStep(s.Amount, s.Percentage)).ToList() })
+                .FirstOrDefaultAsync(cancellationToken);
+            var active = await Db.Discounts.AsNoTracking().AnyAsync(d => d.Id == discountId && (d.IsActive || current!.DiscountId == discountId), cancellationToken);
             if (!active)
+            {
                 errors.Add("That discount is no longer offered.");
-            else if (!given)
-                errors.Add("The discount value is not one of the options of the chosen discount.");
+                return errors;
+            }
+
+            if (current!.DiscountId == discountId && current.Steps.Count > 0)
+            {
+                steps = current.Steps;
+            }
+            else
+            {
+                steps = await Db.DiscountDetails.AsNoTracking().Where(d => d.DiscountId == discountId).OrderBy(d => d.Id)
+                    .Select(d => new DiscountStep(d.Amount, d.Percentage)).ToListAsync(cancellationToken);
+                _stepsToGive = steps;
+            }
+        }
+        else if (input.DiscountAmount is { } amount && amount > registration.AmountDue)
+        {
+            errors.Add("The discount can not be more than the price.");
         }
 
-        var discount = BillingMath.DiscountTotal(registration.AmountDue, input.DiscountAmount, input.DiscountPercentage);
-        var amountDue = registration.AmountDue - discount;
-        var others = Db.Payments.AsNoTracking().Where(p => p.PatientRegistrationId == input.RegistrationId && p.Id != input.Id);
+        var discount = steps is not null
+            ? BillingMath.DiscountTotal(registration.AmountDue, steps)
+            : BillingMath.DiscountTotal(registration.AmountDue, input.DiscountAmount, input.DiscountPercentage);
+        var amountDue = registration.AmountDue - discount;        var others = Db.Payments.AsNoTracking().Where(p => p.PatientRegistrationId == input.RegistrationId && p.Id != input.Id);
 
         if (input.Type == PaymentType.Charge)
         {
@@ -218,7 +245,7 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
     // ---------------------------------------------------------------- saving
 
     protected override async Task<Payment> CreateAsync(PaymentInput input, CancellationToken cancellationToken) =>
-        new() { PatientRegistration = await Db.PatientRegistrations.Include(r => r.Patient).FirstAsync(r => r.Id == input.RegistrationId, cancellationToken) };
+        new() { PatientRegistration = await Db.PatientRegistrations.Include(r => r.Patient).Include(r => r.DiscountSteps).FirstAsync(r => r.Id == input.RegistrationId, cancellationToken) };
 
     protected override void Apply(Payment payment, PaymentInput input)
     {
@@ -232,10 +259,37 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
         // The discount belongs to the registration (as in the old app), so it is saved in the same transaction.
         var registration = payment.PatientRegistration;
         registration.DiscountId = input.DiscountId;
-        registration.DiscountPercentage = input.DiscountPercentage;
-        registration.DiscountAmount = input.DiscountPercentage is null ? input.DiscountAmount ?? 0m : null;
-        registration.DiscountTotal = BillingMath.DiscountTotal(registration.AmountDue, registration.DiscountAmount, registration.DiscountPercentage);
+        if (input.DiscountId is not null)
+        {
+            // A maintained discount: its details (given when it was chosen) are applied one after another.
+            registration.DiscountAmount = null;
+            registration.DiscountPercentage = null;
+            if (_stepsToGive is { } toGive)
+            {
+                foreach (var old in registration.DiscountSteps.ToList())
+                    Db.PatientRegistrationDiscountSteps.Remove(old);
+
+                var sequence = 0;
+                foreach (var step in toGive)
+                    registration.DiscountSteps.Add(new PatientRegistrationDiscountStep { Sequence = ++sequence, Amount = step.Amount, Percentage = step.Percentage });
+            }
+
+            registration.DiscountTotal = BillingMath.DiscountTotal(registration.AmountDue, StepsOf(registration));
+        }
+        else
+        {
+            foreach (var old in registration.DiscountSteps.ToList())
+                Db.PatientRegistrationDiscountSteps.Remove(old);
+
+            registration.DiscountPercentage = input.DiscountPercentage;
+            registration.DiscountAmount = input.DiscountPercentage is null ? input.DiscountAmount ?? 0m : null;
+            registration.DiscountTotal = BillingMath.DiscountTotal(registration.AmountDue, registration.DiscountAmount, registration.DiscountPercentage);
+        }
     }
+
+    /// <summary>The details of a registration's maintained discount, in the order they are applied (none for a typed discount).</summary>
+    private static List<DiscountStep> StepsOf(PatientRegistration r) =>
+        [.. r.DiscountSteps.Where(s => !s.IsDeleted).OrderBy(s => s.Sequence).Select(s => new DiscountStep(s.Amount, s.Percentage))];
 
     // ---------------------------------------------------------------- helpers for the form
 
@@ -261,6 +315,7 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
 
         var r = await Db.PatientRegistrations.AsNoTracking()
             .Include(x => x.Patient).Include(x => x.Company).Include(x => x.Services).ThenInclude(s => s.Service)
+            .Include(x => x.DiscountSteps)
             .FirstOrDefaultAsync(x => x.Id == registrationId, cancellationToken);
         if (r is null)
             return Result<RegistrationBalance>.Failure(new Error("Registration.NotFound", "The registration no longer exists."));
@@ -274,14 +329,17 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
         var charged = payments.Any(p => p.Type == PaymentType.Charge);
 
         // The stored discount total follows the price when it is saved; recompute so it is never stale.
-        var discount = BillingMath.DiscountTotal(r.AmountDue, r.DiscountAmount, r.DiscountPercentage);
+        var steps = StepsOf(r);
+        var stepResults = BillingMath.ApplySteps(r.AmountDue, steps);
+        var discount = steps.Count > 0 ? stepResults.Sum(x => x.Cut) : BillingMath.DiscountTotal(r.AmountDue, r.DiscountAmount, r.DiscountPercentage);
         var amountDue = r.AmountDue - discount;
         var balance = charged ? 0m : BillingMath.Round(amountDue - paid);
 
         return Result<RegistrationBalance>.Success(new RegistrationBalance(
             r.Id, r.RegistrationCode, LocalDate(r.InputDate), r.Patient.PatientCode, r.Patient.PatientName, r.Company?.CompanyName, r.BatchName,
             [.. r.Services.Where(s => !s.IsDeleted).OrderBy(s => s.Id).Select(s => new PaymentServiceLine(s.Service.ServiceName, s.Price))],
-            r.AmountDue, r.DiscountAmount, r.DiscountPercentage, discount, amountDue, paid, balance, charged, r.DiscountId));
+            r.AmountDue, r.DiscountAmount, r.DiscountPercentage, discount, amountDue, paid, balance, charged, r.DiscountId,
+            [.. stepResults.Select(x => new DiscountStepLine(x.Step.Amount, x.Step.Percentage, x.Cut))]));
     }
 
     public async Task<Result<IReadOnlyList<RegistrationMatch>>> SuggestRegistrationsAsync(string text, CancellationToken cancellationToken = default)
@@ -304,6 +362,7 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
             .Select(r => new
             {
                 r.Id, r.RegistrationCode, r.Patient.PatientName, r.InputDate, r.AmountDue, r.DiscountAmount, r.DiscountPercentage,
+                Steps = r.DiscountSteps.OrderBy(s => s.Sequence).Select(s => new { s.Amount, s.Percentage }).ToList(),
                 Paid = r.Payments.Where(p => p.Type == PaymentType.Payment).Sum(p => (decimal?)p.PaymentAmount) ?? 0m,
                 Charged = r.Payments.Any(p => p.Type == PaymentType.Charge),
             })
@@ -313,7 +372,11 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
         [
             .. rows.Select(r => new RegistrationMatch(
                 r.Id, r.RegistrationCode, r.PatientName, LocalDate(r.InputDate),
-                r.Charged ? 0m : BillingMath.Round(r.AmountDue - BillingMath.DiscountTotal(r.AmountDue, r.DiscountAmount, r.DiscountPercentage) - r.Paid))),
+                r.Charged ? 0m : BillingMath.Round(r.AmountDue
+                    - (r.Steps.Count > 0
+                        ? BillingMath.DiscountTotal(r.AmountDue, r.Steps.Select(s => new DiscountStep(s.Amount, s.Percentage)))
+                        : BillingMath.DiscountTotal(r.AmountDue, r.DiscountAmount, r.DiscountPercentage))
+                    - r.Paid))),
         ];
 
         return Result<IReadOnlyList<RegistrationMatch>>.Success(matches);

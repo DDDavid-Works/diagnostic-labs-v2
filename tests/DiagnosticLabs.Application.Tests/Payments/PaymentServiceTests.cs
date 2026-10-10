@@ -219,7 +219,7 @@ public class PaymentServiceTests
     }
 
     [Fact]
-    public async Task A_maintained_discount_is_remembered_on_the_registration()
+    public async Task A_maintained_discount_gives_all_its_details_one_after_another()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
@@ -227,18 +227,56 @@ public class PaymentServiceTests
         var senior = await SeedDiscountAsync(db);
         var service = CreateService(db);
 
-        var result = await service.SaveAsync(Pay(registration.Id, 100m, null, 20m) with { DiscountId = senior.Id });
+        // Price 1000: 20% first (200, leaving 800), then 50.00 (leaving 750).
+        var result = await service.SaveAsync(Pay(registration.Id, 100m, null, null) with { DiscountId = senior.Id });
         var balance = (await service.GetRegistrationAsync(registration.Id)).Value;
 
         Assert.True(result.IsSuccess);
         Assert.Equal(senior.Id, balance.DiscountId);
-        Assert.Equal(200m, balance.DiscountTotal);
-
-        var fixedOption = await service.SaveAsync(Pay(registration.Id, 100m, 50m) with { DiscountId = senior.Id });
-        Assert.True(fixedOption.IsSuccess);
-        Assert.Equal(50m, (await service.GetRegistrationAsync(registration.Id)).Value.DiscountTotal);
+        Assert.Equal(250m, balance.DiscountTotal);
+        Assert.Equal(750m, balance.AmountDue);
+        Assert.Null(balance.DiscountAmount);
+        Assert.Null(balance.DiscountPercentage);
+        Assert.Equal([200m, 50m], balance.DiscountSteps!.Select(s => s.Cut));
+        Assert.Equal(250m, (await db.PatientRegistrations.AsNoTracking().SingleAsync()).DiscountTotal);
     }
 
+    [Fact]
+    public async Task A_percentage_step_is_a_percentage_of_what_is_left_and_no_step_goes_below_zero()
+    {
+        var steps = new[] { new DiscountStep(null, 10m), new DiscountStep(null, 10m), new DiscountStep(2000m, null) };
+
+        var results = BillingMath.ApplySteps(1000m, steps);
+
+        Assert.Equal([100m, 90m, 810m], results.Select(r => r.Cut));
+        Assert.Equal(0m, results[^1].Remaining);
+        Assert.Equal(1000m, BillingMath.DiscountTotal(1000m, steps));
+        Assert.Equal(0m, BillingMath.DiscountTotal(1000m, Array.Empty<DiscountStep>()));
+    }
+
+    [Fact]
+    public async Task The_details_a_registration_was_given_do_not_change_when_the_discount_is_edited_later()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var registration = await SeedRegistrationAsync(db);
+        var senior = await SeedDiscountAsync(db);
+        var service = CreateService(db);
+        await service.SaveAsync(Pay(registration.Id, 100m, null, null) with { DiscountId = senior.Id });
+
+        // The discount is edited afterwards: the first detail becomes 50%.
+        (await db.DiscountDetails.OrderBy(d => d.Id).FirstAsync()).Percentage = 50m;
+        await db.SaveChangesAsync();
+        var again = await service.SaveAsync(Pay(registration.Id, 100m, null, null) with { DiscountId = senior.Id });
+
+        Assert.True(again.IsSuccess);
+        Assert.Equal(250m, (await service.GetRegistrationAsync(registration.Id)).Value.DiscountTotal);
+
+        // A different discount, or the same one chosen again after it was cleared, takes the discount as it is then.
+        await service.SaveAsync(Pay(registration.Id, 100m, 0m));
+        await service.SaveAsync(Pay(registration.Id, 100m, null, null) with { DiscountId = senior.Id });
+        Assert.Equal(500m + 50m, (await service.GetRegistrationAsync(registration.Id)).Value.DiscountTotal);
+    }
     [Fact]
     public async Task A_typed_discount_clears_the_maintained_one()
     {
@@ -247,7 +285,7 @@ public class PaymentServiceTests
         var registration = await SeedRegistrationAsync(db);
         var senior = await SeedDiscountAsync(db);
         var service = CreateService(db);
-        await service.SaveAsync(Pay(registration.Id, 100m, null, 20m) with { DiscountId = senior.Id });
+        await service.SaveAsync(Pay(registration.Id, 100m, null, null) with { DiscountId = senior.Id });
 
         await service.SaveAsync(Pay(registration.Id, 100m, 30m));
 
@@ -255,27 +293,21 @@ public class PaymentServiceTests
     }
 
     [Fact]
-    public async Task A_maintained_discount_must_be_offered_and_the_value_one_of_its_options()
+    public async Task A_maintained_discount_must_be_one_that_is_offered()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
         var registration = await SeedRegistrationAsync(db);
-        var senior = await SeedDiscountAsync(db);
         var retired = await SeedDiscountAsync(db, "Old promo", active: false);
         var service = CreateService(db);
 
-        var wrongValue = await service.SaveAsync(Pay(registration.Id, 10m, null, 35m) with { DiscountId = senior.Id });
-        var wrongAmount = await service.SaveAsync(Pay(registration.Id, 10m, 75m) with { DiscountId = senior.Id });
-        var switchedOff = await service.SaveAsync(Pay(registration.Id, 10m, null, 20m) with { DiscountId = retired.Id });
-        var unknown = await service.SaveAsync(Pay(registration.Id, 10m, null, 20m) with { DiscountId = 999 });
+        var switchedOff = await service.SaveAsync(Pay(registration.Id, 10m, null, null) with { DiscountId = retired.Id });
+        var unknown = await service.SaveAsync(Pay(registration.Id, 10m, null, null) with { DiscountId = 999 });
 
-        Assert.Contains("not one of the options", wrongValue.Error.Message, StringComparison.Ordinal);
-        Assert.True(wrongAmount.IsFailure);
         Assert.Contains("no longer offered", switchedOff.Error.Message, StringComparison.Ordinal);
         Assert.True(unknown.IsFailure);
         Assert.Empty(await db.Payments.ToListAsync());
     }
-
     [Fact]
     public async Task A_discount_switched_off_later_can_still_be_kept_on_that_registration()
     {
@@ -284,11 +316,11 @@ public class PaymentServiceTests
         var registration = await SeedRegistrationAsync(db);
         var senior = await SeedDiscountAsync(db);
         var service = CreateService(db);
-        await service.SaveAsync(Pay(registration.Id, 100m, null, 20m) with { DiscountId = senior.Id });
+        await service.SaveAsync(Pay(registration.Id, 100m, null, null) with { DiscountId = senior.Id });
         (await db.Discounts.SingleAsync()).IsActive = false;
         await db.SaveChangesAsync();
 
-        var again = await service.SaveAsync(Pay(registration.Id, 100m, null, 20m) with { DiscountId = senior.Id });
+        var again = await service.SaveAsync(Pay(registration.Id, 100m, null, null) with { DiscountId = senior.Id });
 
         Assert.True(again.IsSuccess);
     }

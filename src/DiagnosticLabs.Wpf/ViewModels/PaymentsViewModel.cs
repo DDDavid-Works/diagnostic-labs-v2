@@ -73,11 +73,8 @@ public partial class PaymentsViewModel(
     // A maintained discount (PWD, Senior Citizen...) fills in the value below and locks it; "(none / type a discount)" unlocks it.
     // Nullable because a combo box writes null into its selection while its items are being swapped.
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanTypeDiscount))]
+    [NotifyPropertyChangedFor(nameof(CanTypeDiscount), nameof(HasDiscountSteps), nameof(DiscountTotal), nameof(AmountDue), nameof(BalanceBefore), nameof(BalanceAfter))]
     private long? _selectedDiscountId = 0;
-
-    [ObservableProperty]
-    private DiscountChoice? _selectedChoice;
 
     // ----- list filters -----
     [ObservableProperty]
@@ -92,10 +89,10 @@ public partial class PaymentsViewModel(
 
     public ObservableCollection<DiscountOption> Discounts { get; } = [CustomDiscount];
 
-    public ObservableCollection<DiscountChoice> DiscountChoices { get; } = [];
+    /// <summary>The details of the chosen maintained discount, in the order they are applied, with what each takes off.</summary>
+    public ObservableCollection<DiscountStepRow> DiscountSteps { get; } = [];
 
-    /// <summary>A discount with several options (e.g. 20% or 50.00) asks which one to give.</summary>
-    public bool HasChoices => DiscountChoices.Count > 1;
+    public bool HasDiscountSteps => SelectedDiscountId is > 0;
 
     public bool CanTypeDiscount => SelectedDiscountId is null or 0;
 
@@ -112,7 +109,9 @@ public partial class PaymentsViewModel(
 
     public decimal Price => Registration?.Price ?? 0m;
 
-    public decimal DiscountTotal => BillingMath.DiscountTotal(Price, DiscountIsPercentage ? null : DiscountValue, DiscountIsPercentage ? DiscountValue : null);
+    public decimal DiscountTotal => HasDiscountSteps
+        ? BillingMath.DiscountTotal(Price, CurrentSteps())
+        : BillingMath.DiscountTotal(Price, DiscountIsPercentage ? null : DiscountValue, DiscountIsPercentage ? DiscountValue : null);
 
     public decimal AmountDue => Price - DiscountTotal;
 
@@ -161,30 +160,37 @@ public partial class PaymentsViewModel(
 
     partial void OnSelectedDiscountIdChanged(long? value)
     {
-        if (_loading)
-            return;
-
-        FillChoices(value ?? 0);
-        if (value is > 0)
-            SelectedChoice = DiscountChoices.FirstOrDefault();
+        RefreshDiscountSteps();
+        if (!_loading)
+            FollowBalance();
     }
 
-    partial void OnSelectedChoiceChanged(DiscountChoice? value)
+    /// <summary>
+    /// The steps the chosen maintained discount gives, in order. A registration that already has this discount shows the details it
+    /// was given; otherwise they are the discount as it is now.
+    /// </summary>
+    private List<DiscountStep> CurrentSteps()
     {
-        if (_loading || value is null || SelectedDiscountId is null or 0)
-            return;
+        if (SelectedDiscountId is not > 0)
+            return [];
 
-        DiscountIsPercentage = value.Percentage is not null;
-        DiscountValue = value.Percentage ?? value.Amount ?? 0m;
+        if (Registration is { DiscountSteps: { Count: > 0 } given } && Registration.DiscountId == SelectedDiscountId)
+            return [.. given.Select(s => new DiscountStep(s.Amount, s.Percentage))];
+
+        return [.. (Discounts.FirstOrDefault(d => d.Id == SelectedDiscountId)?.Choices ?? []).Select(c => new DiscountStep(c.Amount, c.Percentage))];
     }
 
-    private void FillChoices(long discountId)
+    private void RefreshDiscountSteps()
     {
-        DiscountChoices.Clear();
-        foreach (var choice in Discounts.FirstOrDefault(d => d.Id == discountId)?.Choices ?? [])
-            DiscountChoices.Add(choice);
+        DiscountSteps.Clear();
+        var number = 0;
+        foreach (var result in BillingMath.ApplySteps(Price, CurrentSteps()))
+        {
+            var what = result.Step.Percentage is { } p ? $"{p:0.##}%" : $"{result.Step.Amount:N2}";
+            DiscountSteps.Add(new DiscountStepRow(++number, what, result.Cut));
+        }
 
-        OnPropertyChanged(nameof(HasChoices));
+        OnPropertyChanged(nameof(HasDiscountSteps));
     }
 
     partial void OnDiscountValueChanged(decimal value) => FollowBalance();
@@ -238,8 +244,10 @@ public partial class PaymentsViewModel(
 
     protected override PaymentInput BuildInput()
     {
-        var percentage = DiscountIsPercentage && DiscountValue > 0 ? DiscountValue : (decimal?)null;
-        var amount = percentage is null ? (DiscountIsPercentage ? 0m : DiscountValue) : (decimal?)null;
+        // A maintained discount gives its own details; the typed value is only for a one-off discount.
+        var maintained = SelectedDiscountId is > 0;
+        var percentage = !maintained && DiscountIsPercentage && DiscountValue > 0 ? DiscountValue : (decimal?)null;
+        var amount = maintained || percentage is not null ? (decimal?)null : (DiscountIsPercentage ? 0m : DiscountValue);
 
         return new PaymentInput(
             Id,
@@ -286,7 +294,6 @@ public partial class PaymentsViewModel(
             DiscountIsPercentage = false;
             DiscountValue = 0m;
             SelectedDiscountId = 0;
-            FillChoices(0);
             IsCharge = false;
             PaymentAmount = 0m;
             _amountEdited = false;
@@ -355,7 +362,6 @@ public partial class PaymentsViewModel(
             DiscountIsPercentage = false;
             DiscountValue = 0m;
             SelectedDiscountId = 0;
-            FillChoices(0);
             IsCharge = false;
             PaymentAmount = 0m;
             _amountEdited = false;
@@ -438,8 +444,6 @@ public partial class PaymentsViewModel(
             DiscountIsPercentage = balance.DiscountPercentage is not null;
             DiscountValue = balance.DiscountPercentage ?? balance.DiscountAmount ?? 0m;
             SelectedDiscountId = balance.DiscountId ?? 0;
-            FillChoices(balance.DiscountId ?? 0);
-            SelectedChoice = DiscountChoices.FirstOrDefault(c => c.Percentage == balance.DiscountPercentage && (c.Percentage is not null || c.Amount == balance.DiscountAmount));
             if (payBalance)
             {
                 _amountEdited = false;
@@ -485,6 +489,7 @@ public partial class PaymentsViewModel(
 
     private void NotifyAmounts()
     {
+        RefreshDiscountSteps();
         OnPropertyChanged(nameof(ServiceLines));
         OnPropertyChanged(nameof(DiscountTotal));
         OnPropertyChanged(nameof(AmountDue));
@@ -551,4 +556,10 @@ public partial class PaymentsViewModel(
             _log.LogError(ex, "Background lookup failed on the payments screen");
         }
     }
+}
+
+/// <summary>One line of the muted list under a maintained discount: its position, what it is (20.00 or 3%) and what it takes off.</summary>
+public sealed record DiscountStepRow(int Number, string Description, decimal Cut)
+{
+    public string Label => $"{Number}. {Description}";
 }

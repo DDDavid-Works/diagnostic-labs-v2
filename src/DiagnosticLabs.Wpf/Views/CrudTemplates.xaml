@@ -442,18 +442,10 @@
             <DatePicker SelectedDate="{Binding PaymentDate}" />
 
             <TextBlock Text="Discount" Style="{StaticResource FieldLabel}" />
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <ComboBox ItemsSource="{Binding Discounts}" SelectedValuePath="Id" DisplayMemberPath="Name"
-                        SelectedValue="{Binding SelectedDiscountId}" ToolTip="PWD, Senior Citizen... or type a one-off discount below" />
-              <ComboBox Grid.Column="1" Width="110" Margin="8,0,0,0" ItemsSource="{Binding DiscountChoices}" DisplayMemberPath="Label"
-                        SelectedItem="{Binding SelectedChoice}" ToolTip="This discount has more than one option"
-                        Visibility="{Binding HasChoices, Converter={StaticResource BoolToVis}}" />
-            </Grid>
-            <Grid Margin="0,6,0,0" IsEnabled="{Binding CanTypeDiscount}">
+            <ComboBox ItemsSource="{Binding Discounts}" SelectedValuePath="Id" DisplayMemberPath="Name"
+                      SelectedValue="{Binding SelectedDiscountId}" ToolTip="PWD, Senior Citizen... or type a one-off discount below" />
+
+            <Grid Margin="0,6,0,0" Visibility="{Binding CanTypeDiscount, Converter={StaticResource BoolToVis}}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -467,11 +459,40 @@
               </StackPanel>
             </Grid>
 
-            <Grid Margin="0,12,0,0">
-              <TextBlock Text="Discount total" Foreground="{StaticResource MutedTextBrush}" />
-              <TextBlock HorizontalAlignment="Right" Text="{Binding DiscountTotal, StringFormat=N2}" />
-            </Grid>
-            <Grid Margin="0,6,0,0">
+            <!-- The details of a maintained discount, applied in this order, each to what is left after the one before, with the total -->
+            <Border Margin="0,8,0,0" Padding="8,6" CornerRadius="3">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="BorderThickness" Value="0" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding HasDiscountSteps}" Value="True">
+                      <Setter Property="BorderThickness" Value="1" />
+                      <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasDiscountSteps}" Value="False">
+                      <Setter Property="Padding" Value="0" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <StackPanel>
+                <ItemsControl ItemsSource="{Binding DiscountSteps}"
+                              Visibility="{Binding HasDiscountSteps, Converter={StaticResource BoolToVis}}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid Margin="0,1">
+                        <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedTextBrush}" />
+                        <TextBlock HorizontalAlignment="Right" Foreground="{StaticResource MutedTextBrush}" Text="{Binding Cut, StringFormat=-{0:N2}}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Grid Margin="0,4,0,0">
+                  <TextBlock Text="Discount total" Foreground="{StaticResource MutedTextBrush}" />
+                  <TextBlock HorizontalAlignment="Right" Text="{Binding DiscountTotal, StringFormat=N2}" />
+                </Grid>
+              </StackPanel>
+            </Border>            <Grid Margin="0,6,0,0">
               <TextBlock Text="Amount due" FontWeight="SemiBold" FontSize="16" />
               <TextBlock HorizontalAlignment="Right" Text="{Binding AmountDue, StringFormat=N2}" FontWeight="SemiBold" FontSize="16" />
             </Grid>
@@ -850,6 +871,159 @@
           </Border>
 
           <ctl:LabResultBottom ShowRemarks="{Binding ShowRemarks}" />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
+  <!-- ===================================================== Annual Physical Exam Page 2 (the Medical Examination Report) -->
+  <DataTemplate DataType="{x:Type vm:MedicalExaminationViewModel}">
+    <DataTemplate.Resources>
+      <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+      </Style>
+    </DataTemplate.Resources>
+    <ctl:CrudLayout FormMaxWidth="940">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the values every new result starts with (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <!-- The rest of the person box -->
+          <Grid Margin="0,-10,0,10" IsEnabled="{Binding IsNotSettingDefaults}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="170" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="170" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Contact No.:" Style="{StaticResource PaperLabel}" />
+            <TextBox Grid.Column="1" Margin="0,2,14,2" Text="{Binding ContactNo, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Grid.Column="2" Text="Civil Status:" Style="{StaticResource PaperLabel}" />
+            <ComboBox Grid.Column="3" Margin="0,2" IsEditable="True" ItemsSource="{Binding CivilStatuses}" Text="{Binding CivilStatus, UpdateSourceTrigger=LostFocus}" />
+          </Grid>
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="1.35*" />
+              <ColumnDefinition Width="14" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- V. Laboratory / X-ray results -->
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="V. LABORATORY / X-RAY RESULTS" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
+              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+                <ItemsControl ItemsSource="{Binding Rows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="150" />
+                          <ColumnDefinition Width="122" />
+                          <ColumnDefinition Width="122" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,5">
+                          <TextBlock Text="{Binding Label}" Style="{StaticResource PaperLabel}" TextWrapping="Wrap" />
+                        </Border>
+                        <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="8,4">
+                          <CheckBox Content="{Binding NormalCaption}" IsChecked="{Binding Normal.IsChecked}" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="8,4">
+                          <CheckBox Content="{Binding FindingsCaption}" IsChecked="{Binding Findings.IsChecked}" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,3">
+                          <TextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" ToolTip="A note for this result" />
+                        </Border>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+            </StackPanel>
+
+            <!-- VI. Classification -->
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="VI. CLASSIFICATION" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
+              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Padding="8,6">
+                <StackPanel>
+                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Fit].IsChecked}">
+                    <TextBlock Text="A - Fit for employment." TextWrapping="Wrap" />
+                  </CheckBox>
+                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Fit2].IsChecked}">
+                    <TextBlock Text="B - Fit for employment; with minor ailment/defect." TextWrapping="Wrap" />
+                  </CheckBox>
+                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Acceptable].IsChecked}">
+                    <TextBlock Text="C - Acceptable employment; defect may not be easily corrected." TextWrapping="Wrap" />
+                  </CheckBox>
+                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Unfit].IsChecked}">
+                    <TextBlock Text="D - Unfit for employment." TextWrapping="Wrap" />
+                  </CheckBox>
+                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Pending].IsChecked}">
+                    <TextBlock Text="PENDING - Incomplete medical laboratory exam." TextWrapping="Wrap" />
+                  </CheckBox>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Grid>
+
+          <TextBlock Text="Medical/Surgical History:" Style="{StaticResource PaperLabel}" Margin="0,10,0,2" />
+          <ctl:TemplateTextBox Text="{Binding MedicalSurgicalHistory, UpdateSourceTrigger=PropertyChanged}" Options="{Binding HistoryTemplates}" EditCommand="{Binding EditHistoryTemplatesCommand}" MinHeight="84" MaxHeight="150" />
+
+          <TextBlock Text="Assessment:" Style="{StaticResource PaperLabel}" Margin="0,8,0,2" />
+          <ctl:TemplateTextBox Text="{Binding Assessment, UpdateSourceTrigger=PropertyChanged}" Options="{Binding AssessmentTemplates}" EditCommand="{Binding EditAssessmentTemplatesCommand}" MinHeight="120" MaxHeight="200" />
+
+          <TextBlock Text="Remarks:" Style="{StaticResource PaperLabel}" Margin="0,8,0,2" />
+          <ctl:TemplateTextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" Options="{Binding RemarksTemplates}" EditCommand="{Binding EditRemarksTemplatesCommand}" MinHeight="84" MaxHeight="150" />
+
+          <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="40" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Assessment Done By" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
+              <ctl:ChoiceBox ItemsSource="{Binding AssessmentDoneBy.Items}" Text="{Binding AssessmentDoneBy.Value}" EditCommand="{Binding AssessmentDoneBy.EditCommand}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Physician Name" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
+              <ctl:ChoiceBox ItemsSource="{Binding PhysicianName.Items}" Text="{Binding PhysicianName.Value}" EditCommand="{Binding PhysicianName.EditCommand}" />
+              <TextBlock Text="Physician License" Style="{StaticResource PaperLabel}" Margin="0,6,0,3" />
+              <ctl:ChoiceBox ItemsSource="{Binding PhysicianLicense.Items}" Text="{Binding PhysicianLicense.Value}" EditCommand="{Binding PhysicianLicense.EditCommand}" />
+            </StackPanel>
+          </Grid>
         </StackPanel>
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>

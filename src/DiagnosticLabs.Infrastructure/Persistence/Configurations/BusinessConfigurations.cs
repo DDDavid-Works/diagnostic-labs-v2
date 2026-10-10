@@ -175,6 +175,21 @@ internal sealed class PatientRegistrationServiceConfiguration : IEntityTypeConfi
     }
 }
 
+internal sealed class PatientRegistrationDiscountStepConfiguration : IEntityTypeConfiguration<PatientRegistrationDiscountStep>
+{
+    public void Configure(EntityTypeBuilder<PatientRegistrationDiscountStep> builder)
+    {
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_PatientRegistrationDiscountSteps_AmountOrPercentage",
+            "([Amount] IS NULL AND [Percentage] IS NOT NULL) OR ([Amount] IS NOT NULL AND [Percentage] IS NULL)"));
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_PatientRegistrationDiscountSteps_Values",
+            "([Amount] IS NULL OR [Amount] >= 0) AND ([Percentage] IS NULL OR [Percentage] BETWEEN 0 AND 100)"));
+        builder.HasOne(s => s.PatientRegistration).WithMany(r => r.DiscountSteps).HasForeignKey(s => s.PatientRegistrationId);
+        builder.HasIndex(s => new { s.PatientRegistrationId, s.Sequence });
+    }
+}
+
 internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 {
     public void Configure(EntityTypeBuilder<Payment> builder)

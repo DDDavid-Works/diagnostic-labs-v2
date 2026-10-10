@@ -9,6 +9,7 @@ public enum ReportLayout
     TestResult,
     ClinicalChemistry,
     ClinicalChemistry2,
+    MedicalExamination,
     AnnualPhysicalExam,
 }
 

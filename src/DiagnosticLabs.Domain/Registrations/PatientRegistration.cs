@@ -39,6 +39,12 @@ public class PatientRegistration : SoftDeletableEntity
 
     public decimal DiscountTotal { get; set; }
 
+    /// <summary>
+    /// The details of the maintained discount as they were when it was given, applied one after another (see <see cref="PatientRegistrationDiscountStep"/>).
+    /// A registration without steps has a single typed discount (<see cref="DiscountAmount"/> or <see cref="DiscountPercentage"/>).
+    /// </summary>
+    public ICollection<PatientRegistrationDiscountStep> DiscountSteps { get; set; } = [];
+
     public ICollection<PatientRegistrationService> Services { get; set; } = [];
 
     public ICollection<Payment> Payments { get; set; } = [];
@@ -55,4 +61,22 @@ public class PatientRegistrationService : SoftDeletableEntity
     public Service Service { get; set; } = null!;
 
     public decimal Price { get; set; }
+}
+
+/// <summary>
+/// One detail of a maintained discount, copied onto the registration when the discount is given so that later changes to the discount
+/// do not change what was already charged. The steps are applied in <see cref="Sequence"/> order, each to what is left after the one
+/// before. Exactly one of <see cref="Amount"/> or <see cref="Percentage"/> is set.
+/// </summary>
+public class PatientRegistrationDiscountStep : SoftDeletableEntity
+{
+    public long PatientRegistrationId { get; set; }
+
+    public PatientRegistration PatientRegistration { get; set; } = null!;
+
+    public int Sequence { get; set; }
+
+    public decimal? Amount { get; set; }
+
+    public decimal? Percentage { get; set; }
 }

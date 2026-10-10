@@ -31,6 +31,7 @@ public partial class MainViewModel(
         [ModuleIds.ClinicalChemistry] = sp => sp.GetRequiredService<ClinicalChemistryViewModel>(),
         [ModuleIds.ClinicalChemistry1] = sp => sp.GetRequiredService<ClinicalChemistry1ViewModel>(),
         [ModuleIds.ClinicalChemistry2] = sp => sp.GetRequiredService<ClinicalChemistry2ViewModel>(),
+        [ModuleIds.AnnualPhysicalExamPage2] = sp => sp.GetRequiredService<MedicalExaminationViewModel>(),
         [ModuleIds.AnnualPhysicalExam] = sp => sp.GetRequiredService<AnnualPhysicalExamViewModel>(),
         [ModuleIds.Payments] = sp => sp.GetRequiredService<PaymentsViewModel>(),
         [ModuleIds.Patients] = sp => sp.GetRequiredService<PatientsViewModel>(),

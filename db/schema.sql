@@ -1350,3 +1350,53 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010053554_RegistrationDiscountSteps'
+)
+BEGIN
+    CREATE TABLE [PatientRegistrationDiscountSteps] (
+        [Id] bigint NOT NULL IDENTITY,
+        [PatientRegistrationId] bigint NOT NULL,
+        [Sequence] int NOT NULL,
+        [Amount] decimal(18,4) NULL,
+        [Percentage] decimal(18,4) NULL,
+        [CreatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedByUserId] bigint NULL,
+        [UpdatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [UpdatedByUserId] bigint NULL,
+        [RowVersion] rowversion NOT NULL,
+        [IsDeleted] bit NOT NULL,
+        [DeletedAtUtc] datetime2(3) NULL,
+        [DeletedByUserId] bigint NULL,
+        CONSTRAINT [PK_PatientRegistrationDiscountSteps] PRIMARY KEY ([Id]),
+        CONSTRAINT [CK_PatientRegistrationDiscountSteps_AmountOrPercentage] CHECK (([Amount] IS NULL AND [Percentage] IS NOT NULL) OR ([Amount] IS NOT NULL AND [Percentage] IS NULL)),
+        CONSTRAINT [CK_PatientRegistrationDiscountSteps_Values] CHECK (([Amount] IS NULL OR [Amount] >= 0) AND ([Percentage] IS NULL OR [Percentage] BETWEEN 0 AND 100)),
+        CONSTRAINT [FK_PatientRegistrationDiscountSteps_PatientRegistrations_PatientRegistrationId] FOREIGN KEY ([PatientRegistrationId]) REFERENCES [PatientRegistrations] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_PatientRegistrationDiscountSteps_Users_CreatedByUserId] FOREIGN KEY ([CreatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_PatientRegistrationDiscountSteps_Users_DeletedByUserId] FOREIGN KEY ([DeletedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_PatientRegistrationDiscountSteps_Users_UpdatedByUserId] FOREIGN KEY ([UpdatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010053554_RegistrationDiscountSteps'
+)
+BEGIN
+    CREATE INDEX [IX_PatientRegistrationDiscountSteps_PatientRegistrationId_Sequence] ON [PatientRegistrationDiscountSteps] ([PatientRegistrationId], [Sequence]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010053554_RegistrationDiscountSteps'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010053554_RegistrationDiscountSteps', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
