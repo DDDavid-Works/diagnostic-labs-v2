@@ -87,6 +87,7 @@ On the build machine:
 - [ ] Register a patient, then a registration with several services.
 - [ ] Enter at least one result of each form that is built (Fecalysis, Urinalysis, Hematology, Immunology, Serology, Pregnancy Test, Clinical Chemistry, Physical Examination, Clinical Microscopy, APE) and save.
 - [ ] Take a payment (full and partial) and check the Home list shows the correct state.
+- [ ] **Sales Report** (Reports menu): print one day and a range, then one company and one of its batches; the totals match the registrations. Print it on the real printer: it must come out **landscape** and uncut (the preview is landscape; confirm the printer driver follows it). Also print to PDF.
 - [ ] **Print** a result and a receipt on the real printer: US Letter, logo and signatories correct, nothing cut off. Also print to PDF.
 - [ ] Two stations at once: the same patient open on both; save on one, then on the other: the second gets the concurrency message, no data lost (the README lists this check for Patients; note whether other screens behave the same).
 - [ ] Close the app with unsaved changes: it asks to save.

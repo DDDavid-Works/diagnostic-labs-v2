@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<DiagnosticLabs.Application.Board.IRegistrationBoardService, DiagnosticLabs.Application.Board.RegistrationBoardService>();
         services.AddScoped<IAnnualPhysicalExamService, AnnualPhysicalExamService>();
         services.AddScoped<IReferenceLookups, ReferenceLookups>();
+        services.AddScoped<DiagnosticLabs.Application.Reports.ISalesReportService, DiagnosticLabs.Application.Reports.SalesReportService>();
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<IItemLocationService, ItemLocationService>();

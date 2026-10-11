@@ -66,7 +66,8 @@ sqlcmd -S <server> -d DiagnosticLabsV2 -E -C -I -b -W -i db\verify-migration.sql
 | Users and permissions | Done (per-user permission grid, temporary passwords, reset/unlock, last-admin safeguards) |
 | Change Password | Done (header button for every user; forced at sign-in when a temporary password is in use) |
 | Company Setup | Done (name, tagline, address, contacts, company code, logo; the name, tagline and logo also show on the sign-in window) |
-| Lab Results, Reports | Shown in the menu as "not migrated yet" |
+| Sales Report | Done: filter screen (dates, company, batch, payment: all / direct payments only / charged to company only) and a landscape Letter printout (the parameters are printed under the title on the first page) with a row per registration, a column per service, count and amount under each column and the grand total (`Application/Reports/SalesReportService`, `Wpf/Printing/SalesReportDocumentBuilder`). Gross prices as charged on the registration; discounts are not part of it. Print only. |
+| Statement of Accounts | Shown in the menu as "not migrated yet" |
 
 A new maintenance screen is: a service deriving from `CrudService`/`ReferenceCrudService` (Application), a view model deriving from `CrudViewModel` (Wpf), a `DataTemplate` in `Views/CrudTemplates.xaml` that fills the shared `CrudLayout`, and one line in `MainViewModel.Pages`. `Management/DiscountService` and `MasterDetailViewModels.cs` show the pattern with child rows.
 

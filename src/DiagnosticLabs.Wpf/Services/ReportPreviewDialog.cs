@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using DiagnosticLabs.Application.LabResults;
@@ -11,18 +11,27 @@ namespace DiagnosticLabs.Wpf.Services;
 public interface IReportPreviewDialog
 {
     void Show(PrintableReport report);
+
+    /// <summary>Shows an already laid out document (a report that is not a result form, such as the Sales Report); <paramref name="fileName"/> is what the PDF is called.</summary>
+    void Show(FixedDocument document, string title, string fileName);
 }
 
 public sealed class ReportPreviewDialog : IReportPreviewDialog
 {
     public void Show(PrintableReport report)
     {
-        var document = ReportDocumentBuilder.Build(report);
+        var patient = report.PatientLines.FirstOrDefault(l => l.Label.StartsWith("Name", StringComparison.OrdinalIgnoreCase))?.Value;
+        var fileName = string.Join("-", new[] { report.Title, patient }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        Show(ReportDocumentBuilder.Build(report), report.Title, fileName);
+    }
+
+    public void Show(FixedDocument document, string title, string fileName)
+    {
         var viewer = new DocumentViewer { Document = document };
 
         var window = new Window
         {
-            Title = $"Print preview - {report.Title}",
+            Title = $"Print preview - {title}",
             Width = 940,
             Height = 780,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -31,7 +40,7 @@ public sealed class ReportPreviewDialog : IReportPreviewDialog
         };
 
         var export = new Button { Content = "Save as PDF...", Padding = new Thickness(12, 5, 12, 5), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(8) };
-        export.Click += (_, _) => ExportPdf(window, document, report);
+        export.Click += (_, _) => ExportPdf(window, document, fileName);
 
         var layout = new DockPanel();
         DockPanel.SetDock(export, Dock.Top);
@@ -42,10 +51,8 @@ public sealed class ReportPreviewDialog : IReportPreviewDialog
         window.ShowDialog();
     }
 
-    private static void ExportPdf(Window owner, FixedDocument document, PrintableReport report)
+    private static void ExportPdf(Window owner, FixedDocument document, string name)
     {
-        var patient = report.PatientLines.FirstOrDefault(l => l.Label.StartsWith("Name", StringComparison.OrdinalIgnoreCase))?.Value;
-        var name = string.Join("-", new[] { report.Title, patient }.Where(s => !string.IsNullOrWhiteSpace(s)));
         foreach (var bad in System.IO.Path.GetInvalidFileNameChars())
             name = name.Replace(bad, '_');
 

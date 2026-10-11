@@ -39,7 +39,7 @@ Things this gives us beyond the old app: a payment receipt, the Sales Report and
 1. **Engine and preview window, proved on a payment receipt** (small, and it settles paper size, header and logo handling).
 2. **Hematology**: the first lab result screen built together with its printout, so each result type is delivered "enter it and print it".
 3. The other result types, simplest first.
-4. Sales Report, Statement of Accounts.
+4. Sales Report (done, landscape, through the same preview window), Statement of Accounts.
 
 ## What I need from you
 

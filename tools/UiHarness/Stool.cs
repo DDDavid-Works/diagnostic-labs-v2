@@ -41,6 +41,31 @@ internal sealed class CapturePreview : IReportPreviewDialog
         using var stream = File.Create(Path.Combine(OutputFolder, $"print-{report.Layout}.png"));
         encoder.Save(stream);
     }
+
+    public static FixedDocument? LastDocument { get; private set; }
+
+    public static void Clear() => LastDocument = null;
+
+    // A report that is not a result form (the Sales Report): every page goes to a PNG, and the whole document to a PDF.
+    public void Show(FixedDocument document, string title, string fileName)
+    {
+        LastDocument = document;
+        var size = document.DocumentPaginator.PageSize;
+        DiagnosticLabs.Wpf.Printing.PdfExporter.Save(document, Path.Combine(OutputFolder, $"{fileName}.pdf"));
+        for (var i = 0; i < document.Pages.Count; i++)
+        {
+            var page = document.Pages[i].GetPageRoot(false);
+            page.Measure(size);
+            page.Arrange(new Rect(0, 0, size.Width, size.Height));
+            page.UpdateLayout();
+            var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(page);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var stream = File.Create(Path.Combine(OutputFolder, $"{fileName}-page{i + 1}.png"));
+            encoder.Save(stream);
+        }
+    }
 }
 
 internal static partial class Program

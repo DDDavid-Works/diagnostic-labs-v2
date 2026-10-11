@@ -17,6 +17,9 @@
     <DataTemplate DataType="{x:Type vm:HomeViewModel}">
       <views:HomeView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SalesReportViewModel}">
+      <views:SalesReportView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
       <views:PlaceholderView />
     </DataTemplate>
