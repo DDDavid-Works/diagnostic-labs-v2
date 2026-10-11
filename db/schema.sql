@@ -2531,3 +2531,24 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261011052629_HideMedicalExaminationModules'
+)
+BEGIN
+    UPDATE Modules SET IsActive = 0 WHERE Id IN (14, 15);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261011052629_HideMedicalExaminationModules'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261011052629_HideMedicalExaminationModules', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

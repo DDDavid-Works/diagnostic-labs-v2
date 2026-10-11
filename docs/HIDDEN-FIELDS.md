@@ -16,3 +16,15 @@ Do not drop one until the client has confirmed that nothing in it is needed. Add
 1. Ask the client to confirm that nothing in it is needed (print a few old results to compare if in doubt).
 2. Remove the property from the entity and its configuration, add a migration that drops the column, and update `db/schema.sql`.
 3. Remove its row from this list.
+
+## Hidden modules
+
+Modules that exist in the database but are switched off (`Modules.IsActive = 0`), so they do not appear in the menu or in the Users permission list. Nothing is deleted; turn `IsActive` back on to show one again.
+
+| Module | Id | Hidden since | Why |
+|---|---|---|---|
+| Medical Examination | 14 | `HideMedicalExaminationModules` | Not built; the client has not said what it is. |
+| Medical Examination Page 2 | 15 | `HideMedicalExaminationModules` | Same. |
+| Items, Item Locations | 21, 22 | the legacy data | Switched off in the old app already. |
+
+The billable services linked to modules 14 and 15 ("Medical Examination", "Medical Examination Page 2") still exist; deactivate them in the Services screen if they should not be offered at registration.

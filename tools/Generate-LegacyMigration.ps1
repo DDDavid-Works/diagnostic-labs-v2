@@ -474,6 +474,9 @@ Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."RBCReferen
 Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CrystalsReference"'', N''hpf'') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CrystalsReference"'') IS NULL;'
 Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CastsReference"'', N''lpf'') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CastsReference"'') IS NULL;'
 Emit ''
+Emit '-- Medical Examination (14) and Medical Examination Page 2 (15) are hidden from the menu until the client says what they are'
+Emit 'UPDATE [Modules] SET [IsActive] = 0 WHERE [Id] IN (14, 15);'
+Emit ''
 Emit @"
 -- ===== Summary =====
 SELECT SourceTable AS SkippedSourceTable, LegacyId, Reason FROM #skipped ORDER BY SourceTable, LegacyId;

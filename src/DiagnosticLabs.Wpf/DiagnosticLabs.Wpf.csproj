@@ -21,6 +21,8 @@
 
   <ItemGroup>
     <Content Include="appsettings*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The developer's per-machine override must never ship in a release; each station keeps its own. -->
+    <Content Update="appsettings.Local.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
 </Project>
