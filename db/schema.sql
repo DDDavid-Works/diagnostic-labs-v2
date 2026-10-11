@@ -2431,3 +2431,103 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010175023_ClinicalMicroscopy'
+)
+BEGIN
+    CREATE TABLE [ClinicalMicroscopyReports] (
+        [LabReportId] bigint NOT NULL,
+        [ColorResult] nvarchar(50) NULL,
+        [ColorReference] nvarchar(100) NULL,
+        [TransparencyResult] nvarchar(50) NULL,
+        [TransparencyReference] nvarchar(100) NULL,
+        [PHResult] nvarchar(50) NULL,
+        [PHReference] nvarchar(100) NULL,
+        [SpecificGravityResult] nvarchar(50) NULL,
+        [SpecificGravityReference] nvarchar(100) NULL,
+        [ProteinResult] nvarchar(50) NULL,
+        [ProteinReference] nvarchar(100) NULL,
+        [GlucoseResult] nvarchar(50) NULL,
+        [GlucoseReference] nvarchar(100) NULL,
+        [BloodResult] nvarchar(50) NULL,
+        [BloodReference] nvarchar(100) NULL,
+        [LeukocytesResult] nvarchar(50) NULL,
+        [LeukocytesReference] nvarchar(100) NULL,
+        [NitriteResult] nvarchar(50) NULL,
+        [NitriteReference] nvarchar(100) NULL,
+        [BilirubinResult] nvarchar(50) NULL,
+        [BilirubinReference] nvarchar(100) NULL,
+        [UrobilinogenResult] nvarchar(50) NULL,
+        [UrobilinogenReference] nvarchar(100) NULL,
+        [KetonesResult] nvarchar(50) NULL,
+        [KetonesReference] nvarchar(100) NULL,
+        [WBCResult] nvarchar(50) NULL,
+        [WBCReference] nvarchar(100) NULL,
+        [RBCResult] nvarchar(50) NULL,
+        [RBCReference] nvarchar(100) NULL,
+        [MucusThreadsResult] nvarchar(50) NULL,
+        [MucusThreadsReference] nvarchar(100) NULL,
+        [EpithelialCellsResult] nvarchar(50) NULL,
+        [EpithelialCellsReference] nvarchar(100) NULL,
+        [AmorphousUratesPhosphatesResult] nvarchar(50) NULL,
+        [AmorphousUratesPhosphatesReference] nvarchar(100) NULL,
+        [BacteriaResult] nvarchar(50) NULL,
+        [BacteriaReference] nvarchar(100) NULL,
+        [CrystalsResult] nvarchar(50) NULL,
+        [CrystalsReference] nvarchar(100) NULL,
+        [CastsResult] nvarchar(50) NULL,
+        [CastsReference] nvarchar(100) NULL,
+        CONSTRAINT [PK_ClinicalMicroscopyReports] PRIMARY KEY ([LabReportId]),
+        CONSTRAINT [FK_ClinicalMicroscopyReports_LabReports_LabReportId] FOREIGN KEY ([LabReportId]) REFERENCES [LabReports] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010175023_ClinicalMicroscopy'
+)
+BEGIN
+
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 30)
+                    BEGIN
+                        DECLARE @serviceId bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Clinical Microscopy' ORDER BY Id);
+                        IF @serviceId IS NULL
+                        BEGIN
+                            INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Clinical Microscopy', N'Clinical Microscopy', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+                            SET @serviceId = SCOPE_IDENTITY();
+                        END
+                        INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+                        SELECT 30, ModuleTypeId, N'Clinical Microscopy', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 15, 1, @serviceId FROM Modules WHERE Id = 6;
+                    END
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 30) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 30)
+                        INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (30, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."PHReference"', N'5.0 - 8.0') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."PHReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."SpecificGravityReference"', N'1.005 - 1.030') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."SpecificGravityReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ProteinReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ProteinReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."GlucoseReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."GlucoseReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LeukocytesReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LeukocytesReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."NitriteReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."NitriteReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BilirubinReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BilirubinReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."UrobilinogenReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."UrobilinogenReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."KetonesReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."KetonesReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."WBCReference"', N'0-5/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."WBCReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."RBCReference"', N'0-2/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."RBCReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CrystalsReference"', N'hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CrystalsReference"') IS NULL;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CastsReference"', N'lpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CastsReference"') IS NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261010175023_ClinicalMicroscopy'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261010175023_ClinicalMicroscopy', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

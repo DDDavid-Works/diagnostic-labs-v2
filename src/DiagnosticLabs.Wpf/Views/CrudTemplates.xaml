@@ -2238,4 +2238,100 @@
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>
   </DataTemplate>
+  <!-- ===================================================== Clinical Microscopy -->
+  <DataTemplate DataType="{x:Type vm:ClinicalMicroscopyViewModel}">
+    <DataTemplate.Resources>
+      <Style x:Key="MicroCell" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource PaperLineBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,1,1" />
+        <Setter Property="Padding" Value="3,2" />
+      </Style>
+      <!-- One test: its name, the result (picked from its own list, or typed) and the reference range -->
+      <DataTemplate x:Key="MicroRow" DataType="{x:Type vm:MicroscopyRow}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="1.2*" />
+          </Grid.ColumnDefinitions>
+          <Border Grid.Column="0" Style="{StaticResource MicroCell}" Padding="22,3,6,3"><TextBlock Text="{Binding Label}" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" /></Border>
+          <Border Grid.Column="1" Style="{StaticResource MicroCell}">
+            <Grid>
+              <ctl:ChoiceBox ItemsSource="{Binding Choice.Items}" Text="{Binding Choice.Value}" EditCommand="{Binding Choice.EditCommand}"
+                             Visibility="{Binding IsChoice, Converter={StaticResource BoolToVis}}" />
+              <TextBox Text="{Binding ResultText.Value, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsText, Converter={StaticResource BoolToVis}}" />
+            </Grid>
+          </Border>
+          <Border Grid.Column="2" Style="{StaticResource MicroCell}"><TextBox Text="{Binding Reference.Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+        </Grid>
+      </DataTemplate>
+      <DataTemplate x:Key="MicroSection" DataType="{x:Type vm:MicroscopySection}">
+        <StackPanel>
+          <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Background="{StaticResource HoverTintBrush}" Padding="6,4">
+            <TextBlock Text="{Binding Title, StringFormat='* {0}'}" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource MicroRow}" />
+        </StackPanel>
+      </DataTemplate>
+    </DataTemplate.Resources>
+    <ctl:CrudLayout FormMaxWidth="940">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Funnel}" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Print}" Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Undo}" Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Sliders}" Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the reference ranges every new result starts with (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <!-- The table of the paper form: the tests of three parts, each with a result and a reference range -->
+          <Border Margin="0,6,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="240" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="1.2*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource MicroCell}" Padding="6,3"><TextBlock Text="Tests" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" /></Border>
+                <Border Grid.Column="1" Style="{StaticResource MicroCell}" Padding="6,3"><TextBlock Text="Result" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Column="2" Style="{StaticResource MicroCell}" Padding="6,3"><TextBlock Text="Reference Range" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+              </Grid>
+              <ItemsControl ItemsSource="{Binding Sections}" ItemTemplate="{StaticResource MicroSection}" />
+            </StackPanel>
+          </Border>
+
+          <ctl:LabResultBottom ShowRemarks="{Binding ShowRemarks}" ShowSecondTechnologist="True" ShowLicenses="True" />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
+
 </ResourceDictionary>

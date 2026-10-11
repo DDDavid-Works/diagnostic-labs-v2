@@ -988,6 +988,35 @@ UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."MonocytesNValue"'
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BasophilsNValue"', N'0 - 0.01') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BasophilsNValue"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."StabNValue"', N'0 - 0.05') WHERE ModuleId = 29 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."StabNValue"') IS NULL;
 
+-- Clinical Microscopy (a form added after the legacy app): its module record, billable service and the reference ranges as saved defaults
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 30)
+BEGIN
+    DECLARE @serviceId bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Clinical Microscopy' ORDER BY Id);
+    IF @serviceId IS NULL
+    BEGIN
+        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Clinical Microscopy', N'Clinical Microscopy', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+        SET @serviceId = SCOPE_IDENTITY();
+    END
+    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+    SELECT 30, ModuleTypeId, N'Clinical Microscopy', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 15, 1, @serviceId FROM Modules WHERE Id = 6;
+END
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 30) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 30)
+    INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (30, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."PHReference"', N'5.0 - 8.0') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."PHReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."SpecificGravityReference"', N'1.005 - 1.030') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."SpecificGravityReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ProteinReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ProteinReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."GlucoseReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."GlucoseReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BloodReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BloodReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."LeukocytesReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."LeukocytesReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."NitriteReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."NitriteReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BilirubinReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BilirubinReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."UrobilinogenReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."UrobilinogenReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."KetonesReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."KetonesReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."WBCReference"', N'0-5/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."WBCReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."RBCReference"', N'0-2/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."RBCReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CrystalsReference"', N'hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CrystalsReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CastsReference"', N'lpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CastsReference"') IS NULL;
+
 -- ===== Summary =====
 SELECT SourceTable AS SkippedSourceTable, LegacyId, Reason FROM #skipped ORDER BY SourceTable, LegacyId;
 

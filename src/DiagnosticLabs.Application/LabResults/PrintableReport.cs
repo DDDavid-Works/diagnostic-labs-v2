@@ -12,6 +12,7 @@ public enum ReportLayout
     MedicalExamination,
     AnnualPhysicalExam,
     PhysicalExamination,
+    ClinicalMicroscopy,
 }
 
 /// <summary>The company block at the top of a printout, from Company Setup.</summary>

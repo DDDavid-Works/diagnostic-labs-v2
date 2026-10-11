@@ -18,6 +18,7 @@ public enum LabReportType
     MedicalExamination = 10,
     AnnualPhysicalExam = 12,
     PhysicalExamination = 13,
+    ClinicalMicroscopy = 14,
 }
 
 /// <summary>

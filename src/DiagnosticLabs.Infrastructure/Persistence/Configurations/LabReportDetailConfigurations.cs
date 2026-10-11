@@ -367,3 +367,53 @@ internal sealed class PhysicalExaminationReportConfiguration : IEntityTypeConfig
         builder.Property(e => e.Others).HasMaxLength(500);
     }
 }
+
+internal sealed class ClinicalMicroscopyReportConfiguration : IEntityTypeConfiguration<ClinicalMicroscopyReport>
+{
+    public void Configure(EntityTypeBuilder<ClinicalMicroscopyReport> builder)
+    {
+        builder.ToTable("ClinicalMicroscopyReports");
+        builder.HasKey(e => e.LabReportId);
+        builder.HasOne(e => e.LabReport).WithOne().HasForeignKey<ClinicalMicroscopyReport>(e => e.LabReportId);
+        builder.Property(e => e.ColorResult).HasMaxLength(50);
+        builder.Property(e => e.ColorReference).HasMaxLength(100);
+        builder.Property(e => e.TransparencyResult).HasMaxLength(50);
+        builder.Property(e => e.TransparencyReference).HasMaxLength(100);
+        builder.Property(e => e.PHResult).HasMaxLength(50);
+        builder.Property(e => e.PHReference).HasMaxLength(100);
+        builder.Property(e => e.SpecificGravityResult).HasMaxLength(50);
+        builder.Property(e => e.SpecificGravityReference).HasMaxLength(100);
+        builder.Property(e => e.ProteinResult).HasMaxLength(50);
+        builder.Property(e => e.ProteinReference).HasMaxLength(100);
+        builder.Property(e => e.GlucoseResult).HasMaxLength(50);
+        builder.Property(e => e.GlucoseReference).HasMaxLength(100);
+        builder.Property(e => e.BloodResult).HasMaxLength(50);
+        builder.Property(e => e.BloodReference).HasMaxLength(100);
+        builder.Property(e => e.LeukocytesResult).HasMaxLength(50);
+        builder.Property(e => e.LeukocytesReference).HasMaxLength(100);
+        builder.Property(e => e.NitriteResult).HasMaxLength(50);
+        builder.Property(e => e.NitriteReference).HasMaxLength(100);
+        builder.Property(e => e.BilirubinResult).HasMaxLength(50);
+        builder.Property(e => e.BilirubinReference).HasMaxLength(100);
+        builder.Property(e => e.UrobilinogenResult).HasMaxLength(50);
+        builder.Property(e => e.UrobilinogenReference).HasMaxLength(100);
+        builder.Property(e => e.KetonesResult).HasMaxLength(50);
+        builder.Property(e => e.KetonesReference).HasMaxLength(100);
+        builder.Property(e => e.WBCResult).HasMaxLength(50);
+        builder.Property(e => e.WBCReference).HasMaxLength(100);
+        builder.Property(e => e.RBCResult).HasMaxLength(50);
+        builder.Property(e => e.RBCReference).HasMaxLength(100);
+        builder.Property(e => e.MucusThreadsResult).HasMaxLength(50);
+        builder.Property(e => e.MucusThreadsReference).HasMaxLength(100);
+        builder.Property(e => e.EpithelialCellsResult).HasMaxLength(50);
+        builder.Property(e => e.EpithelialCellsReference).HasMaxLength(100);
+        builder.Property(e => e.AmorphousUratesPhosphatesResult).HasMaxLength(50);
+        builder.Property(e => e.AmorphousUratesPhosphatesReference).HasMaxLength(100);
+        builder.Property(e => e.BacteriaResult).HasMaxLength(50);
+        builder.Property(e => e.BacteriaReference).HasMaxLength(100);
+        builder.Property(e => e.CrystalsResult).HasMaxLength(50);
+        builder.Property(e => e.CrystalsReference).HasMaxLength(100);
+        builder.Property(e => e.CastsResult).HasMaxLength(50);
+        builder.Property(e => e.CastsReference).HasMaxLength(100);
+    }
+}

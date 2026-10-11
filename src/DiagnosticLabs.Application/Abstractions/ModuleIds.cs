@@ -32,6 +32,9 @@ public static class ModuleIds
     /// <summary>The printed "Laboratory Results" sheet, called Physical Examination in the app (added after the legacy modules).</summary>
     public const int PhysicalExamination = 29;
 
+    /// <summary>The Clinical Microscopy form (added after the legacy modules).</summary>
+    public const int ClinicalMicroscopy = 30;
+
     /// <summary>Change Password is available to every signed-in user from the header, so it is not a permission module.</summary>
     public const int ChangePassword = 28;
 }

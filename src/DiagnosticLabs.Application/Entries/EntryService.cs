@@ -89,6 +89,7 @@ public static class EntryFields
     public static readonly EntryField HematologyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Hematology);
     public static readonly EntryField UrinalysisRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.Urinalysis);
     public static readonly EntryField PhysicalExaminationRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.PhysicalExamination);
+    public static readonly EntryField ClinicalMicroscopyRemarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalMicroscopy);
 
     // Annual Physical Exam
     public static readonly EntryField ApeEnt = new("ENT", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);

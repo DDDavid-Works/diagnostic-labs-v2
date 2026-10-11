@@ -51,6 +51,9 @@ public static class ReportDocumentBuilder
             case ReportLayout.PhysicalExamination:
                 PhysicalExaminationLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.ClinicalMicroscopy:
+                ClinicalMicroscopyLayout.Draw(canvas, report);
+                break;
             default:
                 throw new NotSupportedException($"There is no page design for {report.Layout}.");
         }
@@ -1507,4 +1510,80 @@ internal static class PhysicalExaminationLayout
         }
     }
 }
+/// <summary>
+/// Clinical Microscopy, from the client's hand-drawn form: a urine examination in three parts (physical, chemical, microscopic), each test with a result and a
+/// reference range, then Remarks and three signatories with their licence numbers. The header, title bar, patient block and Remarks box are the same as on the
+/// other forms; the part headings are bold rows of the table.
+/// </summary>
+internal static class ClinicalMicroscopyLayout
+{
+    private const double Left = 51.3;
+    private const double Right = 763.3;
+    private const double Top = 246.5;
+    private const double TestWidth = 250.0;
+    private const double ResultWidth = 190.0;
+    private const double RowHeight = 20.0;
+    private const double HeaderHeight = 21.0;
+    private const double Size = 12.0;
 
+    public static void Draw(Canvas canvas, PrintableReport report)
+    {
+        PageDrawing.PutHeader(canvas, report.Letterhead);
+        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
+        PageDrawing.PutPatientBlock(canvas, report);
+
+        var sections = ClinicalMicroscopyFields.Sections;
+        var rowCount = sections.Sum(s => s.Tests.Count + 1);
+        var bottom = Top + HeaderHeight + (rowCount * RowHeight);
+        var line = PageStyle.Standard.Line;
+        var resultX = Left + TestWidth;
+        var referenceX = resultX + ResultWidth;
+
+        PageDrawing.PutRect(canvas, Left, Top, Right - Left, bottom - Top, null, Brushes.Black, line);
+        PageDrawing.PutText(canvas, "Tests", Left, Top + 15.0, Size, bold: true, width: TestWidth, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "Result", resultX, Top + 15.0, Size, bold: true, width: ResultWidth, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "Reference Range", referenceX, Top + 15.0, Size, bold: true, width: Right - referenceX, alignment: TextAlignment.Center);
+        PageDrawing.PutRule(canvas, Left, Top + HeaderHeight, Right - Left, line);
+        PageDrawing.PutVerticalRule(canvas, resultX, Top, HeaderHeight, line);
+        PageDrawing.PutVerticalRule(canvas, referenceX, Top, HeaderHeight, line);
+
+        var fields = report.Fields ?? new Dictionary<string, string?>();
+        var y = Top + HeaderHeight;
+        foreach (var section in sections)
+        {
+            // the part heading is a row across the table, ruled above and below
+            PageDrawing.PutText(canvas, "* " + section.Title, Left + 4.0, y + 14.0, Size, bold: true);
+            y += RowHeight;
+            PageDrawing.PutRule(canvas, Left, y, Right - Left, line);
+
+            var testsTop = y;
+            foreach (var test in section.Tests)
+            {
+                var baseline = y + 14.0;
+                PageDrawing.PutFit(canvas, test.Label, Left + 24.0, baseline, TestWidth - 28.0, Size);
+                fields.TryGetValue(test.ResultColumn, out var result);
+                fields.TryGetValue(test.ReferenceColumn, out var reference);
+                PageDrawing.PutFit(canvas, result, resultX + 3.0, baseline, ResultWidth - 6.0, Size, center: true);
+                PageDrawing.PutFit(canvas, reference, referenceX + 3.0, baseline, Right - referenceX - 6.0, Size, center: true);
+                y += RowHeight;
+            }
+
+            PageDrawing.PutVerticalRule(canvas, resultX, testsTop, y - testsTop, line);
+            PageDrawing.PutVerticalRule(canvas, referenceX, testsTop, y - testsTop, line);
+            if (y < bottom)
+                PageDrawing.PutRule(canvas, Left, y, Right - Left, line);
+        }
+
+        // Remarks, as on the other forms: a box under the table that grows with its text.
+        PageDrawing.PutLabel(canvas, "Remarks", 52.0, bottom + 24.2);
+        var remarks = report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text;
+        var remarksText = PageDrawing.Text(remarks, PageDrawing.Body, bold: false, width: 700);
+        Canvas.SetLeft(remarksText, 54.7);
+        Canvas.SetTop(remarksText, bottom + 32.7);
+        canvas.Children.Add(remarksText);
+        var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
+        PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
+
+        PageDrawing.PutThreeSignatories(canvas, report, remarksBottom);
+    }
+}
