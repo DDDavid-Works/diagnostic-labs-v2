@@ -32,7 +32,7 @@ Options for the Windows 7 stations, in order of preference:
 ## Server
 
 - **SQL Server Express 2022** (free). Limits are 10 GB per database, 1 GB of buffer memory and 4 cores. This is plenty for 25 clerks. Revisit only if the database grows past a few GB.
-- **Create the database:** run `db/schema.sql` on an empty `DiagnosticLabsV2`. Note that it creates tables only: it has no starting data (users, menu/modules, permissions, services, company), so nobody can sign in until that exists. See "Starting data" below.
+- **Create the database:** run `db/schema.sql`, then `db/seed.sql`, on an empty `DiagnosticLabsV2` (see "Starting data" below).
 - **Network:**
   - Enable TCP/IP and use the fixed port 1433 (turn off dynamic ports; SQL Browser is not needed).
   - Open the firewall for that port to the LAN only.
@@ -104,13 +104,20 @@ Rough size: about 150 MB per release. That is fine on a LAN but is why the updat
 
 Alternatives: an MSIX/MSI installer pushed by hand to each station (simple, but 25 visits per release), or running the app straight from the share (no install, but slow start-up and a hard dependency on the share). The launcher is the best fit for a small site with no IT department.
 
-### Database version check (not built yet)
+### Database version check (built)
 
-There is no version table in `db/schema.sql` yet. Suggested:
+No separate version table: EF Core already records every applied migration in `__EFMigrationsHistory`, and both `db/schema.sql` and `dotnet ef database update` keep it current. At start-up, before the login screen, the app compares the migrations compiled into it with that history (`SchemaCheck`, `SchemaVersionService`):
 
-- A `SchemaVersion` table, updated by numbered migration scripts (`db/migrations/001-...sql`).
-- The app compares the version it was built for with the database at start-up and shows a clear "update required" message instead of failing later with a SQL error.
-- Release order: back up, run migrations, publish the new app folder. Stations on the old version are told to restart and pick up the new one.
+| Situation | What the station shows |
+|---|---|
+| Same migrations | Nothing, the login screen opens. |
+| Database lacks migrations (not set up, or an update was not run) | "Ask your administrator to update the database." The log lists the missing migrations. |
+| Database has migrations this program does not know (the station has an older program) | "Close it and open Diagnostic Labs from its shortcut so it can update itself." The launcher then copies the new release. |
+| Server unreachable, wrong server name or login | "Cannot reach the database. Check the network..." The error goes to the log. |
+
+**Release order:** back up the database, run `db\schema.sql` on it (it is idempotent: it applies only what is missing), publish the new app folder to the share (`Publish-Release.ps1 -ShareTarget`), then stations pick it up on their next launch. Between the second and third step, stations still on the old program see the "older than the database" message and are sent to the launcher, which is the intended behaviour.
+
+A migration is only safe to ship if `schema.sql` also builds an empty database: test that on a scratch database after every migration that uses raw SQL (two migrations once failed here because an `UPDATE` ran on a column added in the same batch).
 
 ## Rollout order
 
@@ -122,10 +129,10 @@ There is no version table in `db/schema.sql` yet. Suggested:
 ## Open items
 
 - Count and spec the Windows 7 PCs (CPU 64-bit, RAM, disk) to see how many can be upgraded rather than replaced.
-- Decide the starting data (see below) and which stations are needed on day one.
+- Decide which stations are needed on day one, and have the lab confirm the reference ranges in the seed.
 - Confirm the backup target (second disk, NAS or external drive) and who rotates it.
 - Decide where `appsettings.Local.json` comes from for a new station (a template file in the update share with the password filled in on site).
-- Build: `SchemaVersion` table and start-up check. (Publish profile, launcher and backup scripts are done, see "Tools" below.)
+- Nothing left to build for deployment. Remaining: rehearsal on a spare PC and the user manual.
 - User manual (see below).
 
 ## User manual (later)
@@ -184,13 +191,27 @@ To rehearse without touching the live data, restore under another name (`RESTORE
 
 ## Starting data
 
-`db/schema.sql` creates empty tables, and the app has no built-in seeding. A new database therefore has no users, no menu (`Modules`), no permissions, no services and no company details, and nobody can sign in.
+`db/schema.sql` creates empty tables, and the app has no built-in seeding, so a new database needs `db/seed.sql` before anyone can sign in. The old development database held only test data, so the seed starts clean instead of copying it.
 
-The legacy never went live, so there is no history to migrate, but the old database on the client's PC may hold **setup the client already entered** (services and prices, company details, users, discounts). Options:
+**Fresh install, in order** (on the server, in PowerShell):
 
-| Option | Notes |
-|---|---|
-| **A. Seed from the old database** | Use `db/migrate-from-legacy.sql` once on the empty V2 database, then delete any test patients, registrations and lab rows. Keeps whatever setup the client already did and the menu/permission rows. Needs a look at what the old database actually holds first. |
-| **B. A proper seed script** | Write `db/seed.sql` (menu, permissions, an admin user, empty lists) and let the client enter services and company data. Cleaner for a first install and repeatable for future sites. More work now. |
+```powershell
+sqlcmd -S .\SQLEXPRESS -E -C -Q "CREATE DATABASE DiagnosticLabsV2"
+sqlcmd -S .\SQLEXPRESS -d DiagnosticLabsV2 -E -C -I -b -i db\schema.sql
+$env:DL_ADMIN_PASSWORD = '<temporary password>'     # 8+ letters/digits, no quotes
+sqlcmd -S .\SQLEXPRESS -d DiagnosticLabsV2 -E -C -I -b -i db\seed.sql
+$env:DL_ADMIN_PASSWORD = $null
+```
 
-Recommended: A to get going (it is built and verified), B if this app will be installed at other labs.
+The seed creates:
+
+- the menu (6 module types, 30 modules) and the 15 services the lab forms hang off, at **price 0** (the lab sets prices on the Services screen; the two unbuilt "Medical Examination" services are inactive);
+- the reference ranges for Hematology, Clinical Chemistry, Physical Examination and Clinical Microscopy (**the lab should confirm these**);
+- the Patients dropdowns (Gender, Civil Status);
+- the `Admin` user with the temporary password, which must be changed at first sign-in.
+
+It does not create companies, departments, items, discounts, packages, signatory names or the Stool/Fecalysis defaults: those are entered in the app. It refuses to run on a database that already has users, modules or services. Administrators see every screen, so no permission rows are needed.
+
+After editing a module or a reference range, regenerate it with `tools\Generate-Seed.ps1 -Server <server>` (reads a reference database, writes `db/seed.sql`).
+
+Rollback of a failed install is simply dropping the database and starting again.

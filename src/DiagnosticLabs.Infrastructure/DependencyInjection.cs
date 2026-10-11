@@ -1,4 +1,5 @@
 using DiagnosticLabs.Application.Abstractions;
+using DiagnosticLabs.Application.Schema;
 using DiagnosticLabs.Infrastructure.Persistence;
 using DiagnosticLabs.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,7 @@ public static class DependencyInjection
                 sp.GetRequiredService<AuditSaveChangesInterceptor>(),
                 sp.GetRequiredService<AuditLogInterceptor>()));
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<ISchemaVersionService, SchemaVersionService>();
 
         return services;
     }

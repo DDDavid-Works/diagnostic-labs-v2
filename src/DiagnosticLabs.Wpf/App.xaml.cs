@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using DiagnosticLabs.Application;
 using DiagnosticLabs.Application.Abstractions;
+using DiagnosticLabs.Application.Schema;
 using DiagnosticLabs.Infrastructure;
 using DiagnosticLabs.Wpf.Services;
 using DiagnosticLabs.Wpf.ViewModels;
@@ -39,6 +40,12 @@ public partial class App : System.Windows.Application
                 args.Handled = true;
             };
 
+            if (!await DatabaseVersionIsCurrentAsync())
+            {
+                Shutdown(1);
+                return;
+            }
+
             ShowLogin();
         }
         catch (Exception ex)
@@ -47,6 +54,19 @@ public partial class App : System.Windows.Application
             MessageBox.Show($"The application could not start.\n\n{ex.Message}", "Diagnostic Labs", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
+    }
+
+    /// <summary>Stops start-up with a plain message when the database and this program are not the same version.</summary>
+    private async Task<bool> DatabaseVersionIsCurrentAsync()
+    {
+        await using var scope = _host!.Services.CreateAsyncScope();
+        var result = await scope.ServiceProvider.GetRequiredService<ISchemaVersionService>().CheckAsync();
+        if (result.IsCurrent)
+            return true;
+
+        Log.Warning("Start-up stopped, database check: {Status}. {Detail}", result.Status, result.Detail);
+        MessageBox.Show(result.Message, "Diagnostic Labs", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return false;
     }
 
     protected override async void OnExit(ExitEventArgs e)
