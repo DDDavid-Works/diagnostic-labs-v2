@@ -70,7 +70,7 @@
                       Visibility="{Binding HasActiveFlag, Converter={StaticResource BoolToVis}}" />
             <TextBlock Text="{Binding Message}" Style="{StaticResource StatusText}" Margin="0,0,0,10" />
             <StackPanel Orientation="Horizontal">
-              <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="New" Command="{Binding NewRecordCommand}" IsEnabled="{Binding CanCreate}" />
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.PlusCircle}" Content="New" Command="{Binding NewRecordCommand}" IsEnabled="{Binding CanCreate}" />
               <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
                       Click="Save_OnClick" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" />
               <Button icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Delete" Style="{StaticResource DangerButton}" Margin="8,0,0,0"
