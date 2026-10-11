@@ -25,9 +25,10 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                 nullable: true);
 
             // The second medical technologist moves from the Fecalysis detail to the shared header (other forms are signed by two as well).
+            // EXEC so the script compiles on an empty database, where the columns are added in the same batch.
             migrationBuilder.Sql(@"
-                UPDATE r SET r.MedicalTechnologist2 = s.MedicalTechnologist2, r.MedicalTechnologist2License = s.MedicalTechnologist2License
-                FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id;");
+                EXEC(N'UPDATE r SET r.MedicalTechnologist2 = s.MedicalTechnologist2, r.MedicalTechnologist2License = s.MedicalTechnologist2License
+                FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id;');");
 
             migrationBuilder.DropColumn(
                 name: "MedicalTechnologist2",
@@ -56,8 +57,8 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                 nullable: true);
 
             migrationBuilder.Sql(@"
-                UPDATE s SET s.MedicalTechnologist2 = r.MedicalTechnologist2, s.MedicalTechnologist2License = r.MedicalTechnologist2License
-                FROM StoolFecalysisReports s JOIN LabReports r ON r.Id = s.LabReportId;");
+                EXEC(N'UPDATE s SET s.MedicalTechnologist2 = r.MedicalTechnologist2, s.MedicalTechnologist2License = r.MedicalTechnologist2License
+                FROM StoolFecalysisReports s JOIN LabReports r ON r.Id = s.LabReportId;');");
 
             migrationBuilder.DropColumn(
                 name: "MedicalTechnologist2",

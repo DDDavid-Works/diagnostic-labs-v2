@@ -1471,13 +1471,14 @@ IF NOT EXISTS (
 )
 BEGIN
 
+                    EXEC(N'
                     UPDATE r SET r.Remarks = s.Result
                     FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id
-                    WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND LTRIM(RTRIM(ISNULL(r.Remarks, N''))) = N'';
+                    WHERE LTRIM(RTRIM(ISNULL(s.Result, N''''))) <> N'''' AND LTRIM(RTRIM(ISNULL(r.Remarks, N''''))) = N'''';
 
                     UPDATE s SET s.Others = s.Result
                     FROM StoolFecalysisReports s JOIN LabReports r ON r.Id = s.LabReportId
-                    WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND r.Remarks <> s.Result AND s.Others = N'';
+                    WHERE LTRIM(RTRIM(ISNULL(s.Result, N''''))) <> N'''' AND r.Remarks <> s.Result AND s.Others = N''''');
 END;
 
 IF NOT EXISTS (
@@ -1684,8 +1685,8 @@ IF NOT EXISTS (
 )
 BEGIN
 
-                    UPDATE r SET r.MedicalTechnologist2 = s.MedicalTechnologist2, r.MedicalTechnologist2License = s.MedicalTechnologist2License
-                    FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id;
+                    EXEC(N'UPDATE r SET r.MedicalTechnologist2 = s.MedicalTechnologist2, r.MedicalTechnologist2License = s.MedicalTechnologist2License
+                    FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id;');
 END;
 
 IF NOT EXISTS (

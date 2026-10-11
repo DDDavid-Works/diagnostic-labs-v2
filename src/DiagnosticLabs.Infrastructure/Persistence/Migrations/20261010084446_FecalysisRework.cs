@@ -69,14 +69,17 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
 
             // The old form had a single free-text Result; the new one has Remarks. Move the text across so nothing is lost:
             // into Remarks when the report has none, otherwise into Others (the Result column itself stays for now).
+            // Wrapped in EXEC so the batch compiles when the Others column is added a few lines above in the same
+            // script; otherwise the generated db/schema.sql fails on an empty database ("Invalid column name 'Others'").
             migrationBuilder.Sql(@"
+                EXEC(N'
                 UPDATE r SET r.Remarks = s.Result
                 FROM LabReports r JOIN StoolFecalysisReports s ON s.LabReportId = r.Id
-                WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND LTRIM(RTRIM(ISNULL(r.Remarks, N''))) = N'';
+                WHERE LTRIM(RTRIM(ISNULL(s.Result, N''''))) <> N'''' AND LTRIM(RTRIM(ISNULL(r.Remarks, N''''))) = N'''';
 
                 UPDATE s SET s.Others = s.Result
                 FROM StoolFecalysisReports s JOIN LabReports r ON r.Id = s.LabReportId
-                WHERE LTRIM(RTRIM(ISNULL(s.Result, N''))) <> N'' AND r.Remarks <> s.Result AND s.Others = N'';");
+                WHERE LTRIM(RTRIM(ISNULL(s.Result, N''''))) <> N'''' AND r.Remarks <> s.Result AND s.Others = N''''');");
         }
 
         /// <inheritdoc />
