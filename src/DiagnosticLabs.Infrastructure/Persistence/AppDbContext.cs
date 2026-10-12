@@ -38,6 +38,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<Payment> Payments => Set<Payment>();
 
+    public DbSet<StatementOfAccount> StatementsOfAccount => Set<StatementOfAccount>();
+
+    public DbSet<StatementOfAccountLine> StatementOfAccountLines => Set<StatementOfAccountLine>();
+
     public DbSet<Service> Services => Set<Service>();
 
     public DbSet<Package> Packages => Set<Package>();

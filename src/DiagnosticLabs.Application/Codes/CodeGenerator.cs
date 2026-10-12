@@ -20,6 +20,9 @@ public interface ICodeGenerator
 
     /// <summary>The next registration code without using it up, or <c>null</c> when no company code has been set up.</summary>
     Task<string?> PeekRegistrationCodeAsync(DateOnly day, CancellationToken cancellationToken = default);
+
+    /// <summary>Next Statement of Account number for <paramref name="day"/>, e.g. <c>SOA-20261012-0001</c>; the counter restarts every day.</summary>
+    Task<string> NextStatementNumberAsync(DateOnly day, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -61,6 +64,26 @@ public sealed class CodeGenerator(IAppDbContext db, IClock clock) : ICodeGenerat
 
         var prefix = DayPrefix(day);
         return $"{company}-{prefix}-{await PeekNumberAsync(prefix, ct => SeedRegistrationAsync(prefix, ct), cancellationToken):D5}";
+    }
+
+    public async Task<string> NextStatementNumberAsync(DateOnly day, CancellationToken cancellationToken = default)
+    {
+        var prefix = $"SOA-{day:yyyyMMdd}-";
+        var number = await NextNumberAsync(prefix, async ct =>
+        {
+            // Seed from the statements already made that day (voided ones included, so a number is never reused).
+            var numbers = await db.StatementsOfAccount.AsNoTracking()
+                .Where(s => s.StatementNumber.StartsWith(prefix))
+                .Select(s => s.StatementNumber)
+                .ToListAsync(ct);
+
+            return numbers
+                .Select(n => long.TryParse(n.AsSpan(prefix.Length), out var value) ? value : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+        }, cancellationToken);
+
+        return $"{prefix}{number:D4}";
     }
 
     /// <summary><c>09OC26</c> for 9 October 2026; this is also the key of that day's counter (it matches the legacy counters).</summary>

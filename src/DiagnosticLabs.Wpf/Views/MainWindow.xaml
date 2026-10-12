@@ -20,6 +20,9 @@
     <DataTemplate DataType="{x:Type vm:BatchPrintViewModel}">
       <views:BatchPrintView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:StatementOfAccountViewModel}">
+      <views:StatementOfAccountView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SalesReportViewModel}">
       <views:SalesReportView />
     </DataTemplate>

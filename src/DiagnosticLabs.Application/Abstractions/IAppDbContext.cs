@@ -35,6 +35,10 @@ public interface IAppDbContext
 
     DbSet<Payment> Payments { get; }
 
+    DbSet<StatementOfAccount> StatementsOfAccount { get; }
+
+    DbSet<StatementOfAccountLine> StatementOfAccountLines { get; }
+
     DbSet<Service> Services { get; }
 
     DbSet<Package> Packages { get; }

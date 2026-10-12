@@ -2578,3 +2578,139 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE TABLE [StatementsOfAccount] (
+        [Id] bigint NOT NULL IDENTITY,
+        [StatementNumber] nvarchar(30) NOT NULL,
+        [Mode] int NOT NULL,
+        [CompanyId] bigint NULL,
+        [CompanyName] nvarchar(200) NULL,
+        [BatchName] nvarchar(200) NULL,
+        [Attention] nvarchar(200) NULL,
+        [PatientId] bigint NULL,
+        [PatientName] nvarchar(200) NULL,
+        [PatientCode] nvarchar(200) NULL,
+        [DateFrom] date NULL,
+        [DateTo] date NULL,
+        [GrossTotal] decimal(18,4) NOT NULL,
+        [DiscountTotal] decimal(18,4) NOT NULL,
+        [NetTotal] decimal(18,4) NOT NULL,
+        [PaidTotal] decimal(18,4) NOT NULL,
+        [BalanceTotal] decimal(18,4) NOT NULL,
+        [IsVoid] bit NOT NULL,
+        [VoidedAtUtc] datetime2(3) NULL,
+        [VoidedByUserId] bigint NULL,
+        [RegeneratedFromId] bigint NULL,
+        [CreatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedByUserId] bigint NULL,
+        [UpdatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [UpdatedByUserId] bigint NULL,
+        [RowVersion] rowversion NOT NULL,
+        CONSTRAINT [PK_StatementsOfAccount] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_StatementsOfAccount_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_StatementsOfAccount_Patients_PatientId] FOREIGN KEY ([PatientId]) REFERENCES [Patients] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_StatementsOfAccount_StatementsOfAccount_RegeneratedFromId] FOREIGN KEY ([RegeneratedFromId]) REFERENCES [StatementsOfAccount] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_StatementsOfAccount_Users_CreatedByUserId] FOREIGN KEY ([CreatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_StatementsOfAccount_Users_UpdatedByUserId] FOREIGN KEY ([UpdatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE TABLE [StatementOfAccountLines] (
+        [Id] bigint NOT NULL IDENTITY,
+        [StatementOfAccountId] bigint NOT NULL,
+        [Sequence] int NOT NULL,
+        [PatientRegistrationId] bigint NOT NULL,
+        [RegistrationCode] nvarchar(100) NOT NULL,
+        [PatientName] nvarchar(200) NOT NULL,
+        [RegistrationDate] date NOT NULL,
+        [Gross] decimal(18,4) NOT NULL,
+        [Discount] decimal(18,4) NOT NULL,
+        [Net] decimal(18,4) NOT NULL,
+        [Paid] decimal(18,4) NOT NULL,
+        [Balance] decimal(18,4) NOT NULL,
+        CONSTRAINT [PK_StatementOfAccountLines] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_StatementOfAccountLines_StatementsOfAccount_StatementOfAccountId] FOREIGN KEY ([StatementOfAccountId]) REFERENCES [StatementsOfAccount] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE INDEX [IX_StatementOfAccountLines_StatementOfAccountId_Sequence] ON [StatementOfAccountLines] ([StatementOfAccountId], [Sequence]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE INDEX [IX_StatementsOfAccount_CompanyId] ON [StatementsOfAccount] ([CompanyId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE INDEX [IX_StatementsOfAccount_CreatedAtUtc] ON [StatementsOfAccount] ([CreatedAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE INDEX [IX_StatementsOfAccount_PatientId] ON [StatementsOfAccount] ([PatientId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE INDEX [IX_StatementsOfAccount_RegeneratedFromId] ON [StatementsOfAccount] ([RegeneratedFromId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_StatementsOfAccount_StatementNumber] ON [StatementsOfAccount] ([StatementNumber]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+
+                    UPDATE Modules SET HasCreate = 1, HasDelete = 1 WHERE Id = 25;
+                    UPDATE UserPermissions SET AllowCreate = 1, AllowDelete = 1 WHERE ModuleId = 25 AND AllowPrint = 1;
+                
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012104153_StatementsOfAccount'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261012104153_StatementsOfAccount', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

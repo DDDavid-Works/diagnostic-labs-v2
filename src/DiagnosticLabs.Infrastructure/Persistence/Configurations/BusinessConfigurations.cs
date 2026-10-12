@@ -200,6 +200,36 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
     }
 }
 
+internal sealed class StatementOfAccountConfiguration : IEntityTypeConfiguration<StatementOfAccount>
+{
+    public void Configure(EntityTypeBuilder<StatementOfAccount> builder)
+    {
+        builder.Property(s => s.StatementNumber).HasMaxLength(30);
+        builder.Property(s => s.Mode).HasConversion<int>();
+        builder.Property(s => s.CompanyName).HasMaxLength(200);
+        builder.Property(s => s.BatchName).HasMaxLength(200);
+        builder.Property(s => s.Attention).HasMaxLength(200);
+        builder.Property(s => s.PatientName).HasMaxLength(200);
+        builder.Property(s => s.PatientCode).HasMaxLength(200);
+        builder.HasOne(s => s.Company).WithMany().HasForeignKey(s => s.CompanyId);
+        builder.HasOne(s => s.Patient).WithMany().HasForeignKey(s => s.PatientId);
+        builder.HasOne<StatementOfAccount>().WithMany().HasForeignKey(s => s.RegeneratedFromId);
+        builder.HasIndex(s => s.StatementNumber).IsUnique();
+        builder.HasIndex(s => s.CreatedAtUtc);
+    }
+}
+
+internal sealed class StatementOfAccountLineConfiguration : IEntityTypeConfiguration<StatementOfAccountLine>
+{
+    public void Configure(EntityTypeBuilder<StatementOfAccountLine> builder)
+    {
+        builder.Property(l => l.RegistrationCode).HasMaxLength(100);
+        builder.Property(l => l.PatientName).HasMaxLength(200);
+        builder.HasOne(l => l.StatementOfAccount).WithMany(s => s.Lines).HasForeignKey(l => l.StatementOfAccountId);
+        builder.HasIndex(l => new { l.StatementOfAccountId, l.Sequence });
+    }
+}
+
 internal sealed class CompanySetupConfiguration : IEntityTypeConfiguration<CompanySetup>
 {
     public void Configure(EntityTypeBuilder<CompanySetup> builder)

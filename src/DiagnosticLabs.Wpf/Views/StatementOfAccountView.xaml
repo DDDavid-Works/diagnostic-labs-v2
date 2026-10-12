@@ -1,0 +1,252 @@
+<UserControl x:Class="DiagnosticLabs.Wpf.Views.StatementOfAccountView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls"
+             xmlns:vm="clr-namespace:DiagnosticLabs.Wpf.ViewModels"
+             Loaded="OnLoaded">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+    <!-- Amounts line up on the right -->
+    <Style x:Key="MoneyCell" TargetType="TextBlock">
+      <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+
+    <!-- A voided statement reads red -->
+    <Style x:Key="StatusCell" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Resources>
+
+  <Grid Margin="24,16,24,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="Statement of Accounts" Style="{StaticResource PageTitle}" Margin="0,0,0,12" />
+
+    <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTab}">
+      <!-- ================================================= Generate -->
+      <TabItem Header="Generate">
+        <Grid Margin="0,12,0,0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+
+          <StackPanel Grid.Row="0" HorizontalAlignment="Left" Width="680">
+            <Border Background="White" Padding="20,14" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="130" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Statement" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="0,0,0,10">
+                  <RadioButton Content="For Company" IsChecked="{Binding IsCompanyMode}" Margin="0,0,24,0" VerticalContentAlignment="Center"
+                               ToolTip="The registrations charged to a company" />
+                  <RadioButton Content="For Patient" IsChecked="{Binding IsPatientMode}" VerticalContentAlignment="Center"
+                               ToolTip="Everything billed to one patient, with what was paid and what is left" />
+                </StackPanel>
+
+                <!-- Company mode -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Company *" Style="{StaticResource PaperLabel}" VerticalAlignment="Center"
+                           Visibility="{Binding IsCompanyMode, Converter={StaticResource BoolToVis}}" />
+                <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" ItemsSource="{Binding Companies}" DisplayMemberPath="Name"
+                          SelectedValuePath="Id" SelectedValue="{Binding CompanyId}" Margin="0,0,0,10"
+                          Visibility="{Binding IsCompanyMode, Converter={StaticResource BoolToVis}}" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Batch Name" Style="{StaticResource PaperLabel}" VerticalAlignment="Center"
+                           Visibility="{Binding IsCompanyMode, Converter={StaticResource BoolToVis}}" />
+                <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4" ItemsSource="{Binding Batches}" SelectedItem="{Binding Batch}" Margin="0,0,0,10"
+                          IsEnabled="{Binding CanPickBatch}" ToolTip="Pick a company to choose one of its batches; leave it on all batches for the whole company"
+                          Visibility="{Binding IsCompanyMode, Converter={StaticResource BoolToVis}}" />
+
+                <!-- Patient mode -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Patient *" Style="{StaticResource PaperLabel}" VerticalAlignment="Center"
+                           Visibility="{Binding IsPatientMode, Converter={StaticResource BoolToVis}}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" x:Name="PatientBox" Text="{Binding PatientText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"
+                         ToolTip="Type part of the patient's name or code, then pick the patient from the list"
+                         Visibility="{Binding IsPatientMode, Converter={StaticResource BoolToVis}}" />
+                <ListBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4" x:Name="SuggestionList" ItemsSource="{Binding Suggestions}" Margin="0,-6,0,10" MaxHeight="150"
+                         SelectionChanged="OnSuggestionPicked">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock>
+                        <Run Text="{Binding PatientName, Mode=OneWay}" />
+                        <Run Text="{Binding PatientCode, StringFormat=' ({0})', Mode=OneWay}" Foreground="{StaticResource MutedTextBrush}" />
+                      </TextBlock>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                  <ListBox.Style>
+                    <Style TargetType="ListBox">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                      <Style.Triggers>
+                        <MultiDataTrigger>
+                          <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsPatientMode}" Value="True" />
+                            <Condition Binding="{Binding HasSuggestions}" Value="True" />
+                          </MultiDataTrigger.Conditions>
+                          <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </ListBox.Style>
+                </ListBox>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Date Range" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
+                <DatePicker Grid.Row="3" Grid.Column="1" SelectedDate="{Binding DateFrom}" Margin="0,0,0,10" ToolTip="Optional: registrations from this day" />
+                <TextBlock Grid.Row="3" Grid.Column="2" Text="to" Style="{StaticResource PaperLabel}" Margin="10,0,10,10" VerticalAlignment="Center" />
+                <DatePicker Grid.Row="3" Grid.Column="3" SelectedDate="{Binding DateTo}" Margin="0,0,0,10" ToolTip="Optional: registrations up to this day" />
+                <Button Grid.Row="3" Grid.Column="4" Content="Clear" Margin="10,0,0,10" Padding="10,4" MinWidth="0" Command="{Binding ClearDatesCommand}"
+                        ToolTip="Remove the date range: every date" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Attention" Style="{StaticResource PaperLabel}" VerticalAlignment="Center"
+                           Visibility="{Binding IsCompanyMode, Converter={StaticResource BoolToVis}}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding Attention, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                         ToolTip="Who the statement is addressed to (printed under the company)"
+                         Visibility="{Binding IsCompanyMode, Converter={StaticResource BoolToVis}}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+
+          <DockPanel Grid.Row="1" Margin="0,10,0,0" HorizontalAlignment="Left" Width="680">
+            <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Print}" Content="Generate" Padding="14,6" Margin="8,0,0,0" Command="{Binding GenerateCommand}"
+                    ToolTip="Save the statement with its number and print it" />
+            <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Search}" Content="Preview" Padding="14,6" Command="{Binding PreviewCommand}"
+                    ToolTip="List what the statement would contain" />
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsError}" Value="False">
+                      <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </DockPanel>
+
+          <!-- What the statement would contain -->
+          <Grid Grid.Row="2" HorizontalAlignment="Left" Width="880" Margin="0,12,0,0" Visibility="{Binding HasLines, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,6" />
+
+            <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" IsReadOnly="True" SelectionMode="Single"
+                      Visibility="{Binding IsCompanyMode, Converter={StaticResource BoolToVis}}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Employees/Patients" Binding="{Binding PatientName}" Width="*" />
+                <DataGridTextColumn Header="Registration Date" Binding="{Binding DateText}" Width="130" />
+                <DataGridTextColumn Header="Gross Amount" Binding="{Binding Gross}" Width="120" ElementStyle="{StaticResource MoneyCell}" />
+                <DataGridTextColumn Header="Discount" Binding="{Binding Discount}" Width="120" ElementStyle="{StaticResource MoneyCell}" />
+                <DataGridTextColumn Header="Net Amount" Binding="{Binding Net}" Width="120" ElementStyle="{StaticResource MoneyCell}" />
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" IsReadOnly="True" SelectionMode="Single"
+                      Visibility="{Binding IsPatientMode, Converter={StaticResource BoolToVis}}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Registration Code" Binding="{Binding RegistrationCode}" Width="*" />
+                <DataGridTextColumn Header="Date" Binding="{Binding DateText}" Width="110" />
+                <DataGridTextColumn Header="Gross" Binding="{Binding Gross}" Width="90" ElementStyle="{StaticResource MoneyCell}" />
+                <DataGridTextColumn Header="Discount" Binding="{Binding Discount}" Width="90" ElementStyle="{StaticResource MoneyCell}" />
+                <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="90" ElementStyle="{StaticResource MoneyCell}" />
+                <DataGridTextColumn Header="Paid" Binding="{Binding Paid}" Width="90" ElementStyle="{StaticResource MoneyCell}" />
+                <DataGridTextColumn Header="Balance" Binding="{Binding Balance}" Width="90" ElementStyle="{StaticResource MoneyCell}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </Grid>
+        </Grid>
+      </TabItem>
+
+      <!-- ================================================= Saved -->
+      <TabItem Header="Saved statements">
+        <Grid Margin="0,12,0,0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <Border Grid.Row="0" Background="White" Padding="16,12" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="190" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Find" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,10,10" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"
+                       ToolTip="Statement number, company, batch or patient" />
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="Type" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="16,0,10,10" />
+              <ComboBox Grid.Row="0" Grid.Column="3" ItemsSource="{x:Static vm:StatementOfAccountViewModel.ModeFilters}" DisplayMemberPath="Name"
+                        SelectedItem="{Binding ModeFilter}" Margin="0,0,0,10" />
+              <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="2" icn:ButtonIcon.Data="{StaticResource Icon.Search}" Content="Search" Padding="14,6" Margin="16,0,0,10"
+                      VerticalAlignment="Top" Command="{Binding SearchSavedCommand}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Generated" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
+              <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal">
+                <DatePicker SelectedDate="{Binding GeneratedFrom}" Width="190" ToolTip="Optional: statements generated from this day" />
+                <TextBlock Text="to" Style="{StaticResource PaperLabel}" Margin="10,0" VerticalAlignment="Center" />
+                <DatePicker SelectedDate="{Binding GeneratedTo}" Width="190" ToolTip="Optional: statements generated up to this day" />
+                <Button Content="Clear" Margin="10,0,0,0" Padding="10,4" MinWidth="0" Command="{Binding ClearSavedDatesCommand}" />
+                <CheckBox Content="Include void" IsChecked="{Binding IncludeVoid}" Margin="24,0,0,0" VerticalAlignment="Center" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <DataGrid Grid.Row="1" ItemsSource="{Binding Saved}" SelectedItem="{Binding Selected}" IsReadOnly="True" SelectionMode="Single" Margin="0,10,0,0">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Statement No." Binding="{Binding Number}" Width="150" />
+              <DataGridTextColumn Header="Type" Binding="{Binding TypeText}" Width="80" />
+              <DataGridTextColumn Header="Company / Patient" Binding="{Binding Name}" Width="*" />
+              <DataGridTextColumn Header="Dates" Binding="{Binding Period}" Width="200" />
+              <DataGridTextColumn Header="Generated" Binding="{Binding GeneratedText}" Width="100" />
+              <DataGridTextColumn Header="Lines" Binding="{Binding Lines}" Width="55" ElementStyle="{StaticResource MoneyCell}" />
+              <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="95" ElementStyle="{StaticResource MoneyCell}" />
+              <DataGridTextColumn Header="Balance" Binding="{Binding Balance}" Width="95" ElementStyle="{StaticResource MoneyCell}" />
+              <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="70" ElementStyle="{StaticResource StatusCell}" />
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <DockPanel Grid.Row="2" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Left" icn:ButtonIcon.Data="{StaticResource Icon.Print}" Content="Reprint" Padding="14,6" Command="{Binding ReprintCommand}"
+                    ToolTip="Print the selected statement exactly as it was generated" />
+            <Button DockPanel.Dock="Left" Content="Regenerate" Padding="14,6" Margin="8,0,0,0" Command="{Binding RegenerateCommand}"
+                    ToolTip="Make a new statement from the registrations as they are now (the old one is voided)" />
+            <Button DockPanel.Dock="Left" Content="Void" Padding="14,6" Margin="8,0,0,0" Command="{Binding VoidCommand}"
+                    ToolTip="Cancel the selected statement; it stays in the list marked VOID" />
+            <TextBlock Text="{Binding SavedMessage}" VerticalAlignment="Center" Margin="16,0,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" />
+          </DockPanel>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

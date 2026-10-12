@@ -137,6 +137,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<SalesReportViewModel>();
         builder.Services.AddTransient<BatchPrintViewModel>();
+        builder.Services.AddTransient<StatementOfAccountViewModel>();
         builder.Services.AddTransient<AnnualPhysicalExamViewModel>();
         builder.Services.AddTransient<CompaniesViewModel>();
         builder.Services.AddTransient<DepartmentsViewModel>();

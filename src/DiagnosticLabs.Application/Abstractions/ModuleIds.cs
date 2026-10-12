@@ -27,6 +27,7 @@ public static class ModuleIds
     public const int ItemLocations = 22;
     public const int Discounts = 23;
     public const int SalesReport = 24;
+    public const int StatementOfAccounts = 25;
     public const int CompanySetup = 26;
     public const int Users = 27;
 

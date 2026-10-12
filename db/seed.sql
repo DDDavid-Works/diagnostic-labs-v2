@@ -86,7 +86,7 @@ INSERT INTO [Modules] ([Id], [ModuleTypeId], [ModuleName], [HasView], [HasCreate
   (22, 4, N'Item Locations', 1, 1, 1, 1, 1, 1, 0, 0, N'location', 6, 0, NULL),
   (23, 4, N'Discounts', 1, 1, 1, 1, 1, 1, 0, 0, N'discount', 7, 1, NULL),
   (24, 5, N'Sales Report', 1, 0, 0, 0, 0, 1, 0, 0, N'report', 1, 1, NULL),
-  (25, 5, N'Statement of Accounts', 1, 0, 0, 0, 1, 1, 0, 0, N'report', 2, 1, NULL),
+  (25, 5, N'Statement of Accounts', 1, 1, 0, 1, 1, 1, 0, 0, N'report', 2, 1, NULL),
   (26, 6, N'Company Setup', 1, 0, 1, 0, 0, 0, 0, 0, N'config', 1, 1, NULL),
   (27, 6, N'Users', 1, 1, 1, 1, 1, 0, 0, 0, N'user', 2, 1, NULL),
   (28, 6, N'Change Password', 1, 0, 1, 0, 1, 0, 0, 0, N'permission', 3, 1, NULL),
