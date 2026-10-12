@@ -18,13 +18,23 @@ public enum SalesPaymentFilter
 /// <summary>What to report on: the days (both included), optionally one company and one batch of it, and optionally only direct payments or only what was charged to companies.</summary>
 public sealed record SalesReportRequest(DateOnly From, DateOnly To, long? CompanyId = null, string? Batch = null, SalesPaymentFilter Payment = SalesPaymentFilter.All);
 
-/// <summary>One service the report has a column for.</summary>
-public sealed record SalesReportColumn(long ServiceId, string Name, int Count, decimal Amount);
+/// <summary>One service the report has a column for, and how many registrations have it.</summary>
+public sealed record SalesReportColumn(long ServiceId, string Name, int Count);
 
-/// <summary>One registration: the price charged for each of its services (a service it did not have is simply missing).</summary>
-public sealed record SalesReportRow(long RegistrationId, string PatientName, IReadOnlyDictionary<long, decimal> Prices);
+/// <summary>
+/// One registration: which services it has (the check marks), what it came to (its amount due, which is not the sum of the service prices when
+/// a package or a bundle was priced differently) and the discount given on it.
+/// </summary>
+public sealed record SalesReportRow(long RegistrationId, string PatientName, IReadOnlySet<long> ServiceIds, decimal AmountDue, decimal DiscountTotal)
+{
+    /// <summary>What is left to pay after the discount (the Net Amount column).</summary>
+    public decimal NetAmount => AmountDue - DiscountTotal;
+}
 
-/// <summary>The Sales Report as it is printed: a column per service, a row per registration, and the totals under the columns.</summary>
+/// <summary>
+/// The Sales Report as it is printed: a column per service with a check mark for each registration that has it, a count under each column, and
+/// the gross total (the amounts due of the registrations), the discounts given and the net total.
+/// </summary>
 public sealed record SalesReportData(
     ReportLetterhead Letterhead,
     DateOnly From,
@@ -35,7 +45,11 @@ public sealed record SalesReportData(
     IReadOnlyList<SalesReportColumn> Columns,
     IReadOnlyList<SalesReportRow> Rows)
 {
-    public decimal GrandTotal => Columns.Sum(c => c.Amount);
+    public decimal GrossTotal => Rows.Sum(r => r.AmountDue);
+
+    public decimal DiscountTotal => Rows.Sum(r => r.DiscountTotal);
+
+    public decimal NetTotal => GrossTotal - DiscountTotal;
 }
 
 public interface ISalesReportService
@@ -44,8 +58,8 @@ public interface ISalesReportService
 }
 
 /// <summary>
-/// What the lab sold in a period, from the prices charged on each registration (so a later price change does not alter an old report).
-/// Gross prices: discounts are not part of this report.
+/// What the lab sold in a period: which services each registration has, and the totals from what was charged on the registrations (the amount due and the discount
+/// stored on each one), so a later price change does not alter an old report. The gross total is the registrations' amount due, not the sum of service prices.
 /// </summary>
 public sealed class SalesReportService(IAppDbContext db, ICurrentUser currentUser) : ISalesReportService
 {
@@ -77,7 +91,9 @@ public sealed class SalesReportService(IAppDbContext db, ICurrentUser currentUse
             {
                 r.Id,
                 r.Patient.PatientName,
-                Services = r.Services.Select(s => new { s.ServiceId, s.Service.ServiceName, s.Price }).ToList(),
+                r.AmountDue,
+                r.DiscountTotal,
+                Services = r.Services.Select(s => new { s.ServiceId, s.Service.ServiceName }).ToList(),
             })
             .ToListAsync(cancellationToken);
 
@@ -85,15 +101,17 @@ public sealed class SalesReportService(IAppDbContext db, ICurrentUser currentUse
             .Select(r => new SalesReportRow(
                 r.Id,
                 r.PatientName,
-                r.Services.GroupBy(s => s.ServiceId).ToDictionary(g => g.Key, g => g.Sum(s => s.Price))))
+                r.Services.Select(s => s.ServiceId).ToHashSet(),
+                r.AmountDue,
+                r.DiscountTotal))
             .ToList();
 
-        // The columns are the services that were sold, in the order the lab created them; each carries its own count and total.
+        // The columns are the services that were sold, in the order the lab created them; each carries how many registrations have it.
         var columns = registrations
-            .SelectMany(r => r.Services)
+            .SelectMany(r => r.Services.DistinctBy(s => s.ServiceId))
             .GroupBy(s => s.ServiceId)
             .OrderBy(g => g.Key)
-            .Select(g => new SalesReportColumn(g.Key, g.First().ServiceName, g.Count(), g.Sum(s => s.Price)))
+            .Select(g => new SalesReportColumn(g.Key, g.First().ServiceName, g.Count()))
             .ToList();
 
         var companyName = request.CompanyId is { } id

@@ -56,7 +56,8 @@ internal static partial class Program
                     InputDate = LocalTime.ToUtc(new DateOnly(2026, 10, 10 + (i % 2)), new TimeSpan(9, i, 0)),
                     CompanyId = i < 5 ? company.Id : null,
                     BatchName = i < 5 ? "Batch A" : string.Empty,
-                    AmountDue = sold.Sum(s => s.Price),
+                    AmountDue = i == 3 ? 1400m : sold.Sum(s => s.Price), // one registration is a bundle priced below its services
+                    DiscountTotal = i % 4 == 0 ? 154.50m : 0m, // 10 percent off on some
                 };
                 for (var s = 0; s < services.Count; s++)
                     registration.Services.Add(new PatientRegistrationService { Service = services[s], Price = sold[s].Price });

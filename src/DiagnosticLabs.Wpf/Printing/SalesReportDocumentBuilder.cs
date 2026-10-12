@@ -11,8 +11,11 @@ namespace DiagnosticLabs.Wpf.Printing;
 
 /// <summary>
 /// Lays the Sales Report out on landscape US Letter pages (1056 x 816 pixels): the letterhead and a yellow title bar, then a table with a row per
-/// registration and a column per service, the count and amount of each column under the table, and the grand total. Long reports continue on
-/// further pages (the header row is repeated); a report with more services than fit across the page is printed in sets of columns, one after another.
+/// registration and a column per service (a check mark where the registration has the service), then the Gross Amount, Discount and Net Amount of the
+/// registration as the last three columns. Under the table: the count of each service column, and (not under the money columns) the gross, discount
+/// and net totals.
+/// Long reports continue on further pages (the header row is repeated); a report with more services than fit across the page is printed in sets of
+/// columns, one after another, and the money columns and the totals come with the last set.
 /// Everything on the page comes from <see cref="SalesReportData"/>, which is worked out and tested in the Application layer.
 /// </summary>
 public static class SalesReportDocumentBuilder
@@ -21,17 +24,23 @@ public static class SalesReportDocumentBuilder
     public const double PageHeight = 816;
 
     private const double Margin = 40;
-    private const double NameWidth = 210;
-    private const double MinColumnWidth = 74;
+    private const double NameWidth = 150;
+    private const double MoneyWidth = 76; // each of the Gross Amount, Discount and Net Amount columns
+    private const int MoneyColumns = 3;
+
+    /// <summary>The gross, discount and net totals under the table: a gap and three lines.</summary>
+    private const double SummaryHeight = 12 + (3 * 19);
+    private const double MinColumnWidth = 64;
     private const double HeaderHeight = 46;
     private const double RowHeight = 18;
     private const double Size = 11.5;
+    private const double HeaderSize = 9.5;
     private const double Bottom = PageHeight - 46;
 
     private static readonly Brush Faint = new SolidColorBrush(Color.FromRgb(200, 200, 200));
 
-    /// <summary>One page worth of the table: which columns, which rows, and what goes at the foot of it.</summary>
-    private sealed record PageSpec(int FirstColumn, int ColumnCount, int FirstRow, int RowCount, bool HasTotals, bool HasGrandTotal, bool FirstOfReport);
+    /// <summary>One page worth of the table: which columns, which rows, and what goes at the foot of it. LastSet is the set that carries the money columns.</summary>
+    private sealed record PageSpec(int FirstColumn, int ColumnCount, int FirstRow, int RowCount, bool HasTotals, bool LastSet, bool FirstOfReport);
 
     public static FixedDocument Build(SalesReportData report)
     {
@@ -67,8 +76,8 @@ public static class SalesReportDocumentBuilder
 
     private static IReadOnlyList<PageSpec> Plan(SalesReportData report)
     {
-        // The columns are split into equal sets that each fit the page width.
-        var perSet = Math.Max(1, (int)Math.Floor((PageWidth - (2 * Margin) - NameWidth) / MinColumnWidth));
+        // The service columns are split into equal sets that each fit the page width next to the name and the two money columns.
+        var perSet = Math.Max(1, (int)Math.Floor((PageWidth - (2 * Margin) - NameWidth - (MoneyColumns * MoneyWidth)) / MinColumnWidth));
         var sets = Math.Max(1, (int)Math.Ceiling(report.Columns.Count / (double)perSet));
         var setSize = report.Columns.Count == 0 ? 0 : (int)Math.Ceiling(report.Columns.Count / (double)sets);
 
@@ -78,7 +87,9 @@ public static class SalesReportDocumentBuilder
             var firstColumn = set * setSize;
             var columnCount = Math.Min(setSize, report.Columns.Count - firstColumn);
             var lastSet = set == sets - 1;
-            var totalsHeight = (2 * RowHeight) + 8 + (lastSet ? 2 * RowHeight : 0);
+
+            // The count row, and in the last set the gross, discount and net totals under the table.
+            var totalsHeight = 8 + RowHeight + (lastSet ? SummaryHeight : 0);
 
             var row = 0;
             while (true)
@@ -97,12 +108,12 @@ public static class SalesReportDocumentBuilder
                 if (remaining <= capacity)
                 {
                     // The rows fit but the totals do not: the totals get a page of their own rather than being split from the rows.
-                    specs.Add(new PageSpec(firstColumn, columnCount, row, remaining, false, false, first));
+                    specs.Add(new PageSpec(firstColumn, columnCount, row, remaining, false, lastSet, first));
                     specs.Add(new PageSpec(firstColumn, columnCount, report.Rows.Count, 0, true, lastSet, false));
                     break;
                 }
 
-                specs.Add(new PageSpec(firstColumn, columnCount, row, capacity, false, false, first));
+                specs.Add(new PageSpec(firstColumn, columnCount, row, capacity, false, lastSet, first));
                 row += capacity;
             }
         }
@@ -119,13 +130,16 @@ public static class SalesReportDocumentBuilder
         var top = TableTop(page.FirstOfReport);
         var left = Margin;
         var right = PageWidth - Margin;
+        var moneyWidth = page.LastSet ? MoneyColumns * MoneyWidth : 0;
+        var moneyLeft = right - moneyWidth;
         var columns = report.Columns.Skip(page.FirstColumn).Take(page.ColumnCount).ToList();
-        var columnWidth = columns.Count == 0 ? 0 : (right - left - NameWidth) / columns.Count;
+        var columnWidth = columns.Count == 0 ? 0 : (moneyLeft - left - NameWidth) / columns.Count;
         var rows = report.Rows.Skip(page.FirstRow).Take(page.RowCount).ToList();
 
         var bodyTop = top + HeaderHeight;
         var bodyBottom = bodyTop + (rows.Count * RowHeight);
-        var tableBottom = page.HasTotals ? bodyBottom + 8 + (2 * RowHeight) : bodyBottom;
+
+        var tableBottom = page.HasTotals ? bodyBottom + 8 + RowHeight : bodyBottom;
 
         PageDrawing.PutRect(canvas, left, top, right - left, tableBottom - top, null, Brushes.Black, 1.33);
         PageDrawing.PutRule(canvas, left, bodyTop, right - left);
@@ -135,13 +149,17 @@ public static class SalesReportDocumentBuilder
 
         PageDrawing.PutText(canvas, "PATIENTS", left, top + 27, Size, bold: true, width: NameWidth, alignment: TextAlignment.Center);
         for (var c = 0; c < columns.Count; c++)
+            PutHeader(canvas, columns[c].Name, left + NameWidth + (c * columnWidth), top, columnWidth);
+
+        if (page.LastSet)
         {
-            var x = left + NameWidth + (c * columnWidth);
-            var block = PageDrawing.Text(columns[c].Name, Size, bold: true, width: columnWidth - 8);
-            block.TextAlignment = TextAlignment.Center;
-            Canvas.SetLeft(block, x + 4);
-            Canvas.SetTop(block, top + ((HeaderHeight - Math.Min(block.DesiredSize.Height, HeaderHeight - 4)) / 2));
-            canvas.Children.Add(block);
+            // The money columns: a heavier rule sets them off from the services, light ones separate the three.
+            PageDrawing.PutVerticalRule(canvas, moneyLeft, top, tableBottom - top);
+            PageDrawing.PutVerticalRule(canvas, moneyLeft + MoneyWidth, top, tableBottom - top, 0.75);
+            PageDrawing.PutVerticalRule(canvas, moneyLeft + (2 * MoneyWidth), top, tableBottom - top, 0.75);
+            PutHeader(canvas, "Gross Amount", moneyLeft, top, MoneyWidth);
+            PutHeader(canvas, "Discount", moneyLeft + MoneyWidth, top, MoneyWidth);
+            PutHeader(canvas, "Net Amount", moneyLeft + (2 * MoneyWidth), top, MoneyWidth);
         }
 
         for (var r = 0; r < rows.Count; r++)
@@ -153,36 +171,59 @@ public static class SalesReportDocumentBuilder
             PageDrawing.PutFit(canvas, rows[r].PatientName.ToUpperInvariant(), left + 6, baseline, NameWidth - 12, Size);
             for (var c = 0; c < columns.Count; c++)
             {
-                if (rows[r].Prices.TryGetValue(columns[c].ServiceId, out var price))
-                    PutAmount(canvas, price, left + NameWidth + (c * columnWidth), baseline, columnWidth);
+                if (rows[r].ServiceIds.Contains(columns[c].ServiceId))
+                    PutCheck(canvas, left + NameWidth + ((c + 0.5) * columnWidth), bodyTop + (r * RowHeight));
+            }
+
+            if (page.LastSet)
+            {
+                PutMoney(canvas, rows[r].AmountDue, moneyLeft, baseline, bold: false);
+                PutMoney(canvas, rows[r].DiscountTotal, moneyLeft + MoneyWidth, baseline, bold: false);
+                PutMoney(canvas, rows[r].NetAmount, moneyLeft + (2 * MoneyWidth), baseline, bold: false);
             }
         }
 
         if (page.HasTotals)
         {
             var countBaseline = bodyBottom + 8 + 13;
-            var amountBaseline = countBaseline + RowHeight;
             PageDrawing.PutRule(canvas, left, bodyBottom + 8, right - left);
-            PageDrawing.PutRule(canvas, left, bodyBottom + 8 + RowHeight, right - left, 0.75);
             PageDrawing.PutText(canvas, "TOTAL COUNT:", left + 6, countBaseline, Size, bold: true);
-            PageDrawing.PutText(canvas, "TOTAL AMOUNT:", left + 6, amountBaseline, Size, bold: true);
             for (var c = 0; c < columns.Count; c++)
             {
                 var x = left + NameWidth + (c * columnWidth);
                 PageDrawing.PutText(canvas, columns[c].Count.ToString("N0", CultureInfo.InvariantCulture), x, countBaseline, Size, bold: true, width: columnWidth - 6, alignment: TextAlignment.Right);
-                PutAmount(canvas, columns[c].Amount, x, amountBaseline, columnWidth, bold: true);
             }
-        }
 
-        if (page.HasGrandTotal)
-        {
-            var baseline = tableBottom + 24;
-            PageDrawing.PutText(canvas, "GRAND TOTAL:", right - 260, baseline, 13, bold: true);
-            PageDrawing.PutText(canvas, Money(report.GrandTotal), right - 120, baseline, 13, bold: true, width: 120, alignment: TextAlignment.Right);
+            if (page.LastSet)
+            {
+                // The summarized totals under the table (not under the money columns): gross, discount and net, with a rule above the net.
+                const double labelX = 260, valueWidth = 120, line = 19;
+                var baseline = tableBottom + 12 + 14;
+                PageDrawing.PutText(canvas, "GROSS TOTAL:", right - labelX, baseline, 13, bold: true);
+                PageDrawing.PutText(canvas, Money(report.GrossTotal), right - valueWidth, baseline, 13, bold: false, width: valueWidth, alignment: TextAlignment.Right);
+                PageDrawing.PutText(canvas, "DISCOUNT TOTAL:", right - labelX, baseline + line, 13, bold: true);
+                PageDrawing.PutText(canvas, Money(report.DiscountTotal), right - valueWidth, baseline + line, 13, bold: false, width: valueWidth, alignment: TextAlignment.Right);
+                PageDrawing.PutRule(canvas, right - labelX, baseline + line + 5, labelX);
+                PageDrawing.PutText(canvas, "NET TOTAL:", right - labelX, baseline + (2 * line) + 2, 13, bold: true);
+                PageDrawing.PutText(canvas, Money(report.NetTotal), right - valueWidth, baseline + (2 * line) + 2, 13, bold: true, width: valueWidth, alignment: TextAlignment.Right);
+            }
         }
 
         PageDrawing.PutText(canvas, $"Page {number} of {pages}", left, PageHeight - 22, 10, bold: false, width: right - left, alignment: TextAlignment.Right);
     }
+
+    /// <summary>A column heading, centred in the header row and wrapped to the width of its column.</summary>
+    private static void PutHeader(Canvas canvas, string text, double x, double top, double width)
+    {
+        var block = PageDrawing.Text(text, HeaderSize, bold: true, width: width - 6);
+        block.TextAlignment = TextAlignment.Center;
+        Canvas.SetLeft(block, x + 3);
+        Canvas.SetTop(block, top + ((HeaderHeight - Math.Min(block.DesiredSize.Height, HeaderHeight - 4)) / 2));
+        canvas.Children.Add(block);
+    }
+
+    private static void PutMoney(Canvas canvas, decimal amount, double x, double baseline, bool bold) =>
+        PageDrawing.PutText(canvas, Money(amount), x, baseline, Size, bold, width: MoneyWidth - 6, alignment: TextAlignment.Right);
 
     private static void DrawHeading(Canvas canvas, SalesReportData report, bool full)
     {
@@ -251,8 +292,22 @@ public static class SalesReportDocumentBuilder
         return report.From == report.To ? Day(report.From) : $"{Day(report.From)} - {Day(report.To)}";
     }
 
-    private static void PutAmount(Canvas canvas, decimal amount, double x, double baseline, double width, bool bold = false) =>
-        PageDrawing.PutText(canvas, Money(amount), x, baseline, Size, bold, width: width - 6, alignment: TextAlignment.Right);
+    /// <summary>A check mark in the middle of a cell: the registration has this service (whether its result was inputted does not matter here).</summary>
+    private static void PutCheck(Canvas canvas, double centerX, double rowTop)
+    {
+        var mark = new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse("M 0,5 L 4,9.5 L 11,0"),
+            Stroke = Brushes.Black,
+            StrokeThickness = 1.7,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+        };
+        Canvas.SetLeft(mark, centerX - 5.5);
+        Canvas.SetTop(mark, rowTop + 4);
+        canvas.Children.Add(mark);
+    }
 
     /// <summary>Every amount prints with two decimals and a comma between thousands (12,345.60), whatever the PC's regional settings are.</summary>
     private static string Money(decimal amount) =>

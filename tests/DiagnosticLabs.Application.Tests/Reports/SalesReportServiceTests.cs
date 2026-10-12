@@ -52,7 +52,7 @@ public class SalesReportServiceTests
     }
 
     [Fact]
-    public async Task It_has_a_column_per_service_sold_and_a_row_per_registration_with_the_totals_under_the_columns()
+    public async Task It_has_a_column_per_service_sold_and_a_row_per_registration_with_a_count_under_each_column()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
@@ -66,28 +66,53 @@ public class SalesReportServiceTests
 
         Assert.Equal(["Fecalysis", "Urinalysis"], report.Columns.Select(c => c.Name));
         Assert.Equal(["Ana", "Ben"], report.Rows.Select(r => r.PatientName));
-        Assert.Equal(new Dictionary<long, decimal> { [stool.Id] = 120m, [urine.Id] = 110m }, report.Rows[0].Prices);
-        Assert.False(report.Rows[1].Prices.ContainsKey(urine.Id));
-
-        var stoolColumn = report.Columns.Single(c => c.ServiceId == stool.Id);
-        Assert.Equal((2, 240m), (stoolColumn.Count, stoolColumn.Amount));
-        var urineColumn = report.Columns.Single(c => c.ServiceId == urine.Id);
-        Assert.Equal((1, 110m), (urineColumn.Count, urineColumn.Amount));
-        Assert.Equal(350m, report.GrandTotal);
+        Assert.Equal([stool.Id, urine.Id], report.Rows[0].ServiceIds.Order()); // the check marks of Ana
+        Assert.Equal([stool.Id], report.Rows[1].ServiceIds);
+        Assert.Equal([2, 1], report.Columns.Select(c => c.Count));
     }
 
     [Fact]
-    public async Task It_uses_the_price_charged_on_the_registration_not_the_current_price_of_the_service()
+    public async Task The_gross_total_is_what_the_registrations_came_to_not_the_sum_of_the_service_prices()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
-        var stool = await AddServiceAsync(db, "Fecalysis", 150m);
-        await RegisterAsync(db, "Ana", At(Day, 9), lines: [(stool, 100m)]);
+        var stool = await AddServiceAsync(db, "Fecalysis", 120m);
+        var urine = await AddServiceAsync(db, "Urinalysis", 110m);
+        var bundle = await RegisterAsync(db, "Bundle", At(Day, 9), lines: [(stool, 120m), (urine, 110m)]);
+        await RegisterAsync(db, "Single", At(Day, 10), lines: [(stool, 120m)]);
+        bundle.AmountDue = 200m; // a package priced below its services (a bundling discount), with a senior discount on top
+        bundle.DiscountTotal = 20m;
+        await db.SaveChangesAsync();
 
         var report = (await CreateService(db).GetAsync(new SalesReportRequest(Day, Day))).Value;
 
-        Assert.Equal(100m, report.Rows.Single().Prices[stool.Id]);
-        Assert.Equal(100m, report.GrandTotal);
+        Assert.Equal(320m, report.GrossTotal); // 200 + 120, not 230 + 120
+        Assert.Equal(20m, report.DiscountTotal);
+        Assert.Equal(300m, report.NetTotal);
+        Assert.Equal([200m, 120m], report.Rows.Select(r => r.AmountDue));
+        Assert.Equal([20m, 0m], report.Rows.Select(r => r.DiscountTotal));
+        Assert.Equal([180m, 120m], report.Rows.Select(r => r.NetAmount)); // the Net Amount column: amount due less the discount
+    }
+
+    [Fact]
+    public async Task The_totals_follow_the_filters()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var stool = await AddServiceAsync(db, "Fecalysis", 120m);
+        var acme = new Company { CompanyName = "Acme" };
+        db.Companies.Add(acme);
+        await db.SaveChangesAsync();
+        var mine = await RegisterAsync(db, "Mine", At(Day, 9), acme.Id, "B", [(stool, 120m)]);
+        await RegisterAsync(db, "Walk-in", At(Day, 10), null, "", [(stool, 120m)]);
+        mine.DiscountTotal = 12m;
+        await db.SaveChangesAsync();
+
+        var all = (await CreateService(db).GetAsync(new SalesReportRequest(Day, Day))).Value;
+        var company = (await CreateService(db).GetAsync(new SalesReportRequest(Day, Day, acme.Id))).Value;
+
+        Assert.Equal((240m, 12m, 228m), (all.GrossTotal, all.DiscountTotal, all.NetTotal));
+        Assert.Equal((120m, 12m, 108m), (company.GrossTotal, company.DiscountTotal, company.NetTotal));
     }
 
     [Fact]
@@ -131,7 +156,7 @@ public class SalesReportServiceTests
         Assert.Equal("Acme", company.CompanyName);
         Assert.Equal(["Acme second"], batch.Rows.Select(r => r.PatientName));
         Assert.Equal("Batch 2", batch.Batch);
-        Assert.Equal(120m, batch.GrandTotal);
+        Assert.Equal(120m, batch.GrossTotal);
     }
 
     [Fact]
@@ -161,8 +186,8 @@ public class SalesReportServiceTests
         Assert.Equal(["Paid", "Not paid yet"], direct.Rows.Select(r => r.PatientName));
         Assert.Equal(SalesPaymentFilter.DirectPayments, direct.Payment);
         Assert.Equal(["Charged", "Part paid then charged"], company.Rows.Select(r => r.PatientName));
-        Assert.Equal(240m, company.GrandTotal);
-        Assert.Equal(all.GrandTotal, direct.GrandTotal + company.GrandTotal);
+        Assert.Equal(240m, company.GrossTotal);
+        Assert.Equal(all.GrossTotal, direct.GrossTotal + company.GrossTotal);
     }
 
     [Fact]
@@ -184,7 +209,7 @@ public class SalesReportServiceTests
 
         Assert.Equal(["Kept"], report.Rows.Select(r => r.PatientName));
         Assert.Equal(["Fecalysis"], report.Columns.Select(c => c.Name));
-        Assert.Equal(120m, report.GrandTotal);
+        Assert.Equal(230m, report.GrossTotal); // the amount due stored on the registration, whatever lines were taken off it later
     }
 
     [Fact]
@@ -199,7 +224,7 @@ public class SalesReportServiceTests
 
         Assert.Empty(report.Rows);
         Assert.Empty(report.Columns);
-        Assert.Equal(0m, report.GrandTotal);
+        Assert.Equal((0m, 0m, 0m), (report.GrossTotal, report.DiscountTotal, report.NetTotal));
         Assert.Equal("BIO ASSAY DIAGNOSTIC CENTER", report.Letterhead.CompanyName);
         Assert.Equal("Angeles City", report.Letterhead.SubCompanyName);
     }
