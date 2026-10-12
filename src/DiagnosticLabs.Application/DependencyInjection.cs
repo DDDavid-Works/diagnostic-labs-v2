@@ -47,6 +47,8 @@ public static class DependencyInjection
         services.AddScoped<IAnnualPhysicalExamService, AnnualPhysicalExamService>();
         services.AddScoped<IReferenceLookups, ReferenceLookups>();
         services.AddScoped<DiagnosticLabs.Application.Reports.ISalesReportService, DiagnosticLabs.Application.Reports.SalesReportService>();
+        services.AddScoped<DiagnosticLabs.Application.LabResults.ILabResultPrinters, DiagnosticLabs.Application.LabResults.LabResultPrinters>();
+        services.AddScoped<DiagnosticLabs.Application.Reports.IBatchPrintService, DiagnosticLabs.Application.Reports.BatchPrintService>();
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<IItemLocationService, ItemLocationService>();

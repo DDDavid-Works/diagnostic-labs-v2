@@ -36,6 +36,9 @@ public static class ModuleIds
     /// <summary>The Clinical Microscopy form (added after the legacy modules).</summary>
     public const int ClinicalMicroscopy = 30;
 
+    /// <summary>Batch Print under Reports: the saved results of one service for the patients of a company's batch, printed in one go (added after the legacy modules).</summary>
+    public const int BatchPrint = 31;
+
     /// <summary>Change Password is available to every signed-in user from the header, so it is not a permission module.</summary>
     public const int ChangePassword = 28;
 }

@@ -45,6 +45,7 @@ public partial class MainViewModel(
         [ModuleIds.ItemLocations] = sp => sp.GetRequiredService<ItemLocationsViewModel>(),
         [ModuleIds.Discounts] = sp => sp.GetRequiredService<DiscountsViewModel>(),
         [ModuleIds.SalesReport] = sp => sp.GetRequiredService<SalesReportViewModel>(),
+        [ModuleIds.BatchPrint] = sp => sp.GetRequiredService<BatchPrintViewModel>(),
         [ModuleIds.Users] = sp => sp.GetRequiredService<UsersViewModel>(),
         [ModuleIds.CompanySetup] = sp => sp.GetRequiredService<CompanySetupViewModel>(),
     };

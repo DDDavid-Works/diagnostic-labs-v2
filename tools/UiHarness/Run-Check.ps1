@@ -72,6 +72,7 @@ try {
     if (Test-Path $Out) { Remove-Item $Out -Recurse -Force }
     New-Item -ItemType Directory -Force $Out | Out-Null
     $env:DL_NO_ERROR_DIALOG = '1'   # the global error box must never pop up on a desktop during a check
+    $env:ConnectionStrings__DiagnosticLabs = $connection   # the start-up version check inside the harness must read the scratch database, not DiagnosticLabsV2
     & (Join-Path $exeDir 'UiHarness.exe') $Out $connection | Where-Object { $_ -match 'ok\]|FAIL|binding errors|Unhandled|Exception|LOGGED ERROR' }
     $failures = $LASTEXITCODE
     Write-Host "`nOutput folder: $Out"

@@ -18,7 +18,29 @@ public static class ReportDocumentBuilder
     public const double PageWidth = 816;
     public const double PageHeight = 1056;
 
-    public static FixedDocument Build(PrintableReport report)
+    public static FixedDocument Build(PrintableReport report) => Build([report]);
+
+    /// <summary>One document with a page per report, in the order given (Batch Print).</summary>
+    public static FixedDocument Build(IReadOnlyList<PrintableReport> reports)
+    {
+        var document = new FixedDocument();
+        document.DocumentPaginator.PageSize = new Size(PageWidth, PageHeight);
+
+        foreach (var report in reports)
+        {
+            var canvas = DrawPage(report);
+            var page = new FixedPage { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
+            page.Children.Add(canvas);
+
+            var pageContent = new PageContent();
+            ((IAddChild)pageContent).AddChild(page);
+            document.Pages.Add(pageContent);
+        }
+
+        return document;
+    }
+
+    private static Canvas DrawPage(PrintableReport report)
     {
         var canvas = new Canvas { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
 
@@ -58,16 +80,7 @@ public static class ReportDocumentBuilder
                 throw new NotSupportedException($"There is no page design for {report.Layout}.");
         }
 
-        var document = new FixedDocument();
-        document.DocumentPaginator.PageSize = new Size(PageWidth, PageHeight);
-
-        var page = new FixedPage { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
-        page.Children.Add(canvas);
-
-        var pageContent = new PageContent();
-        ((IAddChild)pageContent).AddChild(page);
-        document.Pages.Add(pageContent);
-        return document;
+        return canvas;
     }
 }
 

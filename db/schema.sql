@@ -2553,3 +2553,28 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012010550_BatchPrintModule'
+)
+BEGIN
+
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 24) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 31)
+                        INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+                        SELECT 31, ModuleTypeId, N'Batch Print', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 3, 1, NULL FROM Modules WHERE Id = 24;
+                
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261012010550_BatchPrintModule'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261012010550_BatchPrintModule', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

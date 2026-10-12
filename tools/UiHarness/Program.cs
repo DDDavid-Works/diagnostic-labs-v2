@@ -146,7 +146,7 @@ internal static partial class Program
                  {
                      typeof(PatientsViewModel), typeof(RegistrationsViewModel), typeof(PaymentsViewModel), typeof(StoolFecalysisViewModel), typeof(UrinalysisViewModel), typeof(HematologyViewModel), typeof(PhysicalExaminationViewModel), typeof(ClinicalMicroscopyViewModel), typeof(SerologyViewModel), typeof(ImmunologyViewModel), typeof(PregnancyTestViewModel), typeof(ClinicalChemistryViewModel), typeof(ClinicalChemistry1ViewModel), typeof(ClinicalChemistry2ViewModel), typeof(MedicalExaminationViewModel), typeof(HomeViewModel), typeof(AnnualPhysicalExamViewModel), typeof(CompaniesViewModel), typeof(DepartmentsViewModel), typeof(ServicesViewModel),
                      typeof(PackagesViewModel), typeof(ItemsViewModel), typeof(ItemLocationsViewModel), typeof(DiscountsViewModel),
-                     typeof(SalesReportViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(LoginViewModel),
+                     typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(LoginViewModel),
                  })
             services.AddTransient(vm);
         var provider = services.BuildServiceProvider();
@@ -187,6 +187,7 @@ internal static partial class Program
         if (_out.EndsWith("pdebug")) { PatientsDirtyDebug(provider); _main.Close(); return _failures; }
         if (_out.EndsWith("dirty")) { DirtyChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); _main.Close(); return _failures; }
         if (_out.EndsWith("home")) { HomeChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
+        if (_out.EndsWith("batch")) { BatchPrintChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("sales")) { SalesChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("mer")) { MedicalExaminationChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("chemistry2")) { Chemistry2Checks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
