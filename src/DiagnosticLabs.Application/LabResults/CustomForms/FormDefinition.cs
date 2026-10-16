@@ -78,9 +78,9 @@ public sealed record FormDefinition(IReadOnlyList<HeaderField?> Header, FooterDe
     public const int MaxMedicalTechnologists = 2;
     public const int MaxPathologists = 1;
 
-    /// <summary>What a new form starts with: patient code, name and date, then age, sex and company, one empty group, one technologist and one pathologist.</summary>
+    /// <summary>What a new form starts with: patient code, age and sex on the first row, then patient name, date requested and company, one empty group, one technologist and one pathologist.</summary>
     public static FormDefinition NewForm() => new(
-        [HeaderField.PatientCode, HeaderField.PatientName, HeaderField.DateRequested, HeaderField.Age, HeaderField.Sex, HeaderField.Company],
+        [HeaderField.PatientCode, HeaderField.Age, HeaderField.Sex, HeaderField.PatientName, HeaderField.DateRequested, HeaderField.Company],
         new FooterDefinition([new SignatorySlot(SignatoryRole.MedicalTechnologist), new SignatorySlot(SignatoryRole.Pathologist)], true, true))
     {
         Body = new BodyDefinition([new GroupDefinition(Guid.NewGuid(), null, true, [])], []),

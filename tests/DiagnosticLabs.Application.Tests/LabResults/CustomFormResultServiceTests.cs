@@ -326,7 +326,7 @@ public class CustomFormResultServiceTests
         Assert.Equal(6, custom.HeaderCells.Count);
         var date = new DateOnly(2026, 3, 1).ToString("d", System.Globalization.CultureInfo.CurrentCulture);
         Assert.Equal(
-            [("Patient Code", "P-1"), ("Patient Name", "Ann Lee"), ("Date Requested", date), ("Age", "30"), ("Sex/Gender", "F"), ("Company", "ACME")],
+            [("Patient Code", "P-1"), ("Age", "30"), ("Sex/Gender", "F"), ("Patient Name", "Ann Lee"), ("Date Requested", date), ("Company", "ACME")],
             custom.HeaderCells.Take(6).Select(c => (c!.Label, c.Value)));
 
         Assert.Equal(["HEMATOLOGY", null], custom.Groups.Select(g => g.Title));
