@@ -205,7 +205,7 @@ $env:DL_ADMIN_PASSWORD = $null
 
 The seed creates:
 
-- the menu (6 module types, 30 modules) and the 15 services the lab forms hang off, at **price 0** (the lab sets prices on the Services screen; the two unbuilt "Medical Examination" services are inactive);
+- the menu (6 module types, 32 modules, including Sales Report, Batch Print, Statement of Accounts and Custom Lab Form) and the 15 services the lab forms hang off, at **price 0** (the lab sets prices on the Services screen; the two unbuilt "Medical Examination" services are inactive);
 - the reference ranges for Hematology, Clinical Chemistry, Physical Examination and Clinical Microscopy (**the lab should confirm these**);
 - the Patients dropdowns (Gender, Civil Status);
 - the `Admin` user with the temporary password, which must be changed at first sign-in.
@@ -215,3 +215,12 @@ It does not create companies, departments, items, discounts, packages, signatory
 After editing a module or a reference range, regenerate it with `tools\Generate-Seed.ps1 -Server <server>` (reads a reference database, writes `db/seed.sql`).
 
 Rollback of a failed install is simply dropping the database and starting again.
+
+## Upgrading an existing database
+
+Releases after the first install add migrations (for example Batch Print, and Statement of Accounts with its two tables). For a database that is already in use:
+
+1. Back up, then run `db\schema.sql` on it: it is idempotent and applies only the missing migrations. Run it **before** stations start the new program; until then the version check keeps stations on the new program out with "ask your administrator to update the database".
+2. Migrations may change permissions on existing users (the Statement of Accounts migration gives users who could print it Create and Delete as well). Read the migration's comment first and tell the lab's administrator.
+3. New screens that only some users should see (Batch Print, Custom Lab Form) need the permission granted in Users; the seeded Admin sees everything. Each form a lab makes in Custom Lab Form is a screen of its own and needs its own permission too. Those forms live in the database (tables `CustomForms*`), so they are in the backups and are not part of `db/seed.sql`.
+4. **Saved Statements of Accounts are records the lab hands to companies:** they are copies that do not change when payments change, so the backups of this database are the only way to reproduce them. Keep the backup routine from this document running and tested.

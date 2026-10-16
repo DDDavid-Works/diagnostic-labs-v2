@@ -42,7 +42,7 @@ CREATE USER dl_app FOR LOGIN dl_app;
 ALTER ROLE db_datareader ADD MEMBER dl_app;
 ALTER ROLE db_datawriter ADD MEMBER dl_app;
 ```
-- [ ] From a **station**: `sqlcmd -S SERVER,1433 -U dl_app -P ... -d DiagnosticLabsV2 -C -Q "SELECT COUNT(*) FROM Modules"` returns 30.
+- [ ] From a **station**: `sqlcmd -S SERVER,1433 -U dl_app -P ... -d DiagnosticLabsV2 -C -Q "SELECT COUNT(*) FROM Modules"` returns 32.
 - [ ] Note any extra right the app turns out to need (write it here: ________). The login must not be able to change the schema.
 
 ### A4. Update share
@@ -69,7 +69,7 @@ On the build machine:
 
 ### C1. First install
 - [ ] Copy the three launcher files (`Start-DiagnosticLabs.cmd`, `Start-DiagnosticLabs.ps1`, `launcher.json`) to a local folder, e.g. `C:\DiagnosticLabs-Launcher`. Edit `launcher.json` to the real server name.
-- [ ] Create a desktop shortcut to `Start-DiagnosticLabs.cmd` (icon and name "Diagnostic Labs").
+- [ ] Create a desktop shortcut to `Start-DiagnosticLabs.cmd` (name "Diagnostic Labs"; for the icon, choose the installed `%LOCALAPPDATA%\DiagnosticLabs\app\DiagnosticLabs.Wpf.exe` after the first run, which now carries the app icon).
 - [ ] **No .NET or other runtime is installed on this PC beforehand** (check `dotnet --list-runtimes` returns nothing, to prove the self-contained build).
 - [ ] Double-click the shortcut: the app copies to `%LOCALAPPDATA%\DiagnosticLabs\app`, `appsettings.Local.json` appears there, and the login screen opens.
 - [ ] Time from click to login (first run, second run): ________ / ________
@@ -90,6 +90,7 @@ On the build machine:
 - [ ] **Sales Report** (Reports menu): print one day and a range, then one company and one of its batches; the totals match the registrations. Print it on the real printer: it must come out **landscape** and uncut (the preview is landscape; confirm the printer driver follows it). Also print to PDF.
 - [ ] **Batch Print** (Reports menu): pick a company and Hematology (or another built form) and Search: every patient of the company with that service is listed with Yes/No and the date the result was inputted. Print the whole company, then one batch: one page per patient with a result, sorted by name. Print ten or more pages on the real printer and to one PDF. Give a non-admin user Batch Print + the form's Print permission and check the service only shows up for them when both are granted.
 - [ ] **Statement of Accounts** (Reports menu): generate a company statement (one batch, then the whole company, with and without a date range) and check it lists only registrations marked **Charged** and that Gross, Discount and Net add up to what the client expects. Generate a patient statement (Paid and Balance match Payments). Find both under Saved statements and reprint: same number and figures. Take a payment afterwards and reprint: the saved statement must **not** change. Void one (the reprint shows VOID) and Regenerate another (new number, the old one void). Print a long one (50+ lines) on the real printer and to PDF: header on every page, TOTALS only on the last. Give a non-admin user Create, Print and Delete separately and check each action follows its permission.
+- [ ] **Custom Lab Form** (Management menu, admin only): make a small form (service not yet linked to a screen, a header, one group with a few rows, one with an Entry Builder list, a text box, signatories), save, **sign out and in** (the new menu entry appears after the next sign-in), give a non-admin user access in Users and check the entry shows only for them. Enter and save a result from it, open it from the Home chip of its service, and print it (one page, letterhead and signatories correct; the designer warns when the design does not fit one page). Change the design, save (a new version), and check an old result still opens and prints as it was saved. Batch Print does not offer custom forms yet. Take a backup and restore it under another name: the form and its results come back with it.
 - [ ] **Print** a result and a receipt on the real printer: US Letter, logo and signatories correct, nothing cut off. Also print to PDF.
 - [ ] Two stations at once: the same patient open on both; save on one, then on the other: the second gets the concurrency message, no data lost (the README lists this check for Patients; note whether other screens behave the same).
 - [ ] Close the app with unsaved changes: it asks to save.
