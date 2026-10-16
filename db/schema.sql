@@ -2714,3 +2714,132 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+    CREATE TABLE [CustomForms] (
+        [Id] bigint NOT NULL IDENTITY,
+        [Name] nvarchar(100) NOT NULL,
+        [ModuleId] int NOT NULL,
+        [CreatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedByUserId] bigint NULL,
+        [UpdatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [UpdatedByUserId] bigint NULL,
+        [RowVersion] rowversion NOT NULL,
+        [IsActive] bit NOT NULL,
+        CONSTRAINT [PK_CustomForms] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_CustomForms_Modules_ModuleId] FOREIGN KEY ([ModuleId]) REFERENCES [Modules] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_CustomForms_Users_CreatedByUserId] FOREIGN KEY ([CreatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_CustomForms_Users_UpdatedByUserId] FOREIGN KEY ([UpdatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+    CREATE TABLE [CustomFormVersions] (
+        [Id] bigint NOT NULL IDENTITY,
+        [CustomFormId] bigint NOT NULL,
+        [VersionNumber] int NOT NULL,
+        [DefinitionJson] nvarchar(max) NOT NULL,
+        [CreatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedByUserId] bigint NULL,
+        [UpdatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [UpdatedByUserId] bigint NULL,
+        [RowVersion] rowversion NOT NULL,
+        CONSTRAINT [PK_CustomFormVersions] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_CustomFormVersions_CustomForms_CustomFormId] FOREIGN KEY ([CustomFormId]) REFERENCES [CustomForms] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_CustomFormVersions_Users_CreatedByUserId] FOREIGN KEY ([CreatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_CustomFormVersions_Users_UpdatedByUserId] FOREIGN KEY ([UpdatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+    CREATE TABLE [CustomFormReports] (
+        [LabReportId] bigint NOT NULL,
+        [CustomFormVersionId] bigint NOT NULL,
+        [ValuesJson] nvarchar(max) NOT NULL,
+        CONSTRAINT [PK_CustomFormReports] PRIMARY KEY ([LabReportId]),
+        CONSTRAINT [FK_CustomFormReports_CustomFormVersions_CustomFormVersionId] FOREIGN KEY ([CustomFormVersionId]) REFERENCES [CustomFormVersions] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_CustomFormReports_LabReports_LabReportId] FOREIGN KEY ([LabReportId]) REFERENCES [LabReports] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+    CREATE INDEX [IX_CustomFormReports_CustomFormVersionId] ON [CustomFormReports] ([CustomFormVersionId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_CustomForms_ModuleId] ON [CustomForms] ([ModuleId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_CustomFormVersions_CustomFormId_VersionNumber] ON [CustomFormVersions] ([CustomFormId], [VersionNumber]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 19) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 32)
+                        INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+                        SELECT 32, ModuleTypeId, N'Form Designer', 1, 1, 1, 0, 0, 0, 0, 0, Icon, 8, 1, NULL FROM Modules WHERE Id = 19;
+                
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016042837_CustomForms'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261016042837_CustomForms', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016065144_RenameFormDesignerModule'
+)
+BEGIN
+    UPDATE Modules SET ModuleName = N'Custom Lab Form' WHERE Id = 32 AND ModuleName = N'Form Designer';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016065144_RenameFormDesignerModule'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261016065144_RenameFormDesignerModule', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

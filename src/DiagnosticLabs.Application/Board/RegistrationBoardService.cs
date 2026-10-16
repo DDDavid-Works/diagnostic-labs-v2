@@ -74,6 +74,9 @@ public static class LabResultModules
     };
 
     public static LabReportType? ReportTypeOf(int moduleId) => Types.TryGetValue(moduleId, out var type) ? type : null;
+
+    /// <summary>A form made in the Custom Lab Form designer (its module id is 1000 or more); its results are told apart by the form, not only by their type.</summary>
+    public static bool IsCustomForm(int moduleId) => moduleId >= ModuleIds.FirstCustomForm;
 }
 
 /// <summary>The home screen's list: registrations with what has been paid and which results have been made.</summary>
@@ -128,12 +131,15 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
             IQueryable<long>? pending = null;
             foreach (var (serviceId, moduleId) in moduleOfService)
             {
-                if (LabResultModules.ReportTypeOf(moduleId) is not { } type)
+                var custom = LabResultModules.IsCustomForm(moduleId);
+                if ((custom ? LabReportType.CustomForm : LabResultModules.ReportTypeOf(moduleId)) is not { } type)
                     continue;
 
                 var sid = serviceId;
+                var mid = moduleId;
                 var ids = db.PatientRegistrationServices.Where(s => s.ServiceId == sid).Select(s => s.PatientRegistrationId)
-                    .Where(id => !db.LabReports.Any(l => l.PatientRegistrationId == id && l.ReportType == type));
+                    .Where(id => !db.LabReports.Any(l => l.PatientRegistrationId == id && l.ReportType == type
+                        && (!custom || db.CustomFormReports.Any(c => c.LabReportId == l.Id && c.CustomFormVersion.CustomForm.ModuleId == mid))));
                 pending = pending is null ? ids : pending.Union(ids);
             }
 
@@ -167,7 +173,14 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
         var registrationIds = rows.Select(r => (long?)r.Id).ToList();
         var results = await db.LabReports.AsNoTracking()
             .Where(l => registrationIds.Contains(l.PatientRegistrationId))
-            .Select(l => new { RegistrationId = l.PatientRegistrationId!.Value, l.ReportType, l.Id })
+            .Select(l => new
+            {
+                RegistrationId = l.PatientRegistrationId!.Value,
+                l.ReportType,
+                l.Id,
+                // for a result of a form made in the Custom Lab Form designer: which form (its module)
+                CustomModuleId = db.CustomFormReports.Where(c => c.LabReportId == l.Id).Select(c => (int?)c.CustomFormVersion.CustomForm.ModuleId).FirstOrDefault(),
+            })
             .ToListAsync(cancellationToken);
 
         var items = rows.Select(r =>
@@ -181,8 +194,10 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
             var services = r.Services.Select(s =>
             {
                 int? moduleId = moduleOfService.TryGetValue(s.ServiceId, out var m) ? m : null;
-                var type = moduleId is { } id ? LabResultModules.ReportTypeOf(id) : null;
-                var made = type is null ? [] : results.Where(x => x.RegistrationId == r.Id && x.ReportType == type).OrderBy(x => x.Id).ToList();
+                var type = moduleId is { } id ? (LabResultModules.IsCustomForm(id) ? LabReportType.CustomForm : LabResultModules.ReportTypeOf(id)) : null;
+                var made = type is null
+                    ? []
+                    : results.Where(x => x.RegistrationId == r.Id && x.ReportType == type && (!LabResultModules.IsCustomForm(moduleId!.Value) || x.CustomModuleId == moduleId)).OrderBy(x => x.Id).ToList();
                 return new BoardService(s.ServiceId, s.ServiceName, moduleId, type is not null, made.Count, made.Count > 0 ? made[^1].Id : null);
             }).ToList();
 

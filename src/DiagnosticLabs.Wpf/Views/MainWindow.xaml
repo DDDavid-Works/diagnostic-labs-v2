@@ -14,6 +14,9 @@
     <DataTemplate DataType="{x:Type vm:CompanySetupViewModel}">
       <views:CompanySetupView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:FormDesignerViewModel}">
+      <views:FormDesignerView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:HomeViewModel}">
       <views:HomeView />
     </DataTemplate>

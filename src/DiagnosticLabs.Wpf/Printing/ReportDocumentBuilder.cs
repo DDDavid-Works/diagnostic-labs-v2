@@ -76,6 +76,9 @@ public static class ReportDocumentBuilder
             case ReportLayout.ClinicalMicroscopy:
                 ClinicalMicroscopyLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.CustomForm:
+                CustomFormLayout.Draw(canvas, report);
+                break;
             default:
                 throw new NotSupportedException($"There is no page design for {report.Layout}.");
         }

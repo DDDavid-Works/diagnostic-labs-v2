@@ -146,7 +146,7 @@ internal static partial class Program
                  {
                      typeof(PatientsViewModel), typeof(RegistrationsViewModel), typeof(PaymentsViewModel), typeof(StoolFecalysisViewModel), typeof(UrinalysisViewModel), typeof(HematologyViewModel), typeof(PhysicalExaminationViewModel), typeof(ClinicalMicroscopyViewModel), typeof(SerologyViewModel), typeof(ImmunologyViewModel), typeof(PregnancyTestViewModel), typeof(ClinicalChemistryViewModel), typeof(ClinicalChemistry1ViewModel), typeof(ClinicalChemistry2ViewModel), typeof(MedicalExaminationViewModel), typeof(HomeViewModel), typeof(AnnualPhysicalExamViewModel), typeof(CompaniesViewModel), typeof(DepartmentsViewModel), typeof(ServicesViewModel),
                      typeof(PackagesViewModel), typeof(ItemsViewModel), typeof(ItemLocationsViewModel), typeof(DiscountsViewModel),
-                     typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(StatementOfAccountViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(LoginViewModel),
+                     typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(StatementOfAccountViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(FormDesignerViewModel), typeof(LoginViewModel),
                  })
             services.AddTransient(vm);
         var provider = services.BuildServiceProvider();
@@ -196,6 +196,7 @@ internal static partial class Program
         if (_out.EndsWith("immunology")) { ImmunologyChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("picker")) { ServicePickerChecks(provider); _main.Close(); return _failures; }
         if (_out.EndsWith("company")) { CompanyChecks(provider); _main.Close(); return _failures; }
+        if (_out.EndsWith("designer")) { DesignerChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("users")) { UsersChecks(provider); _main.Close(); return _failures; }
         if (_out.EndsWith("builder")) { BuilderChecks(provider); _main.Close(); return _failures; }
         if (_out.EndsWith("small")) { SmallScreenShots(); _main.Close(); return 0; }

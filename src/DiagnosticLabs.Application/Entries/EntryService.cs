@@ -27,7 +27,7 @@ public enum EntryDetail
 /// Identifies one maintained list of entries. <see cref="ModuleId"/> is <c>null</c> for general lists shared by
 /// several screens (Gender, Medical Technologist...) and the module's id for lists that belong to one screen.
 /// </summary>
-public sealed record EntryField(string Name, EntryKind Kind, int? ModuleId = null, EntryDetail Detail = EntryDetail.None);
+public sealed record EntryField(string Name, EntryKind Kind, int? ModuleId = null, EntryDetail Detail = EntryDetail.None, string? Title = null);
 
 /// <summary>Every list the app maintains through the entry builder, declared once.</summary>
 public static class EntryFields
@@ -262,14 +262,14 @@ public sealed class EntryService(IAppDbContext db, ICurrentUser currentUser) : I
     private async Task<SingleLineEntryList> LoadSingleAsync(EntryField field, CancellationToken cancellationToken)
     {
         var rows = await Query(field, LookupKind.SingleLine).AsNoTracking().ToListAsync(cancellationToken);
-        return new SingleLineEntryList(field.Name, await ScopeNameAsync(field, cancellationToken), [.. rows.Select(r => new SingleLineEntry(r.Id, r.Value, r.LicenseNo))], field.Detail == EntryDetail.Signatory);
+        return new SingleLineEntryList(field.Title ?? field.Name, await ScopeNameAsync(field, cancellationToken), [.. rows.Select(r => new SingleLineEntry(r.Id, r.Value, r.LicenseNo))], field.Detail == EntryDetail.Signatory);
     }
 
     private async Task<MultiLineEntryList> LoadMultiAsync(EntryField field, CancellationToken cancellationToken)
     {
         var rows = await Query(field, LookupKind.MultiLine).AsNoTracking().ToListAsync(cancellationToken);
         return new MultiLineEntryList(
-            field.Name, await ScopeNameAsync(field, cancellationToken), [.. rows.Select(r => new MultiLineEntry(r.Id, r.Title ?? string.Empty, r.Value))]);
+            field.Title ?? field.Name, await ScopeNameAsync(field, cancellationToken), [.. rows.Select(r => new MultiLineEntry(r.Id, r.Title ?? string.Empty, r.Value))]);
     }
 
     private async Task<string> ScopeNameAsync(EntryField field, CancellationToken cancellationToken)

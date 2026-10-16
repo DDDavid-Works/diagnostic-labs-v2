@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DiagnosticLabs.Application.Abstractions;
+using DiagnosticLabs.Application.Board;
 using DiagnosticLabs.Application.Menu;
 using DiagnosticLabs.Wpf.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +50,7 @@ public partial class MainViewModel(
         [ModuleIds.StatementOfAccounts] = sp => sp.GetRequiredService<StatementOfAccountViewModel>(),
         [ModuleIds.Users] = sp => sp.GetRequiredService<UsersViewModel>(),
         [ModuleIds.CompanySetup] = sp => sp.GetRequiredService<CompanySetupViewModel>(),
+        [ModuleIds.FormDesigner] = sp => sp.GetRequiredService<FormDesignerViewModel>(),
     };
 
     public string Greeting => $"Signed in as {session.FullName}";
@@ -119,6 +121,7 @@ public partial class MainViewModel(
     {
         navigation.PaymentHandler = OpenPayment;
         navigation.ResultHandler = OpenResult;
+        navigation.MenuChangedHandler = RefreshMenu;
         var groups = await runner.RunAsync<IMenuService, IReadOnlyList<MenuGroup>>(s => s.GetMenuAsync());
         Menu.Clear();
         foreach (var group in groups)
@@ -126,6 +129,35 @@ public partial class MainViewModel(
 
         CurrentPage = services.GetRequiredService<HomeViewModel>();
     });
+
+    /// <summary>The screen of a module: a built-in one, or the entry screen of a form made in the Custom Lab Form designer; <c>null</c> when it has none yet.</summary>
+    private object? CreatePage(int moduleId, string? name)
+    {
+        if (Pages.TryGetValue(moduleId, out var factory))
+            return factory(services);
+
+        return LabResultModules.IsCustomForm(moduleId)
+            ? ActivatorUtilities.CreateInstance<CustomFormViewModel>(services, moduleId, name ?? Menu.SelectMany(g => g.Items).FirstOrDefault(i => i.ModuleId == moduleId)?.Name ?? "Custom form")
+            : null;
+    }
+
+    private void RefreshMenu() => _ = RefreshMenuAsync();
+
+    /// <summary>Reloads the menu in place (a form was made, switched off or on); the screen on show stays.</summary>
+    private async Task RefreshMenuAsync()
+    {
+        try
+        {
+            var groups = await runner.RunAsync<IMenuService, IReadOnlyList<MenuGroup>>(s => s.GetMenuAsync());
+            Menu.Clear();
+            foreach (var group in groups)
+                Menu.Add(group);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "The menu could not be reloaded");
+        }
+    }
 
     /// <summary>Opens Payments with a registration already loaded (from "Pay now" on the registration screen).</summary>
     private void OpenPayment(long registrationId) => _ = NavigateAsync(() =>
@@ -138,12 +170,12 @@ public partial class MainViewModel(
     /// <summary>Opens a result screen on a registration: the result that was made when there is one, otherwise a new result.</summary>
     private void OpenResult(int moduleId, long registrationId, long? resultId)
     {
-        if (!Pages.TryGetValue(moduleId, out var factory))
+        if (!Pages.ContainsKey(moduleId) && !LabResultModules.IsCustomForm(moduleId))
             return;
 
         _ = NavigateAsync(() =>
         {
-            var page = factory(services);
+            var page = CreatePage(moduleId, null)!;
             if (page is ILabResultScreen screen)
             {
                 if (resultId is { } id)
@@ -162,8 +194,7 @@ public partial class MainViewModel(
         if (item is null)
             return Task.CompletedTask;
 
-        return NavigateAsync(() => Pages.TryGetValue(item.ModuleId, out var factory)
-            ? factory(services)
-            : new PlaceholderViewModel(item.Name, "This module has not been migrated to the new app yet. Use the old app for now."));
+        return NavigateAsync(() => CreatePage(item.ModuleId, item.Name)
+            ?? (object)new PlaceholderViewModel(item.Name, "This module has not been migrated to the new app yet. Use the old app for now."));
     }
 }

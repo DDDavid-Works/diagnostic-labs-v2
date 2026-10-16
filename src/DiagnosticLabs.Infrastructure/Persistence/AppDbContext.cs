@@ -7,6 +7,7 @@ using DiagnosticLabs.Domain.Common;
 using DiagnosticLabs.Domain.Identity;
 using DiagnosticLabs.Domain.Inventory;
 using DiagnosticLabs.Domain.Lab;
+using DiagnosticLabs.Domain.Lab.Reports;
 using DiagnosticLabs.Domain.Patients;
 using DiagnosticLabs.Domain.Registrations;
 using DiagnosticLabs.Domain.Settings;
@@ -65,6 +66,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<LabReport> LabReports => Set<LabReport>();
 
     public DbSet<LabReportPhoto> LabReportPhotos => Set<LabReportPhoto>();
+
+    public DbSet<CustomForm> CustomForms => Set<CustomForm>();
+
+    public DbSet<CustomFormReport> CustomFormReports => Set<CustomFormReport>();
+
+    public DbSet<CustomFormVersion> CustomFormVersions => Set<CustomFormVersion>();
 
     public DbSet<CompanySetup> CompanySetups => Set<CompanySetup>();
 

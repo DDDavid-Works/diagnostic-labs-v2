@@ -27,6 +27,8 @@ Add-Type -AssemblyName System.Data
 
 # Modules whose normal-range / reference defaults are product data, not test data.
 $defaultsModules = 7, 11, 29, 30
+# Modules from this id up are the forms a lab made in the Custom Lab Form screen (ModuleIds.FirstCustomForm): they belong to that lab and are never part of the starting data.
+$firstCustomForm = 1000
 # Menu entries kept inactive (the unbuilt "Medical Examination" screens); their services are inactive too.
 $inactiveModules = 14, 15
 
@@ -47,8 +49,8 @@ function Sql($v) {
 }
 
 $types    = Get-Rows 'SELECT Id,ModuleTypeName,Icon,SortOrder,IsActive,IsAdmin FROM ModuleTypes ORDER BY Id'
-$modules  = Get-Rows 'SELECT Id,ModuleTypeId,ModuleName,HasView,HasCreate,HasEdit,HasDelete,HasSearch,HasPrint,HasShowList,HasSetDefaults,Icon,SortOrder,IsActive,ServiceId FROM Modules ORDER BY Id'
-$services = Get-Rows 'SELECT DISTINCT s.Id,s.ServiceName,s.ServiceDescription FROM Services s JOIN Modules m ON m.ServiceId = s.Id ORDER BY s.Id'
+$modules  = Get-Rows "SELECT Id,ModuleTypeId,ModuleName,HasView,HasCreate,HasEdit,HasDelete,HasSearch,HasPrint,HasShowList,HasSetDefaults,Icon,SortOrder,IsActive,ServiceId FROM Modules WHERE Id < $firstCustomForm ORDER BY Id"
+$services = Get-Rows "SELECT DISTINCT s.Id,s.ServiceName,s.ServiceDescription FROM Services s JOIN Modules m ON m.ServiceId = s.Id WHERE m.Id < $firstCustomForm ORDER BY s.Id"
 $defaults = Get-Rows ("SELECT ModuleId,Defaults FROM ModuleDefaults WHERE ModuleId IN (" + ($defaultsModules -join ',') + ") ORDER BY ModuleId")
 $lookups  = Get-Rows "SELECT ModuleId,Kind,FieldName,Title,Value FROM LookupValues WHERE ModuleId IS NULL AND Kind = 2 AND FieldName IN (N'Gender',N'Civil Status') ORDER BY Id"
 $conn.Dispose()

@@ -1082,6 +1082,103 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("DiagnosticLabs.Domain.Lab.CustomForm", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ModuleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModuleId")
+                        .IsUnique();
+
+                    b.ToTable("CustomForms");
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Lab.CustomFormVersion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CustomFormId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DefinitionJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomFormId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("CustomFormVersions");
+                });
+
             modelBuilder.Entity("DiagnosticLabs.Domain.Lab.LabReport", b =>
                 {
                     b.Property<long>("Id")
@@ -1953,6 +2050,25 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                     b.HasKey("LabReportId");
 
                     b.ToTable("ClinicalMicroscopyReports", (string)null);
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Lab.Reports.CustomFormReport", b =>
+                {
+                    b.Property<long>("LabReportId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CustomFormVersionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ValuesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("LabReportId");
+
+                    b.HasIndex("CustomFormVersionId");
+
+                    b.ToTable("CustomFormReports", (string)null);
                 });
 
             modelBuilder.Entity("DiagnosticLabs.Domain.Lab.Reports.HematologyReport", b =>
@@ -3431,6 +3547,48 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("DiagnosticLabs.Domain.Lab.CustomForm", b =>
+                {
+                    b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DiagnosticLabs.Domain.Identity.Module", "Module")
+                        .WithMany()
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Module");
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Lab.CustomFormVersion", b =>
+                {
+                    b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DiagnosticLabs.Domain.Lab.CustomForm", "CustomForm")
+                        .WithMany("Versions")
+                        .HasForeignKey("CustomFormId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CustomForm");
+                });
+
             modelBuilder.Entity("DiagnosticLabs.Domain.Lab.LabReport", b =>
                 {
                     b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
@@ -3523,6 +3681,25 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasForeignKey("DiagnosticLabs.Domain.Lab.Reports.ClinicalMicroscopyReport", "LabReportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("LabReport");
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Lab.Reports.CustomFormReport", b =>
+                {
+                    b.HasOne("DiagnosticLabs.Domain.Lab.CustomFormVersion", "CustomFormVersion")
+                        .WithMany()
+                        .HasForeignKey("CustomFormVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DiagnosticLabs.Domain.Lab.LabReport", "LabReport")
+                        .WithOne()
+                        .HasForeignKey("DiagnosticLabs.Domain.Lab.Reports.CustomFormReport", "LabReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CustomFormVersion");
 
                     b.Navigation("LabReport");
                 });
@@ -3830,6 +4007,11 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("DiagnosticLabs.Domain.Inventory.Item", b =>
                 {
                     b.Navigation("Quantities");
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Lab.CustomForm", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("DiagnosticLabs.Domain.Lab.LabReport", b =>

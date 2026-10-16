@@ -10,7 +10,7 @@
       <ctl:TemplateTextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" Options="{Binding RemarksTemplates}" EditCommand="{Binding EditRemarksTemplatesCommand}" MinHeight="46" MaxHeight="76" />
     </StackPanel>
 
-    <Grid Margin="0,6,0,0">
+    <Grid x:Name="SignatureGrid" Margin="0,6,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition x:Name="SecondGap" Width="0" />
@@ -18,7 +18,7 @@
         <ColumnDefinition Width="40" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
-      <StackPanel Grid.Column="0">
+      <StackPanel x:Name="FirstPanel" Grid.Column="0">
         <ctl:ChoiceBox ItemsSource="{Binding Technologists}" Text="{Binding MedicalTechnologist}" EditCommand="{Binding EditTechnologistListCommand}" />
         <TextBlock Text="Medical Technologist" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" Margin="0,3,0,0" />
         <DockPanel x:Name="LicenseFirst" Margin="0,4,0,0" Visibility="Collapsed">
@@ -34,7 +34,7 @@
           <TextBox Text="{Binding MedicalTechnologist2License, UpdateSourceTrigger=PropertyChanged}" />
         </DockPanel>
       </StackPanel>
-      <StackPanel Grid.Column="4">
+      <StackPanel x:Name="PathologistPanel" Grid.Column="4">
         <ctl:ChoiceBox ItemsSource="{Binding Pathologists}" Text="{Binding Pathologist}" EditCommand="{Binding EditPathologistListCommand}" />
         <TextBlock Text="Pathologist" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" Margin="0,3,0,0" />
         <DockPanel x:Name="LicensePathologist" Margin="0,4,0,0" Visibility="Collapsed">

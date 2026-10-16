@@ -19,6 +19,9 @@ public enum LabReportType
     AnnualPhysicalExam = 12,
     PhysicalExamination = 13,
     ClinicalMicroscopy = 14,
+
+    /// <summary>A form made in the Custom Lab Form designer; which form is found through its <c>CustomFormReport</c>.</summary>
+    CustomForm = 15,
 }
 
 /// <summary>

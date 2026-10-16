@@ -7,6 +7,7 @@ using DiagnosticLabs.Application.Management;
 using DiagnosticLabs.Application.Menu;
 using DiagnosticLabs.Application.Patients;
 using DiagnosticLabs.Application.LabResults;
+using DiagnosticLabs.Application.LabResults.CustomForms;
 using DiagnosticLabs.Application.Payments;
 using DiagnosticLabs.Application.Registrations;
 using DiagnosticLabs.Application.Settings;
@@ -58,6 +59,9 @@ public static class DependencyInjection
         services.AddScoped<IDiscountService, DiscountService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICompanySetupService, CompanySetupService>();
+        services.AddScoped<IFormDesignerService, FormDesignerService>();
+        services.AddScoped<CustomFormContext>();
+        services.AddScoped<ICustomFormResultService, CustomFormResultService>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IPackageCatalogService, PackageCatalogService>();
         return services;

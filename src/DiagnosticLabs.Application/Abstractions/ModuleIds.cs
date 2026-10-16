@@ -40,6 +40,12 @@ public static class ModuleIds
     /// <summary>Batch Print under Reports: the saved results of one service for the patients of a company's batch, printed in one go (added after the legacy modules).</summary>
     public const int BatchPrint = 31;
 
+    /// <summary>The Custom Lab Form designer, where the client makes its own result forms (added after the legacy modules).</summary>
+    public const int FormDesigner = 32;
+
+    /// <summary>Modules of the forms made in the Custom Lab Form designer take ids from here up, so they never meet an id added later for a built-in module.</summary>
+    public const int FirstCustomForm = 1000;
+
     /// <summary>Change Password is available to every signed-in user from the header, so it is not a permission module.</summary>
     public const int ChangePassword = 28;
 }

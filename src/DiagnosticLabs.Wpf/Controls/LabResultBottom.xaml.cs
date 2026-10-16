@@ -20,7 +20,51 @@ public partial class LabResultBottom : UserControl
         nameof(ShowLicenses), typeof(bool), typeof(LabResultBottom),
         new PropertyMetadata(false, (d, e) => ((LabResultBottom)d).ApplyLicenses((bool)e.NewValue)));
 
+    /// <summary>False for a form without a first medical technologist (a custom form that is signed only by the pathologist, say).</summary>
+    public static readonly DependencyProperty ShowFirstTechnologistProperty = DependencyProperty.Register(
+        nameof(ShowFirstTechnologist), typeof(bool), typeof(LabResultBottom),
+        new PropertyMetadata(true, (d, e) => ((LabResultBottom)d).FirstPanel.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed));
+
+    /// <summary>False for a form without a pathologist.</summary>
+    public static readonly DependencyProperty ShowPathologistProperty = DependencyProperty.Register(
+        nameof(ShowPathologist), typeof(bool), typeof(LabResultBottom),
+        new PropertyMetadata(true, (d, e) => ((LabResultBottom)d).PathologistPanel.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed));
+
+    /// <summary>False for a form with no signatories at all: the whole row is left out.</summary>
+    public static readonly DependencyProperty ShowSignatoriesProperty = DependencyProperty.Register(
+        nameof(ShowSignatories), typeof(bool), typeof(LabResultBottom),
+        new PropertyMetadata(true, (d, e) => ((LabResultBottom)d).SignatureGrid.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed));
+
+    /// <summary>The space between the Remarks box and the signatories (a form with a long table gives them more room).</summary>
+    public static readonly DependencyProperty SignatoriesSpacingProperty = DependencyProperty.Register(
+        nameof(SignatoriesSpacing), typeof(double), typeof(LabResultBottom),
+        new PropertyMetadata(6.0, (d, e) => ((LabResultBottom)d).SignatureGrid.Margin = new Thickness(0, (double)e.NewValue, 0, 0)));
+
     public LabResultBottom() => InitializeComponent();
+
+    public double SignatoriesSpacing
+    {
+        get => (double)GetValue(SignatoriesSpacingProperty);
+        set => SetValue(SignatoriesSpacingProperty, value);
+    }
+
+    public bool ShowFirstTechnologist
+    {
+        get => (bool)GetValue(ShowFirstTechnologistProperty);
+        set => SetValue(ShowFirstTechnologistProperty, value);
+    }
+
+    public bool ShowPathologist
+    {
+        get => (bool)GetValue(ShowPathologistProperty);
+        set => SetValue(ShowPathologistProperty, value);
+    }
+
+    public bool ShowSignatories
+    {
+        get => (bool)GetValue(ShowSignatoriesProperty);
+        set => SetValue(ShowSignatoriesProperty, value);
+    }
 
     public bool ShowRemarks
     {

@@ -63,6 +63,12 @@ public interface IAppDbContext
 
     DbSet<LabReportPhoto> LabReportPhotos { get; }
 
+    DbSet<CustomForm> CustomForms { get; }
+
+    DbSet<Domain.Lab.Reports.CustomFormReport> CustomFormReports { get; }
+
+    DbSet<CustomFormVersion> CustomFormVersions { get; }
+
     DbSet<CompanySetup> CompanySetups { get; }
 
     DbSet<LookupValue> LookupValues { get; }

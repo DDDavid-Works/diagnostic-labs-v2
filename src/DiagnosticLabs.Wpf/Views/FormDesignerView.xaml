@@ -1,0 +1,292 @@
+<UserControl x:Class="DiagnosticLabs.Wpf.Views.FormDesignerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls"
+             Loaded="OnLoaded">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    <Style x:Key="SectionTitle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,18,0,2" />
+    </Style>
+    <!-- a part of a section (Tests and Comments/Remarks/Findings inside Body) -->
+    <Style x:Key="SubSectionTitle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <!-- one part of Body: a thin bar at its left runs along the part -->
+    <Style x:Key="BodyPart" TargetType="Border">
+      <Setter Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
+      <Setter Property="BorderThickness" Value="3,0,0,0" />
+      <Setter Property="Padding" Value="10,0,0,0" />
+      <Setter Property="Margin" Value="0,10,0,6" />
+    </Style>
+    <Style x:Key="Hint" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+  </UserControl.Resources>
+
+  <Grid Margin="24,20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Text="Custom Lab Form" Style="{StaticResource PageTitle}" Margin="0,0,0,14" />
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="250" />
+        <ColumnDefinition Width="16" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- The client's forms -->
+      <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="4" Padding="12">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="New Form" Command="{Binding NewFormCommand}"
+                  IsEnabled="{Binding CanCreate}" HorizontalAlignment="Stretch" Margin="0,0,0,10" />
+          <ListBox Grid.Row="1" ItemsSource="{Binding Forms}" SelectedItem="{Binding SelectedForm}" Background="White"
+                   BorderBrush="{StaticResource BorderBrushSoft}" HorizontalContentAlignment="Stretch">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="2,3">
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="{Binding ServiceName}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsActive}" Value="False">
+                            <Setter Property="Text" Value="Switched off" />
+                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <TextBlock Grid.Row="1" Text="No forms yet. Press New Form." TextWrapping="Wrap" Margin="10"
+                     Foreground="{StaticResource MutedTextBrush}" IsHitTestVisible="False">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Forms.Count}" Value="0">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Grid>
+      </Border>
+
+      <!-- The designer -->
+      <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}"
+              BorderThickness="1" CornerRadius="4" Padding="22,8,22,14">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+              <TextBlock Text="{Binding Heading}" Style="{StaticResource SectionTitle}" Margin="0,8,0,0" />
+              <TextBlock Style="{StaticResource Hint}" Visibility="{Binding IsSwitchedOff, Converter={StaticResource BoolToVis}}"
+                         Foreground="{StaticResource WarningBrush}"
+                         Text="This form is switched off: it is not in the menu and its service is free. Choose a service and press Switch On to use it again." />
+
+              <Border Margin="0,6,0,0" Padding="8,5" Background="{StaticResource WarningTintBrush}" BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="1"
+                      Visibility="{Binding HasFitWarning, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding FitWarning}" TextWrapping="Wrap" />
+              </Border>
+
+              <TextBlock Text="Form Name" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding FormName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" IsEnabled="{Binding CanEdit}" />
+
+              <TextBlock Text="Service" Style="{StaticResource FieldLabel}" />
+              <ComboBox ItemsSource="{Binding Services}" SelectedItem="{Binding SelectedService}" DisplayMemberPath="Name"
+                        IsEnabled="{Binding CanPickService}" />
+              <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0"
+                         Text="The service this form belongs to. Its result is made from the registration list. A service can only have one form." />
+
+              <!-- Header -->
+              <TextBlock Text="Header" Style="{StaticResource SectionTitle}" />
+              <TextBlock Style="{StaticResource Hint}"
+                         Text="Pick the patient details printed at the top, in a grid of 3 columns and 2 rows. A detail can only be used once; leave a cell empty to skip it." />
+              <ItemsControl ItemsSource="{Binding Cells}" Width="560" HorizontalAlignment="Left">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="3" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" DisplayMemberPath="Label" Margin="0,0,8,8"
+                              IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- Body -->
+              <TextBlock Text="Body" Style="{StaticResource SectionTitle}" />
+              <TextBlock Style="{StaticResource Hint}"
+                         Text="Add up to 2 groups. Each row prints as Test Name, Result Value and Reference/Normal Values. Drag a row by its grip to move it; mark a row as a heading for a title line with nothing to enter." />
+              <Border Style="{StaticResource BodyPart}">
+              <StackPanel>
+              <TextBlock Text="Tests" Style="{StaticResource SubSectionTitle}" />
+              <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <!-- side by side as on the printed page; a single group takes the whole width -->
+                    <UniformGrid Rows="1" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="4" Padding="12,8,12,12" Margin="0,0,8,10">
+                      <StackPanel>
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Remove Group"
+                                  Command="{Binding DataContext.RemoveGroupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding}"
+                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <TextBlock Text="Group Title (Optional)" Style="{StaticResource FieldLabel}" />
+                        <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"
+                                 IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <CheckBox Content="Show Reference/Normal Values Column for This Group" IsChecked="{Binding ShowReference}" Margin="0,8,0,6"
+                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <ItemsControl ItemsSource="{Binding Rows}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border AllowDrop="True" BorderThickness="0,2,0,0" BorderBrush="Transparent" Margin="0,0,0,4"
+                                      DragEnter="OnRowDragEnter" DragOver="OnRowDragOver" DragLeave="OnRowDragLeave" Drop="OnRowDrop">
+                                <DockPanel>
+                                  <Border DockPanel.Dock="Left" Width="26" Height="26" Margin="0,0,6,0" Background="{StaticResource HoverTintBrush}" CornerRadius="3"
+                                          Cursor="SizeAll" ToolTip="Drag to move this row" Tag="grip"
+                                          PreviewMouseLeftButtonDown="OnGripMouseDown" PreviewMouseMove="OnGripMouseMove">
+                                    <TextBlock Text="&#x2630;" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource MutedTextBrush}" />
+                                  </Border>
+                                  <!-- the icon is the button's content (not its icon slot, which leaves room for a label), so it sits in the middle -->
+                                  <Button DockPanel.Dock="Right" Margin="6,0,0,0" ToolTip="Remove this row" Width="30" MinWidth="0" Padding="0"
+                                          Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                          CommandParameter="{Binding}"
+                                          IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                    <Path Data="{StaticResource Icon.Cancel}" Width="16" Height="16" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                  </Button>
+                                  <CheckBox DockPanel.Dock="Right" Content="Heading" IsChecked="{Binding IsSection}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                            IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                  <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"
+                                           IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                    <TextBox.Style>
+                                      <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                        <Style.Triggers>
+                                          <DataTrigger Binding="{Binding IsSection}" Value="True">
+                                            <Setter Property="FontWeight" Value="Bold" />
+                                          </DataTrigger>
+                                        </Style.Triggers>
+                                      </Style>
+                                    </TextBox.Style>
+                                  </TextBox>
+                                </DockPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                          <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="Add Row" Command="{Binding AddRowCommand}"
+                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                          <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="Add Heading" Margin="8,0,0,0" Command="{Binding AddSectionCommand}"
+                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                          <TextBlock Text="{Binding RowCountText}" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="Add Group" HorizontalAlignment="Left" Command="{Binding AddGroupCommand}" />
+              </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource BodyPart}">
+              <StackPanel>
+              <TextBlock Text="Comments/Remarks/Findings" Style="{StaticResource SubSectionTitle}" />
+              <TextBlock Style="{StaticResource Hint}" Text="Add up to 3 multiline text boxes under the groups (for findings, impressions...). Each one needs a name." />
+              <ItemsControl ItemsSource="{Binding Textboxes}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <DockPanel Margin="0,0,0,6">
+                      <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Remove" Margin="8,0,0,0"
+                              Command="{Binding DataContext.RemoveTextboxCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                      <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"
+                               IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    </DockPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="Add Text Box" HorizontalAlignment="Left" Command="{Binding AddTextboxCommand}" />
+              </StackPanel>
+              </Border>
+
+              <!-- Footer -->
+              <TextBlock Text="Footer" Style="{StaticResource SectionTitle}" />
+              <TextBlock Style="{StaticResource Hint}"
+                         Text="Add up to 3 signatories." />
+              <ItemsControl ItemsSource="{Binding Signatories}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                      <ComboBox ItemsSource="{Binding Roles}" SelectedItem="{Binding Role}" DisplayMemberPath="Label" Width="240"
+                                IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                      <Button icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Remove" Margin="8,0,0,0"
+                              Command="{Binding DataContext.RemoveSignatoryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Plus}" Content="Add Signatory" HorizontalAlignment="Left"
+                      Command="{Binding AddSignatoryCommand}" />
+              <CheckBox Content="Print the Licence Number Under Each Signatory" IsChecked="{Binding ShowLicenseNumber}"
+                        IsEnabled="{Binding CanEdit}" Margin="0,12,0,0" />
+              <CheckBox Content="Print a Remarks Box" IsChecked="{Binding ShowRemarks}" IsEnabled="{Binding CanEdit}" Margin="0,6,0,8" />
+            </StackPanel>
+          </ScrollViewer>
+
+          <StackPanel Grid.Row="1" Margin="0,12,0,0">
+            <TextBlock Text="{Binding Message}" Style="{StaticResource StatusText}" Margin="0,0,0,10" />
+            <StackPanel Orientation="Horizontal">
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save" Style="{StaticResource PrimaryButton}"
+                      Command="{Binding SaveCommand}" IsEnabled="{Binding CanEdit}" />
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.Cancel}" Content="Discard Changes" Margin="8,0,0,0" Command="{Binding RevertCommand}" />
+              <Button icn:ButtonIcon.Data="{StaticResource Icon.LockOpen}" Content="{Binding ToggleActiveText}" Margin="8,0,0,0"
+                      Command="{Binding ToggleActiveCommand}" IsEnabled="{Binding CanSwitch}" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

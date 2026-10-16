@@ -244,6 +244,25 @@ internal sealed class CompanySetupConfiguration : IEntityTypeConfiguration<Compa
     }
 }
 
+internal sealed class CustomFormConfiguration : IEntityTypeConfiguration<CustomForm>
+{
+    public void Configure(EntityTypeBuilder<CustomForm> builder)
+    {
+        builder.Property(f => f.Name).HasMaxLength(100);
+        builder.HasOne(f => f.Module).WithMany().HasForeignKey(f => f.ModuleId);
+        builder.HasIndex(f => f.ModuleId).IsUnique();
+    }
+}
+
+internal sealed class CustomFormVersionConfiguration : IEntityTypeConfiguration<CustomFormVersion>
+{
+    public void Configure(EntityTypeBuilder<CustomFormVersion> builder)
+    {
+        builder.HasOne(v => v.CustomForm).WithMany(f => f.Versions).HasForeignKey(v => v.CustomFormId);
+        builder.HasIndex(v => new { v.CustomFormId, v.VersionNumber }).IsUnique();
+    }
+}
+
 internal sealed class LookupValueConfiguration : IEntityTypeConfiguration<LookupValue>
 {
     public void Configure(EntityTypeBuilder<LookupValue> builder)

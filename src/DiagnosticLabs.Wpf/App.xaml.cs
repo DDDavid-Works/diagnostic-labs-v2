@@ -148,6 +148,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<DiscountsViewModel>();
         builder.Services.AddTransient<UsersViewModel>();
         builder.Services.AddTransient<CompanySetupViewModel>();
+        builder.Services.AddTransient<FormDesignerViewModel>();
         builder.Services.AddTransient<LoginWindow>();
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<MainWindow>();

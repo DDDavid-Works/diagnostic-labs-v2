@@ -417,3 +417,15 @@ internal sealed class ClinicalMicroscopyReportConfiguration : IEntityTypeConfigu
         builder.Property(e => e.CastsReference).HasMaxLength(100);
     }
 }
+
+internal sealed class CustomFormReportConfiguration : IEntityTypeConfiguration<CustomFormReport>
+{
+    public void Configure(EntityTypeBuilder<CustomFormReport> builder)
+    {
+        builder.ToTable("CustomFormReports");
+        builder.HasKey(e => e.LabReportId);
+        builder.HasOne(e => e.LabReport).WithOne().HasForeignKey<CustomFormReport>(e => e.LabReportId);
+        builder.HasOne(e => e.CustomFormVersion).WithMany().HasForeignKey(e => e.CustomFormVersionId);
+        builder.HasIndex(e => e.CustomFormVersionId);
+    }
+}

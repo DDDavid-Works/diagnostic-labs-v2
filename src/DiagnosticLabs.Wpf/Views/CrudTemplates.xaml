@@ -2334,4 +2334,137 @@
     </ctl:CrudLayout>
   </DataTemplate>
 
+  <!-- ===================================================== A form made in the Custom Lab Form designer -->
+  <DataTemplate DataType="{x:Type vm:CustomFormViewModel}">
+    <DataTemplate.Resources>
+      <Style x:Key="CustomCell" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource PaperLineBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,1,1" />
+        <Setter Property="Padding" Value="3,2" />
+      </Style>
+      <!-- A heading line, or a test: its name, the result (picked from the row's own list, or typed) and the reference value -->
+      <DataTemplate x:Key="CustomRow" DataType="{x:Type vm:CustomRowViewModel}">
+        <Grid>
+          <Border Style="{StaticResource CustomCell}" Background="{StaticResource HoverTintBrush}" Padding="6,4"
+                  Visibility="{Binding IsSection, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding Label}" Style="{StaticResource PaperLabel}" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+          </Border>
+          <DockPanel Visibility="{Binding IsTest, Converter={StaticResource BoolToVis}}">
+            <Border DockPanel.Dock="Right" Width="120" Style="{StaticResource CustomCell}" Visibility="{Binding ShowReferenceCell, Converter={StaticResource BoolToVis}}">
+              <TextBox Text="{Binding Reference.Value, UpdateSourceTrigger=PropertyChanged}" />
+            </Border>
+            <Border DockPanel.Dock="Right" Width="150" Style="{StaticResource CustomCell}">
+              <ctl:ChoiceBox ItemsSource="{Binding Choice.Items}" Text="{Binding Choice.Value}" EditCommand="{Binding Choice.EditCommand}" />
+            </Border>
+            <Border Style="{StaticResource CustomCell}" Padding="8,3,4,3">
+              <TextBlock Text="{Binding Label}" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}" />
+            </Border>
+          </DockPanel>
+        </Grid>
+      </DataTemplate>
+      <!-- A group column: its title, the column captions and its rows -->
+      <DataTemplate x:Key="CustomGroup" DataType="{x:Type vm:CustomGroupViewModel}">
+        <Border Margin="0,0,6,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+          <StackPanel>
+            <Border Style="{StaticResource CustomCell}" Background="{StaticResource HoverTintBrush}" Padding="6,4" Visibility="{Binding HasTitle, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="{Binding Title}" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            </Border>
+            <DockPanel MinHeight="38">
+              <Border DockPanel.Dock="Right" Width="120" Padding="4,3">
+                <Border.Style>
+                  <Style TargetType="Border" BasedOn="{StaticResource CustomCell}">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding ShowReference}" Value="False">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <TextBlock Text="Reference/Normal Values" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+              </Border>
+              <Border DockPanel.Dock="Right" Width="150" Style="{StaticResource CustomCell}" Padding="4,3">
+                <TextBlock Text="Result Value" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <Border Style="{StaticResource CustomCell}" Padding="6,3">
+                <TextBlock Text="Test Name" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </Border>
+            </DockPanel>
+            <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource CustomRow}" />
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+    </DataTemplate.Resources>
+    <ctl:CrudLayout FormMaxWidth="1000">
+      <ctl:CrudLayout.SearchFilters>
+        <DockPanel Margin="0,0,0,8" LastChildFill="True">
+          <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Funnel}" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
+          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
+        </DockPanel>
+      </ctl:CrudLayout.SearchFilters>
+
+      <ctl:CrudLayout.GridContent>
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
+            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </ctl:CrudLayout.GridContent>
+
+      <ctl:CrudLayout.FooterContent>
+        <StackPanel Orientation="Horizontal">
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
+                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Print}" Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
+                  ToolTip="Save, then open the print preview" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Undo}" Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
+                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Put the saved defaults back into the result fields" />
+          <Button icn:ButtonIcon.Data="{StaticResource Icon.Sliders}" Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
+                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
+                  ToolTip="Set the reference values and texts every new result starts with (administrators)" />
+        </StackPanel>
+      </ctl:CrudLayout.FooterContent>
+
+      <ctl:CrudLayout.FormContent>
+        <StackPanel>
+          <ctl:LabResultTop />
+
+          <Border Margin="0,6,0,0" Padding="8,5" Background="{StaticResource WarningTintBrush}" BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="1"
+                  Visibility="{Binding HasDesignNote, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding DesignNote}" TextWrapping="Wrap" />
+          </Border>
+
+          <!-- The groups of the design, side by side -->
+          <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Groups}" ItemTemplate="{StaticResource CustomGroup}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+
+          <!-- The text boxes of the design -->
+          <ItemsControl ItemsSource="{Binding Textboxes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type vm:CustomTextboxViewModel}">
+                <Border Margin="0,10,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Padding="6,4,6,6">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding Label, StringFormat='{}{0}:'}" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
+                    <ctl:TemplateTextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" Options="{Binding Templates}" EditCommand="{Binding EditCommand}" MinHeight="54" MaxHeight="120" />
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <ctl:LabResultBottom ShowRemarks="{Binding ShowRemarks}" ShowFirstTechnologist="{Binding ShowFirstTechnologist}" ShowSecondTechnologist="{Binding ShowSecondTechnologist}"
+                               ShowPathologist="{Binding ShowPathologist}" ShowSignatories="{Binding HasSignatories}" ShowLicenses="{Binding ShowLicenses}" SignatoriesSpacing="24" />
+        </StackPanel>
+      </ctl:CrudLayout.FormContent>
+    </ctl:CrudLayout>
+  </DataTemplate>
+
 </ResourceDictionary>
