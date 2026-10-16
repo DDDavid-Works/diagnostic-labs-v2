@@ -1950,7 +1950,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBox Text="{Binding TemporaryPassword, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" />
                 <Button Grid.Column="1" icn:ButtonIcon.Data="{StaticResource Icon.Sparkle}" Content="Generate" Margin="6,0,0,0" Command="{Binding GeneratePasswordCommand}" />
-                <Button Grid.Column="2" icn:ButtonIcon.Data="{StaticResource Icon.Undo}" Content="Reset" Margin="6,0,0,0" Command="{Binding ResetPasswordCommand}" />
+                <Button Grid.Column="2" icn:ButtonIcon.Data="{StaticResource Icon.Undo}" Content="Set Password" Margin="6,0,0,0" Command="{Binding ResetPasswordCommand}" />
               </Grid>
             </StackPanel>
           </Border>

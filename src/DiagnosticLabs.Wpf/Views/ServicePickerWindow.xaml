@@ -10,7 +10,7 @@
 
     <!-- A service tile: the whole tile is the button, with a check box look. -->
     <Style x:Key="TileButton" TargetType="ToggleButton">
-      <Setter Property="Width" Value="240" />
+      <Setter Property="Width" Value="230" />
       <Setter Property="MinHeight" Value="58" />
       <Setter Property="Margin" Value="0,0,10,10" />
       <Setter Property="Cursor" Value="Hand" />
