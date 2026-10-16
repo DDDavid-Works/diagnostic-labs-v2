@@ -1,13 +1,16 @@
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.LabResults;
+using DiagnosticLabs.Application.LabResults.CustomForms;
 using DiagnosticLabs.Application.Reports;
 using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Domain.Identity;
 using DiagnosticLabs.Domain.Lab;
+using DiagnosticLabs.Domain.Lab.Reports;
 using DiagnosticLabs.Domain.Patients;
 using DiagnosticLabs.Domain.Registrations;
 using DiagnosticLabs.Infrastructure.Persistence;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiagnosticLabs.Application.Tests.Reports;
 
@@ -18,7 +21,7 @@ public class BatchPrintServiceTests
     /// <summary>Stands in for the result forms: "prints" a result as a one-line report carrying the patient name and the result id.</summary>
     private sealed class FakePrinters(AppDbContext db) : ILabResultPrinters
     {
-        public ILabResultPrinting? For(int moduleId) => moduleId is ModuleIds.Hematology or ModuleIds.Urinalysis ? new Printer(db) : null;
+        public ILabResultPrinting? For(int moduleId) => moduleId is ModuleIds.Hematology or ModuleIds.Urinalysis or >= ModuleIds.FirstCustomForm ? new Printer(db) : null;
 
         private sealed class Printer(AppDbContext db) : ILabResultPrinting
         {
@@ -257,5 +260,93 @@ public class BatchPrintServiceTests
         _env.Session.SignIn(new AuthenticatedUser(3, "u", "User", false, false, [Permission(ModuleIds.BatchPrint, false), Permission(ModuleIds.Hematology, true)]));
 
         Assert.Equal(Errors.Forbidden, (await CreateService(db).GetPrintablesAsync(w.Hematology.Id, [1])).Error);
+    }
+
+    // ---------------------------------------------------------------- forms made in the Custom Lab Form designer
+
+    private const int FormA = ModuleIds.FirstCustomForm;
+    private const int FormB = ModuleIds.FirstCustomForm + 1;
+
+    /// <summary>Two custom forms (modules 1000 and 1001), each with its own service and one design version.</summary>
+    private static async Task<(Service A, Service B)> SeedCustomFormsAsync(AppDbContext db)
+    {
+        var a = new Service { ServiceName = "Lipid Profile", ServiceDescription = "d", Price = 0m };
+        var b = new Service { ServiceName = "Thyroid Panel", ServiceDescription = "d", Price = 0m };
+        db.Services.AddRange(a, b);
+        await db.SaveChangesAsync();
+        foreach (var (moduleId, name, service) in new[] { (FormA, "Lipid Profile", a), (FormB, "Thyroid Panel", b) })
+        {
+            db.Modules.Add(new Module { Id = moduleId, ModuleName = name, ModuleTypeId = 3, ServiceId = service.Id, IsActive = true });
+            var form = new CustomForm { Name = name, ModuleId = moduleId };
+            form.Versions.Add(new CustomFormVersion { VersionNumber = 1, DefinitionJson = FormDefinition.NewForm().ToJson() });
+            db.CustomForms.Add(form);
+        }
+
+        await db.SaveChangesAsync();
+        return (a, b);
+    }
+
+    private async Task<LabReport> CustomResultAsync(AppDbContext db, PatientRegistration registration, int moduleId)
+    {
+        var report = await ResultAsync(db, registration, LabReportType.CustomForm, Noon);
+        var version = db.CustomFormVersions.Single(v => v.CustomForm.ModuleId == moduleId);
+        db.CustomFormReports.Add(new CustomFormReport { LabReportId = report.Id, CustomFormVersionId = version.Id });
+        await db.SaveChangesAsync();
+        return report;
+    }
+
+    [Fact]
+    public async Task Custom_forms_are_offered_like_any_other_form_when_the_user_may_print_them()
+    {
+        await using var db = _env.CreateDb();
+        await SeedAsync(db);
+        await SeedCustomFormsAsync(db);
+
+        SignInAsAdmin();
+        Assert.Equal(["Urinalysis", "Hematology", "Lipid Profile", "Thyroid Panel"], (await CreateService(db).GetServicesAsync()).Select(s => s.Name));
+
+        _env.Session.SignIn(new AuthenticatedUser(2, "u", "User", false, false, [Permission(ModuleIds.BatchPrint, true), Permission(FormB, true), Permission(FormA, false)]));
+        Assert.Equal(["Thyroid Panel"], (await CreateService(db).GetServicesAsync()).Select(s => s.Name));
+    }
+
+    [Fact]
+    public async Task A_search_for_a_custom_form_only_counts_the_results_of_that_form()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var w = await SeedAsync(db);
+        var (lipid, thyroid) = await SeedCustomFormsAsync(db);
+        var ann = await RegisterAsync(db, "Ann", w.Acme, "B", lipid, thyroid);
+        var bob = await RegisterAsync(db, "Bob", w.Acme, "B", lipid, thyroid);
+        var annLipid = await CustomResultAsync(db, ann, FormA);
+        await CustomResultAsync(db, bob, FormB); // Bob has a result of the other form only
+        var service = CreateService(db);
+
+        var result = (await service.SearchAsync(new BatchPrintRequest(w.Acme.Id, lipid.Id))).Value;
+
+        Assert.Equal(["Ann", "Bob"], Names(result));
+        Assert.Equal([annLipid.Id, null], result.Rows.Select(r => r.ResultId));
+        Assert.Equal("Lipid Profile", result.ServiceName);
+    }
+
+    [Fact]
+    public async Task Custom_form_results_are_printed_by_the_form_they_belong_to()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var w = await SeedAsync(db);
+        var (lipid, _) = await SeedCustomFormsAsync(db);
+        var ann = await RegisterAsync(db, "Ann", w.Acme, "B", lipid);
+        var result = await CustomResultAsync(db, ann, FormA);
+        var providers = new ServiceCollection()
+            .AddSingleton<IAppDbContext>(db).AddSingleton<ICurrentUser>(_env.Session).AddSingleton<IClock>(_env.Clock).BuildServiceProvider();
+        var printers = new LabResultPrinters(providers);
+
+        var printable = await new BatchPrintService(db, _env.Session, printers).GetPrintablesAsync(lipid.Id, [result.Id]);
+
+        Assert.True(printable.IsSuccess, printable.IsFailure ? printable.Error.Message : "");
+        Assert.Equal(ReportLayout.CustomForm, printable.Value.Single().Layout);
+        Assert.Equal("Lipid Profile", printable.Value.Single().Title);
+        Assert.Null(printers.For(ModuleIds.MedicalExamination)); // a module with no result form still has no printer
     }
 }

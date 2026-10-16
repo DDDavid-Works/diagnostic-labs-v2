@@ -1,4 +1,5 @@
 using DiagnosticLabs.Application.Abstractions;
+using DiagnosticLabs.Application.LabResults.CustomForms;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DiagnosticLabs.Application.LabResults;
@@ -27,6 +28,8 @@ public sealed class LabResultPrinters(IServiceProvider services) : ILabResultPri
         ModuleIds.AnnualPhysicalExamPage2 => services.GetRequiredService<IMedicalExaminationService>(),
         ModuleIds.PhysicalExamination => services.GetRequiredService<IPhysicalExaminationService>(),
         ModuleIds.ClinicalMicroscopy => services.GetRequiredService<IClinicalMicroscopyService>(),
+        // a form made in the Custom Lab Form designer: its own service instance, told which form it is for
+        >= ModuleIds.FirstCustomForm => ActivatorUtilities.CreateInstance<CustomFormResultService>(services, new CustomFormContext { ModuleId = moduleId }),
         _ => null,
     };
 }

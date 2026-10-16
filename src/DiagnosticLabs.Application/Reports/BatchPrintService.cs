@@ -2,6 +2,7 @@ using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Board;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.LabResults;
+using DiagnosticLabs.Domain.Lab;
 using Microsoft.EntityFrameworkCore;
 
 namespace DiagnosticLabs.Application.Reports;
@@ -57,7 +58,7 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
         return
         [
             .. links
-                .Where(l => LabResultModules.ReportTypeOf(l.ModuleId) is not null && names.ContainsKey(l.ServiceId) && currentUser.Can(l.ModuleId, ModuleAction.Print))
+                .Where(l => (LabResultModules.IsCustomForm(l.ModuleId) || LabResultModules.ReportTypeOf(l.ModuleId) is not null) && names.ContainsKey(l.ServiceId) && currentUser.Can(l.ModuleId, ModuleAction.Print))
                 .GroupBy(l => l.ServiceId)
                 .Select(g => g.OrderBy(l => l.ModuleId).First())
                 .Select(l => new BatchPrintServiceOption(l.ServiceId, names[l.ServiceId], l.ModuleId))
@@ -81,7 +82,8 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
             return Result<BatchPrintSearchResult>.Failure(Errors.Invalid(problems));
 
         var service = (await GetServicesAsync(cancellationToken)).FirstOrDefault(s => s.ServiceId == request.ServiceId);
-        if (service is null || LabResultModules.ReportTypeOf(service.ModuleId) is not { } reportType)
+        var custom = service is not null && LabResultModules.IsCustomForm(service.ModuleId);
+        if (service is null || (custom ? LabReportType.CustomForm : LabResultModules.ReportTypeOf(service.ModuleId)) is not { } reportType)
             return Result<BatchPrintSearchResult>.Failure(Errors.Forbidden);
 
         var companyName = await db.Companies.AsNoTracking().Where(c => c.Id == request.CompanyId).Select(c => c.CompanyName).FirstOrDefaultAsync(cancellationToken);
@@ -102,6 +104,9 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
         var ids = expected.Select(r => (long?)r.Id).ToList();
 
         var results = db.LabReports.AsNoTracking().Where(l => l.ReportType == reportType && ids.Contains(l.PatientRegistrationId));
+        // every custom form shares one report type, so only the results saved with this service's own form count
+        if (custom)
+            results = results.Where(l => db.CustomFormReports.Any(c => c.LabReportId == l.Id && c.CustomFormVersion.CustomForm.ModuleId == service.ModuleId));
         if (request.From is { } from)
             results = results.Where(l => l.CreatedAtUtc >= LocalTime.DayBoundsUtc(from).From);
         if (request.To is { } to)
