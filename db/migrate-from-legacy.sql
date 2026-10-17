@@ -365,7 +365,7 @@ FROM [$(Legacy)].dbo.[LabResultsDefaults] s
 SET IDENTITY_INSERT [Patients] ON;
 INSERT INTO [Patients] ([Id], [PatientCode], [PatientName], [DateOfBirth], [Age], [Sex], [CivilStatus], [Address], [ContactNumbers], [CreatedAtUtc], [CreatedByUserId], [UpdatedAtUtc], [UpdatedByUserId], [IsDeleted], [DeletedAtUtc], [DeletedByUserId])
 SELECT s.[Id],
-        s.[PatientCode],
+        CASE WHEN s.Id > (SELECT MIN(d.Id) FROM [$(Legacy)].dbo.[Patients] d WHERE d.PatientCode = s.PatientCode) THEN s.PatientCode + '-D' + CAST(s.Id AS varchar(20)) ELSE s.PatientCode END,
         s.[PatientName],
         CAST(s.DateOfBirth AS date),
         NULLIF(LTRIM(RTRIM(CASE WHEN s.DateOfBirth IS NULL THEN s.Age END)), ''),
@@ -965,14 +965,14 @@ UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."PlateletCountNorm
 -- Physical Examination (a form added after the legacy app): its module record, billable service and the normal values of its blood count as saved defaults
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 29)
 BEGIN
-    DECLARE @serviceId bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Physical Examination' ORDER BY Id);
-    IF @serviceId IS NULL
+    DECLARE @serviceIdPe bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Physical Examination' ORDER BY Id);
+    IF @serviceIdPe IS NULL
     BEGIN
         INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Physical Examination', N'Physical Examination', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
-        SET @serviceId = SCOPE_IDENTITY();
+        SET @serviceIdPe = SCOPE_IDENTITY();
     END
     INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
-    SELECT 29, ModuleTypeId, N'Physical Examination', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 14, 1, @serviceId FROM Modules WHERE Id = 6;
+    SELECT 29, ModuleTypeId, N'Physical Examination', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 14, 1, @serviceIdPe FROM Modules WHERE Id = 6;
 END
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 29) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 29)
     INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (29, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
@@ -991,14 +991,14 @@ UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."StabNValue"', N'0
 -- Clinical Microscopy (a form added after the legacy app): its module record, billable service and the reference ranges as saved defaults
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 30)
 BEGIN
-    DECLARE @serviceId bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Clinical Microscopy' ORDER BY Id);
-    IF @serviceId IS NULL
+    DECLARE @serviceIdCm bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Clinical Microscopy' ORDER BY Id);
+    IF @serviceIdCm IS NULL
     BEGIN
         INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Clinical Microscopy', N'Clinical Microscopy', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
-        SET @serviceId = SCOPE_IDENTITY();
+        SET @serviceIdCm = SCOPE_IDENTITY();
     END
     INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
-    SELECT 30, ModuleTypeId, N'Clinical Microscopy', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 15, 1, @serviceId FROM Modules WHERE Id = 6;
+    SELECT 30, ModuleTypeId, N'Clinical Microscopy', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 15, 1, @serviceIdCm FROM Modules WHERE Id = 6;
 END
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 30) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 30)
     INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (30, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
@@ -1034,6 +1034,12 @@ IF EXISTS (SELECT 1 FROM Modules WHERE Id = 33) AND NOT EXISTS (SELECT 1 FROM Mo
 
 -- Medical Examination (14) and Medical Examination Page 2 (15) are hidden from the menu until the client says what they are
 UPDATE [Modules] SET [IsActive] = 0 WHERE [Id] IN (14, 15);
+
+-- Administrators get full access to every module, including those the legacy build did not have
+INSERT INTO UserPermissions (UserId, ModuleId, AllowCreate, AllowEdit, AllowDelete, AllowPrint, CreatedAtUtc, UpdatedAtUtc)
+SELECT u.Id, m.Id, 1, 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME() FROM Users u CROSS JOIN Modules m
+WHERE u.IsAdmin = 1 AND NOT EXISTS (SELECT 1 FROM UserPermissions p WHERE p.UserId = u.Id AND p.ModuleId = m.Id);
+UPDATE UserPermissions SET AllowCreate = 1, AllowEdit = 1, AllowDelete = 1, AllowPrint = 1 WHERE UserId IN (SELECT Id FROM Users WHERE IsAdmin = 1);
 
 -- ===== Summary =====
 SELECT SourceTable AS SkippedSourceTable, LegacyId, Reason FROM #skipped ORDER BY SourceTable, LegacyId;

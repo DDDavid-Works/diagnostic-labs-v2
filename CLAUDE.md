@@ -7,7 +7,7 @@ The rewrite of the legacy WPF "DiagnosticLabs" app as a clean .NET 10 solution: 
 The app exists so the client can **print their result forms**: printouts follow the client's own forms.
 
 ## Hard rules
-- The legacy app was never used in production: its repo (`D:\Work\004-Others\Diagnostic-Labs`) and database `DiagnosticLabsDB` are not a consideration any more. Leave them alone (do not delete them) and work on `DiagnosticLabsV2` directly, always.
+- The legacy app's repo (`D:\Work\004-Others\Diagnostic-Labs`) and the local `DiagnosticLabsDB` are not a consideration any more: leave them alone (do not delete them) and work on `DiagnosticLabsV2` directly, always. **Exception:** the client installed an older legacy build and entered setup data (Services with prices, Packages, Companies, plus a few test patients/registrations). Their backup is `db/DiagnosticLabs10172026.bak` (SQL Server 2025, restore on `DDDAVID\SQLEXPRESS`). It lacks `Payments.IsCharge`, so add that column (bit, default 0) to the restored copy before running `db/migrate-from-legacy.sql`. Their real data must go through that script into the new database; never lose it.
 - **Never commit or push until the user says "Push all"** (see the `push-all` skill). Report, then wait.
 - Apply migrations straight to `DiagnosticLabsV2` once the tests pass; no scratch-database rehearsal is needed (the `verify-migration` skill stays available for a risky data migration).
 - Screens must fit **1366x768** (very large forms may scroll vertically; the footer buttons stay fixed).
