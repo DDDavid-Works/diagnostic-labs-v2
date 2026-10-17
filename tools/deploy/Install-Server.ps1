@@ -304,7 +304,7 @@ try {
         Info "On each station:  cmdkey /add:$env:COMPUTERNAME /user:$env:COMPUTERNAME\$ShareUser /pass:<that password>"
     }
     Info 'Next: publish the release to the share, then install a station:'
-    Info "  Publish-Release.ps1 -ShareTarget \\$env:COMPUTERNAME\$ShareName\current   (or copy artifacts\publish into $ShareRoot\current, then add version.txt last)"
+    Info "  On the build PC: .\tools\deploy\Publish-Release.ps1 -Version 1.0.0 -Zip, carry release-1.0.0.zip here, unzip it, robocopy into $ShareRoot\current (/MIR /XF version.txt), then copy version.txt last."
     Info 'Then sign in as Admin with the temporary password and set the service prices and company setup.'
 }
 finally {

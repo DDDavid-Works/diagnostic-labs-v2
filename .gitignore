@@ -4,3 +4,4 @@ obj/
 *.user
 appsettings.Local.json
 artifacts/
+*.bak

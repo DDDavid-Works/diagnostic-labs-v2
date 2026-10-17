@@ -9,13 +9,16 @@
 .EXAMPLE
   .\Publish-Release.ps1                                   # build only, to artifacts\publish
   .\Publish-Release.ps1 -ShareTarget \\SERVER\DiagnosticLabs\current
+  .\Publish-Release.ps1 -Version 1.0.0 -Zip                 # build and pack artifacts\release-1.0.0.zip for the server
 #>
 [CmdletBinding()]
 param(
     # Defaults to a timestamp, e.g. 2026.10.11.1430. Pass your own to tag a release (e.g. 1.0.3).
     [string]$Version = (Get-Date -Format 'yyyy.MM.dd.HHmm'),
     # Update share folder the stations read from. Omit to build only.
-    [string]$ShareTarget
+    [string]$ShareTarget,
+    # Also pack the release into artifacts\release-<version>.zip, to carry to the server (USB or remote session).
+    [switch]$Zip
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,6 +50,12 @@ if ($ShareTarget) {
 else {
     Set-Content -Path (Join-Path $publish 'version.txt') -Value $Version -Encoding ASCII
     Write-Host "Built $Version in $publish (no share given, nothing copied)."
+    if ($Zip) {
+        $zipFile = Join-Path $repo "artifacts\release-$Version.zip"
+        if (Test-Path $zipFile) { Remove-Item $zipFile -Force }
+        Compress-Archive -Path (Join-Path $publish "*") -DestinationPath $zipFile -CompressionLevel Optimal
+        Write-Host "Packed $zipFile"
+    }
 }
 
 # robocopy returns 1-7 for success; do not leak that as the script exit code.
