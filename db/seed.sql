@@ -57,7 +57,8 @@ INSERT INTO [Services] ([Id], [ServiceName], [ServiceDescription], [Price], [IsA
   (12, N'Annual Physical Exam', N'Annual Physical Exam', 0, 1),
   (13, N'Annual Physical Exam Page 2', N'Annual Physical Exam Page 2', 0, 1),
   (14, N'Physical Examination', N'Physical Examination', 0, 1),
-  (15, N'Clinical Microscopy', N'Clinical Microscopy', 0, 1)
+  (15, N'Clinical Microscopy', N'Clinical Microscopy', 0, 1),
+  (16, N'Medical Examination Report', N'Medical Examination Report', 0, 1)
 ;
 SET IDENTITY_INSERT [Services] OFF;
 
@@ -93,7 +94,8 @@ INSERT INTO [Modules] ([Id], [ModuleTypeId], [ModuleName], [HasView], [HasCreate
   (29, 3, N'Physical Examination', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 14, 1, 14),
   (30, 3, N'Clinical Microscopy', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 15, 1, 15),
   (31, 5, N'Batch Print', 1, 0, 0, 0, 0, 1, 0, 0, N'report', 3, 1, NULL),
-  (32, 4, N'Custom Lab Form', 1, 1, 1, 0, 0, 0, 0, 0, N'services', 8, 1, NULL)
+  (32, 4, N'Custom Lab Form', 1, 1, 1, 0, 0, 0, 0, 0, N'services', 8, 1, NULL),
+  (33, 3, N'Medical Examination Report', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 16, 1, 16)
 ;
 
 INSERT INTO [ModuleDefaults] ([ModuleId], [Defaults], [IsActive]) VALUES

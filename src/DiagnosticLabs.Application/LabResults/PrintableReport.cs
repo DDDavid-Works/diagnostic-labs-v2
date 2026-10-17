@@ -16,6 +16,9 @@ public enum ReportLayout
 
     /// <summary>A form made in the Custom Lab Form designer: its page is built from the design that travels with the report.</summary>
     CustomForm,
+
+    /// <summary>The Medical Examination Report: two pages (the history and examination, then the results, classification and sign-off).</summary>
+    MedicalExamReport,
 }
 
 /// <summary>The company block at the top of a printout, from Company Setup.</summary>

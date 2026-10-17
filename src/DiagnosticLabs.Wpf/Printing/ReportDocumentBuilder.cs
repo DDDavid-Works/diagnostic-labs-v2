@@ -28,17 +28,24 @@ public static class ReportDocumentBuilder
 
         foreach (var report in reports)
         {
-            var canvas = DrawPage(report);
-            var page = new FixedPage { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
-            page.Children.Add(canvas);
+            // Most forms are one page; the Medical Examination Report is two (its pages follow each other, also in Batch Print).
+            foreach (var canvas in DrawPages(report))
+            {
+                var page = new FixedPage { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
+                page.Children.Add(canvas);
 
-            var pageContent = new PageContent();
-            ((IAddChild)pageContent).AddChild(page);
-            document.Pages.Add(pageContent);
+                var pageContent = new PageContent();
+                ((IAddChild)pageContent).AddChild(page);
+                document.Pages.Add(pageContent);
+            }
         }
 
         return document;
     }
+
+    /// <summary>The pages one report takes on paper.</summary>
+    public static IReadOnlyList<Canvas> DrawPages(PrintableReport report) =>
+        report.Layout == ReportLayout.MedicalExamReport ? MedicalExamReportLayout.Draw(report) : [DrawPage(report)];
 
     private static Canvas DrawPage(PrintableReport report)
     {
@@ -79,6 +86,8 @@ public static class ReportDocumentBuilder
             case ReportLayout.CustomForm:
                 CustomFormLayout.Draw(canvas, report);
                 break;
+            case ReportLayout.MedicalExamReport:
+                throw new InvalidOperationException("The Medical Examination Report has two pages; use DrawPages.");
             default:
                 throw new NotSupportedException($"There is no page design for {report.Layout}.");
         }
@@ -1417,7 +1426,8 @@ internal static class PhysicalExaminationLayout
             if (y > tableTop)
                 PageDrawing.PutRule(canvas, x, y, width, line);
 
-            PageDrawing.PutText(canvas, label, x + 3.0, y + (rows == 1 ? 14.0 : 13.0), 10.0, bold: false);
+            // the tests under WHITE BLOOD CELL COUNT are indented like Male / Female
+            PageDrawing.PutText(canvas, label, x + (rows == 1 ? 24.0 : 3.0), y + (rows == 1 ? 14.0 : 13.0), 10.0, bold: false);
             var result = f(name + "Result");
             if (gendered)
             {

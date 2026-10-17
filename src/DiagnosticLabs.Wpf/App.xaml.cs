@@ -127,6 +127,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<HematologyViewModel>();
         builder.Services.AddTransient<PhysicalExaminationViewModel>();
         builder.Services.AddTransient<ClinicalMicroscopyViewModel>();
+        builder.Services.AddTransient<MedicalExamReportViewModel>();
         builder.Services.AddTransient<SerologyViewModel>();
         builder.Services.AddTransient<ImmunologyViewModel>();
         builder.Services.AddTransient<PregnancyTestViewModel>();

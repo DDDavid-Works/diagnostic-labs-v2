@@ -71,6 +71,7 @@ public static class LabResultModules
         [ModuleIds.AnnualPhysicalExamPage2] = LabReportType.MedicalExamination,
         [ModuleIds.PhysicalExamination] = LabReportType.PhysicalExamination,
         [ModuleIds.ClinicalMicroscopy] = LabReportType.ClinicalMicroscopy,
+        [ModuleIds.MedicalExamReport] = LabReportType.MedicalExamReport,
     };
 
     public static LabReportType? ReportTypeOf(int moduleId) => Types.TryGetValue(moduleId, out var type) ? type : null;

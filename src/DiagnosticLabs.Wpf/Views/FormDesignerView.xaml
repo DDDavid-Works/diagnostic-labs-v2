@@ -254,12 +254,17 @@
               <TextBlock Style="{StaticResource Hint}"
                          Text="Add up to 3 signatories." />
               <ItemsControl ItemsSource="{Binding Signatories}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                      <ComboBox ItemsSource="{Binding Roles}" SelectedItem="{Binding Role}" DisplayMemberPath="Label" Width="240"
+                    <StackPanel Orientation="Vertical" Margin="0,0,12,8">
+                      <ComboBox ItemsSource="{Binding Roles}" SelectedItem="{Binding Role}" DisplayMemberPath="Label" Width="200"
                                 IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
-                      <Button icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Remove" Margin="8,0,0,0"
+                      <Button icn:ButtonIcon.Data="{StaticResource Icon.Delete}" Content="Remove" Margin="0,6,0,0" HorizontalAlignment="Left"
                               Command="{Binding DataContext.RemoveSignatoryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                               CommandParameter="{Binding}"
                               IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />

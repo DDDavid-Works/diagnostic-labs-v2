@@ -20,6 +20,13 @@ internal sealed class CapturePreview : IReportPreviewDialog
 
     public static string OutputFolder { get; set; } = "";
 
+    /// <summary>Forgets the last printout, so a check can wait for the next one to arrive.</summary>
+    public static void Forget()
+    {
+        Last = null;
+        PageCount = 0;
+    }
+
     public void Show(PrintableReport report)
     {
         Last = report;
@@ -38,9 +45,28 @@ internal sealed class CapturePreview : IReportPreviewDialog
             if (child is TextBlock tb)
                 lines.Add($"{Canvas.GetLeft(tb):N1}|{Canvas.GetTop(tb) + tb.BaselineOffset:N1}|{tb.Text}");
         File.WriteAllLines(Path.Combine(OutputFolder, $"print-{report.Layout}-text.txt"), lines);
-        using var stream = File.Create(Path.Combine(OutputFolder, $"print-{report.Layout}.png"));
-        encoder.Save(stream);
+        using (var stream = File.Create(Path.Combine(OutputFolder, $"print-{report.Layout}.png")))
+            encoder.Save(stream);
+
+        // A form of more than one page (the Medical Examination Report): the other pages go to print-<Layout>-p2.png, -p3.png...
+        for (var i = 1; i < document.Pages.Count; i++)
+        {
+            var extra = document.Pages[i].GetPageRoot(false);
+            extra.Measure(new Size(ReportDocumentBuilder.PageWidth, ReportDocumentBuilder.PageHeight));
+            extra.Arrange(new Rect(0, 0, ReportDocumentBuilder.PageWidth, ReportDocumentBuilder.PageHeight));
+            extra.UpdateLayout();
+            var extraBitmap = new RenderTargetBitmap((int)ReportDocumentBuilder.PageWidth, (int)ReportDocumentBuilder.PageHeight, 96, 96, PixelFormats.Pbgra32);
+            extraBitmap.Render(extra);
+            var extraEncoder = new PngBitmapEncoder();
+            extraEncoder.Frames.Add(BitmapFrame.Create(extraBitmap));
+            using var extraStream = File.Create(Path.Combine(OutputFolder, $"print-{report.Layout}-p{i + 1}.png"));
+            extraEncoder.Save(extraStream);
+        }
+
+        PageCount = document.Pages.Count;
     }
+
+    public static int PageCount { get; private set; }
 
     public static FixedDocument? LastDocument { get; private set; }
 

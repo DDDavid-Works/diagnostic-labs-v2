@@ -7,9 +7,9 @@ The rewrite of the legacy WPF "DiagnosticLabs" app as a clean .NET 10 solution: 
 The app exists so the client can **print their result forms**: printouts follow the client's own forms.
 
 ## Hard rules
-- The legacy repo (`D:\Work\004-Others\Diagnostic-Labs`) and the legacy database `DiagnosticLabsDB` are **read only** and must stay running.
+- The legacy app was never used in production: its repo (`D:\Work\004-Others\Diagnostic-Labs`) and database `DiagnosticLabsDB` are not a consideration any more. Leave them alone (do not delete them) and work on `DiagnosticLabsV2` directly, always.
 - **Never commit or push until the user says "Push all"** (see the `push-all` skill). Report, then wait.
-- Test migrations on a scratch database first (`verify-migration` skill), never directly on `DiagnosticLabsV2`.
+- Apply migrations straight to `DiagnosticLabsV2` once the tests pass; no scratch-database rehearsal is needed (the `verify-migration` skill stays available for a risky data migration).
 - Screens must fit **1366x768** (very large forms may scroll vertically; the footer buttons stay fixed).
 - Do not drop columns the client no longer shows: hide them and list them in `docs/HIDDEN-FIELDS.md`.
 - Use absolute paths for file edits from PowerShell (a relative write once emptied two files).
@@ -34,7 +34,7 @@ powershell -File tools\UiHarness\Run-Check.ps1 -Mode <mode>      # offscreen UI 
 ## How the client's requests are handled
 1. **Analyze first** when a PDF/photo/sketch arrives (read it, list fields and doubtful handwriting, compare with what exists, ask the few questions that change the build) and wait for the answers. When told "Do not proceed yet", only summarize the plan.
 2. A hand-drawn sketch gives the content; the look follows the existing printouts (logo and letterhead, yellow title bar, patient block, black lines, Remarks box, signatories flowing down). A printed form is followed more literally.
-3. Verify before reporting: tests, migration on scratch data, and **look at the rendered screen and printout**.
+3. Verify before reporting: tests, the migration applied to `DiagnosticLabsV2`, and **look at the rendered screen and printout**.
 4. Say plainly what is still open (unclear readings, prices to set, permissions to grant).
 
 ## Conventions worth knowing

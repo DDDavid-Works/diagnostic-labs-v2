@@ -321,6 +321,66 @@
     </Style.Triggers>
   </Style>
 
+  <!-- Tabs: soft green headers with rounded tops; the selected one is white and joins the white page under it (the stock Windows tabs are grey and square). -->
+  <Style TargetType="TabControl">
+    <!-- The header row is as tall as its text, which is rarely a whole pixel at 125% / 150% scaling; without rounding, every 1 px table line under it lands between two pixels and fades away. -->
+    <Setter Property="UseLayoutRounding" Value="True" />
+    <Setter Property="Padding" Value="12,4" />
+    <Setter Property="Background" Value="White" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabControl">
+          <Grid KeyboardNavigation.TabNavigation="Local" SnapsToDevicePixels="True">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <TabPanel Grid.Row="0" IsItemsHost="True" Panel.ZIndex="1" Margin="0,0,0,-1" Background="Transparent" KeyboardNavigation.TabIndex="1" />
+            <Border Grid.Row="1" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}" CornerRadius="0,3,3,3" KeyboardNavigation.TabNavigation="Local" KeyboardNavigation.DirectionalNavigation="Contained" KeyboardNavigation.TabIndex="2">
+              <ContentPresenter ContentSource="SelectedContent" />
+            </Border>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="TabItem">
+    <Setter Property="Padding" Value="20,8" />
+    <Setter Property="Margin" Value="0,0,3,0" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabItem">
+          <!-- The look of the heading is set on the heading only: Foreground and FontWeight set on the TabItem itself would be inherited by everything on the page. -->
+          <Border x:Name="Chrome" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1,1,1,0"
+                  CornerRadius="4,4,0,0" Margin="0,3,0,0" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+            <ContentPresenter x:Name="Heading" ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"
+                              TextElement.Foreground="{StaticResource MutedTextBrush}" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Chrome" Property="Background" Value="{StaticResource HoverTintBrush}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Chrome" Property="Background" Value="White" />
+              <Setter TargetName="Chrome" Property="Margin" Value="0" />
+              <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
+              <Setter TargetName="Heading" Property="TextElement.Foreground" Value="{StaticResource AccentBrush}" />
+              <Setter TargetName="Heading" Property="TextElement.FontWeight" Value="SemiBold" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.5" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style x:Key="MenuButton" TargetType="Button">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />

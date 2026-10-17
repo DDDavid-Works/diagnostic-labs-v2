@@ -60,7 +60,6 @@ public partial class MedicalExaminationViewModel(
     [ObservableProperty]
     private string? _civilStatus;
 
-    public IReadOnlyList<string> CivilStatuses { get; } = ["Single", "Married", "Widowed", "Separated", "Divorced"];
 
     // ----- laboratory / X-ray results -----
     public IReadOnlyList<FindingRow> Rows { get; } =
@@ -95,7 +94,10 @@ public partial class MedicalExaminationViewModel(
 
     public ChoiceField PhysicianLicense { get; } = new("PhysicianLicense", "Physician License", EntryFields.MerPhysicianLicense);
 
-    protected override IEnumerable<ChoiceField> ChoiceFields => [AssessmentDoneBy, PhysicianName, PhysicianLicense];
+    // These three only hold the values: the names are picked from the shared Medical Technologist / Pathologist lists (with their licence numbers), like the
+    // other forms, so they are not list fields of their own any more.
+    private bool _showingSaved;
+    private bool _wired;
 
     protected override EntryField RemarksField => EntryFields.MerRemarks;
 
@@ -111,6 +113,18 @@ public partial class MedicalExaminationViewModel(
 
     protected override async Task OnInitializeAsync()
     {
+        if (!_wired)
+        {
+            _wired = true;
+
+            // Picking a physician fills in the licence number from the Pathologist list (a saved form keeps the one it was saved with).
+            PhysicianName.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ChoiceField.Value) && !_showingSaved)
+                    PhysicianLicense.Value = PathologistLicenseOf(PhysicianName.Value);
+            };
+        }
+
         await base.OnInitializeAsync();
         await LoadTextTemplatesAsync();
     }
@@ -174,8 +188,17 @@ public partial class MedicalExaminationViewModel(
         MedicalSurgicalHistory = data.MedicalSurgicalHistory;
         Assessment = data.Assessment;
         AssessmentDoneBy.Value = data.AssessmentDoneBy;
-        PhysicianName.Value = data.PhysicianName;
-        PhysicianLicense.Value = data.PhysicianLicense;
+        _showingSaved = true;
+        try
+        {
+            PhysicianName.Value = data.PhysicianName;
+            PhysicianLicense.Value = data.PhysicianLicense;
+        }
+        finally
+        {
+            _showingSaved = false;
+        }
+
         RowVersion = d.RowVersion;
     }
 
@@ -189,6 +212,9 @@ public partial class MedicalExaminationViewModel(
         Classification.Value = null;
         MedicalSurgicalHistory = null;
         Assessment = null;
+        AssessmentDoneBy.Value = null;
+        PhysicianName.Value = null;
+        PhysicianLicense.Value = null;
     }
 
     // What a new form starts with: the usual wording, the marks and the classification (the person's own details are not part of it).
@@ -197,6 +223,9 @@ public partial class MedicalExaminationViewModel(
         new("MedicalSurgicalHistory", () => MedicalSurgicalHistory, v => MedicalSurgicalHistory = v),
         new("Assessment", () => Assessment, v => Assessment = v),
         new("Classification", () => Classification.Value, v => Classification.Value = v),
+        new("AssessmentDoneBy", () => AssessmentDoneBy.Value, v => AssessmentDoneBy.Value = v),
+        new("PhysicianName", () => PhysicianName.Value, v => PhysicianName.Value = v),
+        new("PhysicianLicense", () => PhysicianLicense.Value, v => PhysicianLicense.Value = v),
         .. Rows.Select(r => new DefaultField("State." + r.Name, () => r.State.Value, v => r.State.Value = v)),
         .. Rows.Select(r => new DefaultField("Note." + r.Name, () => r.Remarks, v => r.Remarks = v)),
     ];

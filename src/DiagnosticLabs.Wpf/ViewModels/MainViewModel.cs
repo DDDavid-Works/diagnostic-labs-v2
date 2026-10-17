@@ -28,6 +28,7 @@ public partial class MainViewModel(
         [ModuleIds.Hematology] = sp => sp.GetRequiredService<HematologyViewModel>(),
         [ModuleIds.PhysicalExamination] = sp => sp.GetRequiredService<PhysicalExaminationViewModel>(),
         [ModuleIds.ClinicalMicroscopy] = sp => sp.GetRequiredService<ClinicalMicroscopyViewModel>(),
+        [ModuleIds.MedicalExamReport] = sp => sp.GetRequiredService<MedicalExamReportViewModel>(),
         [ModuleIds.Serology] = sp => sp.GetRequiredService<SerologyViewModel>(),
         [ModuleIds.Immunology] = sp => sp.GetRequiredService<ImmunologyViewModel>(),
         [ModuleIds.PregnancyTest] = sp => sp.GetRequiredService<PregnancyTestViewModel>(),

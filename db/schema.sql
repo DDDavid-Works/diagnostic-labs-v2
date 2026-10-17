@@ -2843,3 +2843,165 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016102312_MedicalExamReport'
+)
+BEGIN
+    CREATE TABLE [MedicalExamReports] (
+        [LabReportId] bigint NOT NULL,
+        [CivilStatus] nvarchar(50) NULL,
+        [ContactNo] nvarchar(100) NULL,
+        [HxEyeDisease] nvarchar(20) NULL,
+        [HxEarInfection] nvarchar(20) NULL,
+        [HxHearingDefect] nvarchar(20) NULL,
+        [HxSinusitis] nvarchar(20) NULL,
+        [HxNoseBleeding] nvarchar(20) NULL,
+        [HxCoughColds] nvarchar(20) NULL,
+        [HxTonsillitisPharyngitis] nvarchar(20) NULL,
+        [HxNeckMassGoiter] nvarchar(20) NULL,
+        [HxAsthma] nvarchar(20) NULL,
+        [HxTuberculosis] nvarchar(20) NULL,
+        [HxPneumonia] nvarchar(20) NULL,
+        [HxDifficultyBreathing] nvarchar(20) NULL,
+        [HxHypertension] nvarchar(20) NULL,
+        [HxHypotension] nvarchar(20) NULL,
+        [HxAnemia] nvarchar(20) NULL,
+        [HxChestPainPalpitations] nvarchar(20) NULL,
+        [HxHeartDisease] nvarchar(20) NULL,
+        [HxBreastMass] nvarchar(20) NULL,
+        [HxDiabetes] nvarchar(20) NULL,
+        [HxUlcerHyperacidity] nvarchar(20) NULL,
+        [HxAbdominalPain] nvarchar(20) NULL,
+        [HxDiarrhea] nvarchar(20) NULL,
+        [HxKidneyDiseaseUti] nvarchar(20) NULL,
+        [HxHernia] nvarchar(20) NULL,
+        [HxHemorrhoids] nvarchar(20) NULL,
+        [HxLossOfConsciousness] nvarchar(20) NULL,
+        [HxBackPainScoliosis] nvarchar(20) NULL,
+        [HxHeadacheMigraine] nvarchar(20) NULL,
+        [HxDizzinessVertigo] nvarchar(20) NULL,
+        [HxEpilepsyConvulsion] nvarchar(20) NULL,
+        [HxEasyFatigability] nvarchar(20) NULL,
+        [HxArthritisJointPain] nvarchar(20) NULL,
+        [HxFracture] nvarchar(20) NULL,
+        [HxMeasles] nvarchar(20) NULL,
+        [HxChickenPox] nvarchar(20) NULL,
+        [HxMumps] nvarchar(20) NULL,
+        [HxHepatitis] nvarchar(20) NULL,
+        [HxMalaria] nvarchar(20) NULL,
+        [HxStd] nvarchar(20) NULL,
+        [HxAllergies] nvarchar(20) NULL,
+        [HxSkinDisease] nvarchar(20) NULL,
+        [HxPreviousAccident] nvarchar(20) NULL,
+        [HxPreviousHospitalization] nvarchar(20) NULL,
+        [HxPreviousOperation] nvarchar(20) NULL,
+        [HxOthers] nvarchar(500) NULL,
+        [HxMedication] nvarchar(500) NULL,
+        [FamCancer] nvarchar(20) NULL,
+        [FamHypertension] nvarchar(20) NULL,
+        [FamDiabetes] nvarchar(20) NULL,
+        [FamOthers] nvarchar(500) NULL,
+        [MenstrualPattern] nvarchar(20) NULL,
+        [Lmp] nvarchar(50) NULL,
+        [Dysmenorrhea] nvarchar(20) NULL,
+        [PregnantNow] nvarchar(20) NULL,
+        [NumPregnancies] nvarchar(50) NULL,
+        [NumMiscarriages] nvarchar(50) NULL,
+        [Myoma] nvarchar(20) NULL,
+        [OvarianCyst] nvarchar(20) NULL,
+        [ObOthers] nvarchar(500) NULL,
+        [SmokingStatus] nvarchar(20) NULL,
+        [SmokingSince] nvarchar(50) NULL,
+        [SticksPerDay] nvarchar(50) NULL,
+        [DrinkingStatus] nvarchar(20) NULL,
+        [DrinkingSince] nvarchar(50) NULL,
+        [Bottles] nvarchar(50) NULL,
+        [DrinkingFrequency] nvarchar(20) NULL,
+        [Bp1] nvarchar(50) NULL,
+        [Bp2] nvarchar(50) NULL,
+        [Pulse1] nvarchar(50) NULL,
+        [Pulse2] nvarchar(50) NULL,
+        [Temperature] nvarchar(50) NULL,
+        [Height] nvarchar(50) NULL,
+        [Weight] nvarchar(50) NULL,
+        [BmiCategory] nvarchar(500) NULL,
+        [VisionFarWithR] nvarchar(50) NULL,
+        [VisionFarWithL] nvarchar(50) NULL,
+        [VisionFarWithoutR] nvarchar(50) NULL,
+        [VisionFarWithoutL] nvarchar(50) NULL,
+        [Ishihara] nvarchar(100) NULL,
+        [RosSkin] nvarchar(20) NULL,
+        [RosHeadScalp] nvarchar(20) NULL,
+        [RosEyes] nvarchar(20) NULL,
+        [RosEars] nvarchar(20) NULL,
+        [RosNose] nvarchar(20) NULL,
+        [RosTeethThroat] nvarchar(20) NULL,
+        [RosNeckThyroid] nvarchar(20) NULL,
+        [RosThoraxBreast] nvarchar(20) NULL,
+        [RosHeartLungs] nvarchar(20) NULL,
+        [RosAbdomen] nvarchar(20) NULL,
+        [RosInguinalGenitalia] nvarchar(20) NULL,
+        [RosExtremitiesSpine] nvarchar(20) NULL,
+        [RosTattoo] nvarchar(20) NULL,
+        [RosMassCyst] nvarchar(20) NULL,
+        [RosOthers] nvarchar(20) NULL,
+        [RosOthersNote] nvarchar(100) NULL,
+        [Findings] nvarchar(1000) NULL,
+        [LabChestXray] nvarchar(20) NULL,
+        [LabChestXrayNote] nvarchar(200) NULL,
+        [LabCbc] nvarchar(20) NULL,
+        [LabCbcNote] nvarchar(200) NULL,
+        [LabUrinalysis] nvarchar(20) NULL,
+        [LabUrinalysisNote] nvarchar(200) NULL,
+        [LabFecalysis] nvarchar(20) NULL,
+        [LabFecalysisNote] nvarchar(200) NULL,
+        [Classification] nvarchar(20) NULL,
+        [Assessment] nvarchar(1000) NULL,
+        [VitalSignsBy] nvarchar(100) NULL,
+        [VitalSignsByLicense] nvarchar(50) NULL,
+        [InterviewBy] nvarchar(100) NULL,
+        [InterviewByLicense] nvarchar(50) NULL,
+        [AssessmentBy] nvarchar(100) NULL,
+        [AssessmentByLicense] nvarchar(50) NULL,
+        [NotedBy] nvarchar(100) NULL,
+        [NotedByLicense] nvarchar(50) NULL,
+        CONSTRAINT [PK_MedicalExamReports] PRIMARY KEY ([LabReportId]),
+        CONSTRAINT [FK_MedicalExamReports_LabReports_LabReportId] FOREIGN KEY ([LabReportId]) REFERENCES [LabReports] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016102312_MedicalExamReport'
+)
+BEGIN
+
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 33)
+                    BEGIN
+                        DECLARE @serviceId bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Medical Examination Report' ORDER BY Id);
+                        IF @serviceId IS NULL
+                        BEGIN
+                            INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Medical Examination Report', N'Medical Examination Report', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+                            SET @serviceId = SCOPE_IDENTITY();
+                        END
+                        INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+                        SELECT 33, ModuleTypeId, N'Medical Examination Report', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 16, 1, @serviceId FROM Modules WHERE Id = 6;
+                    END
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 33) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 33)
+                        INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (33, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261016102312_MedicalExamReport'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261016102312_MedicalExamReport', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

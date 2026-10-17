@@ -1017,6 +1017,21 @@ UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."RBCReference"', N
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CrystalsReference"', N'hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CrystalsReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CastsReference"', N'lpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CastsReference"') IS NULL;
 
+-- Medical Examination Report (a form added after the legacy app): its module record and billable service
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 33)
+BEGIN
+    DECLARE @serviceIdMer bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Medical Examination Report' ORDER BY Id);
+    IF @serviceIdMer IS NULL
+    BEGIN
+        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Medical Examination Report', N'Medical Examination Report', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+        SET @serviceIdMer = SCOPE_IDENTITY();
+    END
+    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+    SELECT 33, ModuleTypeId, N'Medical Examination Report', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 16, 1, @serviceIdMer FROM Modules WHERE Id = 6;
+END
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 33) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 33)
+    INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (33, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
+
 -- Medical Examination (14) and Medical Examination Page 2 (15) are hidden from the menu until the client says what they are
 UPDATE [Modules] SET [IsActive] = 0 WHERE [Id] IN (14, 15);
 

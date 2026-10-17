@@ -197,6 +197,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     public ObservableCollection<string> Genders { get; } = [];
 
+    /// <summary>The Civil Status list is the one the Patients screen maintains in the Entry Builder; the forms that ask for it share it.</summary>
+    public ObservableCollection<string> CivilStatuses { get; } = [];
+
     public ObservableCollection<string> Technologists { get; } = [];
 
     public ObservableCollection<string> Pathologists { get; } = [];
@@ -324,6 +327,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     /// <summary>The licence number of a medical technologist picked from the list; none for a name that is not in it.</summary>
     protected string? TechnologistLicenseOf(string? name) => LicenseOf(_technologistLicenses, name);
+
+    /// <summary>The licence number of a pathologist / physician picked from the list; none for a name that is not in it.</summary>
+    protected string? PathologistLicenseOf(string? name) => LicenseOf(_pathologistLicenses, name);
 
     private static string? LicenseOf(Dictionary<string, string?> licenses, string? name) =>
         name is not null && licenses.TryGetValue(name.Trim(), out var license) ? license : null;
@@ -710,11 +716,13 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     protected async Task LoadListsAsync()
     {
         var genders = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.Gender));
+        var civilStatuses = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.CivilStatus));
         var technologists = await Call<IEntryService, IReadOnlyList<SingleLineEntry>>(s => s.GetEntriesAsync(EntryFields.MedicalTechnologist));
         var pathologists = await Call<IEntryService, IReadOnlyList<SingleLineEntry>>(s => s.GetEntriesAsync(EntryFields.Pathologist));
         var companies = await Call<IReferenceLookups, IReadOnlyList<LookupOption>>(s => s.GetCompaniesAsync());
 
         Replace(Genders, genders);
+        Replace(CivilStatuses, civilStatuses);
         Replace(Technologists, technologists.Select(t => t.Value));
         Replace(Pathologists, pathologists.Select(p => p.Value));
         Fill(_technologistLicenses, technologists);
@@ -779,6 +787,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
     private Task EditGenderListAsync() => EditSingleLineAsync(EntryFields.Gender);
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditCivilStatusListAsync() => EditSingleLineAsync(EntryFields.CivilStatus);
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
     private Task EditTechnologistListAsync() => EditSingleLineAsync(EntryFields.MedicalTechnologist);

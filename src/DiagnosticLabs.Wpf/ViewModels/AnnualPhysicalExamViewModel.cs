@@ -234,7 +234,6 @@ public partial class AnnualPhysicalExamViewModel(
 
     public TemplateOptions FindingsTemplates { get; } = new();
 
-    public IReadOnlyList<string> CivilStatuses { get; } = ["Single", "Married", "Widowed", "Separated", "Divorced"];
 
     protected override IEnumerable<ChoiceField> ChoiceFields =>
     [

@@ -22,6 +22,9 @@ public enum LabReportType
 
     /// <summary>A form made in the Custom Lab Form designer; which form is found through its <c>CustomFormReport</c>.</summary>
     CustomForm = 15,
+
+    /// <summary>The two-page Medical Examination Report (applicant history, physical examination, laboratory results, classification).</summary>
+    MedicalExamReport = 16,
 }
 
 /// <summary>
