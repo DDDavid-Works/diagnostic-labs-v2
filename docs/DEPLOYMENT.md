@@ -205,7 +205,7 @@ $env:DL_ADMIN_PASSWORD = $null
 
 The seed creates:
 
-- the menu (6 module types, 32 modules, including Sales Report, Batch Print, Statement of Accounts and Custom Lab Form) and the 15 services the lab forms hang off, at **price 0** (the lab sets prices on the Services screen; the two unbuilt "Medical Examination" services are inactive);
+- the menu (6 module types, 33 modules, including Sales Report, Batch Print, Statement of Accounts and Custom Lab Form) and the 15 services the lab forms hang off, at **price 0** (the lab sets prices on the Services screen; the two unbuilt "Medical Examination" services are inactive);
 - the reference ranges for Hematology, Clinical Chemistry, Physical Examination and Clinical Microscopy (**the lab should confirm these**);
 - the Patients dropdowns (Gender, Civil Status);
 - the `Admin` user with the temporary password, which must be changed at first sign-in.
@@ -224,3 +224,15 @@ Releases after the first install add migrations (for example Batch Print, and St
 2. Migrations may change permissions on existing users (the Statement of Accounts migration gives users who could print it Create and Delete as well). Read the migration's comment first and tell the lab's administrator.
 3. New screens that only some users should see (Batch Print, Custom Lab Form) need the permission granted in Users; the seeded Admin sees everything. Each form a lab makes in Custom Lab Form is a screen of its own and needs its own permission too. Those forms live in the database (tables `CustomForms*`), so they are in the backups and are not part of `db/seed.sql`.
 4. **Saved Statements of Accounts are records the lab hands to companies:** they are copies that do not change when payments change, so the backups of this database are the only way to reproduce them. Keep the backup routine from this document running and tested.
+
+## Server install script
+
+`tools/deploy/Install-Server.ps1` sets up the server in one pass and is safe to run again; `tools/deploy/Make-ServerKit.ps1` packs it with the db scripts into `artifacts/server-kit.zip` (copy that to the server by USB).
+
+1. On the server, in an **elevated** PowerShell, as the Windows account that installed SQL Server: `.\Install-Server.ps1 -CheckOnly`. It reports Windows, the SQL instance (edition, version, sysadmin, login mode), TCP/IP and port, firewall, network profile, sleep, and whether the database exists, and changes nothing.
+2. Read the report, then run it for real: `.\Install-Server.ps1 -BackupDir D:\Backups -CopyDir E:\LabBackups -RegisterBackupTasks` (add `-SqlServer ".\NAME"` if there are several instances, `-SetPrivateNetwork` if a network is Public, `-ServerAddress <fixed IP>` if station PCs cannot resolve the server name). It will ask for the **temporary Admin password** (or take it from `DL_ADMIN_PASSWORD`).
+3. It then: turns TCP/IP on with the fixed port 1433 and enables mixed-mode logins (restarting the SQL service only if something changed), opens the firewall for the local subnet, switches off sleep and hibernate; creates the database and runs `schema.sql` and `seed.sql` when it is empty (an existing database is left alone); creates the `dl_app` login (random password, read/write on this database only); creates the share `\SERVER\DiagnosticLabs` with a read-only Windows account `dlupdate` and writes `config\appsettings.Local.json`; gives the SQL service rights on the backup folder, takes and verifies a first backup, and (with `-RegisterBackupTasks`) schedules the backups.
+4. At the end it prints the **`dlupdate` password once**. Store it: each station needs it (`cmdkey /add:SERVER /user:SERVER\dlupdate /pass:...`) because a workgroup PC cannot read a share without an account.
+5. Then publish the release to the share (`Publish-Release.ps1 -ShareTarget \SERVER\DiagnosticLabs\current`, or from the build PC copy `artifacts\publish` there and write `version.txt` last) and install the first station.
+
+Tested on a scratch database: create, schema, seed, login, and a second run that changes nothing. **Not tested yet** (they change Windows, so they were not run on the development PC): the network, firewall, power, share and Windows-account steps, the backup-folder permissions and the scheduled tasks. Treat the first run on the real server as the test of those, and read the `-CheckOnly` report before it.

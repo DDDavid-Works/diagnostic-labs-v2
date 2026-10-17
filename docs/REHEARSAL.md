@@ -14,6 +14,8 @@ Background and reasoning: `docs/DEPLOYMENT.md`. Scripts: `tools/deploy/`, `db/`.
 
 ## A. Server
 
+> **Shortcut:** `toolsdeployInstall-Server.ps1` does A1 (network part) to A5 in one go and is safe to run twice. Build the kit with `toolsdeployMake-ServerKit.ps1`, copy the zip to the server, then run `.Install-Server.ps1 -CheckOnly` first. The manual steps below stay as the reference for what it does and for checking its result.
+
 ### A1. SQL Server
 - [ ] Install SQL Server Express (2022), mixed-mode authentication, and set the `sa` password (keep it somewhere safe; the app never uses it).
 - [ ] SQL Server Configuration Manager: enable **TCP/IP**, set the fixed port **1433** (clear "TCP Dynamic Ports"), restart the SQL service.
@@ -42,7 +44,7 @@ CREATE USER dl_app FOR LOGIN dl_app;
 ALTER ROLE db_datareader ADD MEMBER dl_app;
 ALTER ROLE db_datawriter ADD MEMBER dl_app;
 ```
-- [ ] From a **station**: `sqlcmd -S SERVER,1433 -U dl_app -P ... -d DiagnosticLabsV2 -C -Q "SELECT COUNT(*) FROM Modules"` returns 32.
+- [ ] From a **station**: `sqlcmd -S SERVER,1433 -U dl_app -P ... -d DiagnosticLabsV2 -C -Q "SELECT COUNT(*) FROM Modules"` returns 33.
 - [ ] Note any extra right the app turns out to need (write it here: ________). The login must not be able to change the schema.
 
 ### A4. Update share
@@ -68,6 +70,7 @@ On the build machine:
 ## C. Station (repeat per PC)
 
 ### C1. First install
+- [ ] **Credentials for the update share** (workgroup, no domain): on the station run once, as the Windows user who will use the app, `cmdkey /add:SERVER /user:SERVERdlupdate /pass:<password shown by Install-Server.ps1>`; then `dir \SERVERDiagnosticLabsrrent` must list files without a prompt. Windows stores it per user, so repeat for each Windows user on that PC.
 - [ ] Copy the three launcher files (`Start-DiagnosticLabs.cmd`, `Start-DiagnosticLabs.ps1`, `launcher.json`) to a local folder, e.g. `C:\DiagnosticLabs-Launcher`. Edit `launcher.json` to the real server name.
 - [ ] Create a desktop shortcut to `Start-DiagnosticLabs.cmd` (name "Diagnostic Labs"; for the icon, choose the installed `%LOCALAPPDATA%\DiagnosticLabs\app\DiagnosticLabs.Wpf.exe` after the first run, which now carries the app icon).
 - [ ] **No .NET or other runtime is installed on this PC beforehand** (check `dotnet --list-runtimes` returns nothing, to prove the self-contained build).
@@ -85,7 +88,7 @@ On the build machine:
 
 ### C3. A day of work (run it as the clerk would)
 - [ ] Register a patient, then a registration with several services.
-- [ ] Enter at least one result of each form that is built (Fecalysis, Urinalysis, Hematology, Immunology, Serology, Pregnancy Test, Clinical Chemistry, Physical Examination, Clinical Microscopy, APE) and save.
+- [ ] Enter at least one result of each form that is built (Fecalysis, Urinalysis, Hematology, Immunology, Serology, Pregnancy Test, Clinical Chemistry, Physical Examination, Clinical Microscopy, Medical Examination Report (print it: two pages), APE) and save.
 - [ ] Take a payment (full and partial) and check the Home list shows the correct state.
 - [ ] **Sales Report** (Reports menu): print one day and a range, then one company and one of its batches; the totals match the registrations. Print it on the real printer: it must come out **landscape** and uncut (the preview is landscape; confirm the printer driver follows it). Also print to PDF.
 - [ ] **Batch Print** (Reports menu): pick a company and Hematology (or another built form) and Search: every patient of the company with that service is listed with Yes/No and the date the result was inputted. Print the whole company, then one batch: one page per patient with a result, sorted by name. Print ten or more pages on the real printer and to one PDF. Give a non-admin user Batch Print + the form's Print permission and check the service only shows up for them when both are granted.
