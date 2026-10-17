@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Board;
 using DiagnosticLabs.Application.Menu;
+using DiagnosticLabs.Application.Stations;
 using DiagnosticLabs.Wpf.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -17,8 +18,13 @@ public partial class MainViewModel(
     IPasswordChangeDialog passwordDialog,
     IDialogService dialogs,
     INavigationService navigation,
+    IAppInfo appInfo,
+    IUpdateChecker updates,
     ILogger<MainViewModel> logger) : ViewModelBase(logger)
 {
+    /// <summary>How often an open program reports itself to the Stations list and looks for a new release on the share.</summary>
+    private static readonly TimeSpan MonitorInterval = TimeSpan.FromMinutes(10);
+
     // Modules that exist in the new app. Everything else shows a "not migrated yet" page.
     private static readonly Dictionary<int, Func<IServiceProvider, object>> Pages = new()
     {
@@ -52,6 +58,7 @@ public partial class MainViewModel(
         [ModuleIds.Users] = sp => sp.GetRequiredService<UsersViewModel>(),
         [ModuleIds.CompanySetup] = sp => sp.GetRequiredService<CompanySetupViewModel>(),
         [ModuleIds.FormDesigner] = sp => sp.GetRequiredService<FormDesignerViewModel>(),
+        [ModuleIds.Stations] = sp => sp.GetRequiredService<StationsViewModel>(),
     };
 
     public string Greeting => $"Signed in as {session.FullName}";
@@ -107,7 +114,95 @@ public partial class MainViewModel(
     [RelayCommand]
     private void ToggleMenu() => IsMenuVisible = !IsMenuVisible;
 
-    public void SignOut() => session.SignOut();
+    public void SignOut()
+    {
+        _monitor?.Cancel();
+        session.SignOut();
+    }
+
+    // ---- new release notice ----
+
+    private CancellationTokenSource? _monitor;
+
+    /// <summary>The release on the server's share when it is not the one this program runs; <c>null</c> when this program is up to date or the share is unknown.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsUpdateNoticeVisible), nameof(UpdateNotice))]
+    private string? _availableVersion;
+
+    // "Later" hides the notice for that release only; a newer release shows it again.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsUpdateNoticeVisible))]
+    private string? _dismissedVersion;
+
+    public bool IsUpdateNoticeVisible => AvailableVersion is not null && AvailableVersion != DismissedVersion;
+
+    public bool CanRestartToUpdate => updates.CanRestart;
+
+    public string UpdateNotice => $"A new version of Diagnostic Labs ({AvailableVersion}) is ready; this PC runs {appInfo.Version}. Finish and save what you are doing, then restart to update.";
+
+    /// <summary>Raised when the window should close so the launcher can install the update; the window closes without asking again.</summary>
+    public event EventHandler? RestartRequested;
+
+    [RelayCommand]
+    private void DismissUpdate() => DismissedVersion = AvailableVersion;
+
+    [RelayCommand]
+    private async Task RestartToUpdateAsync()
+    {
+        // A form with changes that are not saved asks first, like every other way of leaving it.
+        if (!updates.CanRestart || !await CanLeaveAsync())
+            return;
+
+        updates.StartRestart();
+        RestartRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Reports this PC to the Stations list and looks at the share, now and every few minutes while the program is open.</summary>
+    private void StartMonitoring()
+    {
+        _monitor?.Cancel();
+        _monitor = new CancellationTokenSource();
+        _ = MonitorAsync(_monitor.Token);
+    }
+
+    private async Task MonitorAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await CheckOnceAsync(cancellationToken);
+            using var timer = new PeriodicTimer(MonitorInterval);
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+                await CheckOnceAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Signed out or closed.
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "The station check stopped");
+        }
+    }
+
+    private async Task CheckOnceAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await runner.RunAsync<IStationVersionService, bool>(async s =>
+            {
+                await s.RecordSeenAsync(cancellationToken);
+                return true;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Bookkeeping only: a database hiccup must never disturb the work on screen.
+            logger.LogWarning(ex, "This station could not be recorded");
+        }
+
+        var latest = await updates.GetShareVersionAsync(cancellationToken);
+        AvailableVersion = latest is not null && latest != appInfo.Version ? latest : null;
+    }
 
     /// <summary>Available to every signed-in user from the header; it is not a permission module.</summary>
     [RelayCommand]
@@ -129,6 +224,7 @@ public partial class MainViewModel(
             Menu.Add(group);
 
         CurrentPage = services.GetRequiredService<HomeViewModel>();
+        StartMonitoring();
     });
 
     /// <summary>The screen of a module: a built-in one, or the entry screen of a form made in the Custom Lab Form designer; <c>null</c> when it has none yet.</summary>

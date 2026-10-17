@@ -115,7 +115,7 @@ No separate version table: EF Core already records every applied migration in `_
 | Database has migrations this program does not know (the station has an older program) | "Close it and open Diagnostic Labs from its shortcut so it can update itself." The launcher then copies the new release. |
 | Server unreachable, wrong server name or login | "Cannot reach the database. Check the network..." The error goes to the log. |
 
-**Release order:** back up the database, run `db\schema.sql` on it (it is idempotent: it applies only what is missing), publish the new app folder to the share (`Publish-Release.ps1 -ShareTarget`), then stations pick it up on their next launch. Between the second and third step, stations still on the old program see the "older than the database" message and are sent to the launcher, which is the intended behaviour.
+**Release order** (done by `Update-Server.ps1`, see "Releasing an update"): back up the database, run `db\schema.sql` on it (it is idempotent: it applies only what is missing), publish the new app folder to the share, then stations pick it up on their next launch. Between the second and third step, stations still on the old program see the "older than the database" message and are sent to the launcher, which is the intended behaviour.
 
 A migration is only safe to ship if `schema.sql` also builds an empty database: test that on a scratch database after every migration that uses raw SQL (two migrations once failed here because an `UPDATE` ran on a column added in the same batch).
 
@@ -154,6 +154,7 @@ The screens still change, so the manual should be written after the UI is stable
 All in `tools/deploy/`; the publish profile is `src/DiagnosticLabs.Wpf/Properties/PublishProfiles/Station.pubxml`.
 
 - **`Publish-Release.ps1 [-Version x] [-ShareTarget \SERVER\DiagnosticLabs\current]`**: publishes the self-contained release (about 160 MB), refuses to ship if `appsettings.Local.json` slipped in, mirrors to the share, and writes `version.txt` last.
+- **`Update-Server.ps1`** and **`Rollback-Server.ps1`**: the server side of every later release (see "Releasing an update"). They live in the server kit; rebuild it with `Make-ServerKit.ps1` or copy the two files over.
 - **`Start-DiagnosticLabs.cmd`** (shortcut target) runs **`Start-DiagnosticLabs.ps1`**, which reads the share path from **`launcher.json`** (edit the server name on site) and:
   - copies the release to `%LOCALAPPDATA%\DiagnosticLabs\app` when the version differs, keeping the station's `appsettings.Local.json`;
   - on first run, seeds that file from `\SERVER\DiagnosticLabs\config\appsettings.Local.json`;
@@ -205,7 +206,7 @@ $env:DL_ADMIN_PASSWORD = $null
 
 The seed creates:
 
-- the menu (6 module types, 33 modules, including Sales Report, Batch Print, Statement of Accounts and Custom Lab Form) and the 15 services the lab forms hang off, at **price 0** (the lab sets prices on the Services screen; the two unbuilt "Medical Examination" services are inactive);
+- the menu (6 module types, 34 modules, including Stations, Sales Report, Batch Print, Statement of Accounts and Custom Lab Form) and the 15 services the lab forms hang off, at **price 0** (the lab sets prices on the Services screen; the two unbuilt "Medical Examination" services are inactive);
 - the reference ranges for Hematology, Clinical Chemistry, Physical Examination and Clinical Microscopy (**the lab should confirm these**);
 - the Patients dropdowns (Gender, Civil Status);
 - the `Admin` user with the temporary password, which must be changed at first sign-in.
@@ -224,6 +225,38 @@ Releases after the first install add migrations (for example Batch Print, and St
 2. Migrations may change permissions on existing users (the Statement of Accounts migration gives users who could print it Create and Delete as well). Read the migration's comment first and tell the lab's administrator.
 3. New screens that only some users should see (Batch Print, Custom Lab Form) need the permission granted in Users; the seeded Admin sees everything. Each form a lab makes in Custom Lab Form is a screen of its own and needs its own permission too. Those forms live in the database (tables `CustomForms*`), so they are in the backups and are not part of `db/seed.sql`.
 4. **Saved Statements of Accounts are records the lab hands to companies:** they are copies that do not change when payments change, so the backups of this database are the only way to reproduce them. Keep the backup routine from this document running and tested.
+
+## Releasing an update (after go-live)
+
+Two scripts do the whole server side; stations update themselves on their next launch.
+
+**On the build PC**
+
+1. Tests green. If a migration was added: regenerate `db/schema.sql` and `db/seed.sql`, and test `schema.sql` on a scratch database.
+2. `.\tools\deploy\Publish-Release.ps1 -Version 1.0.N -Zip` builds `artifacts\release-1.0.N.zip`. The zip also carries `_server\schema.sql` (never copied to the share), and the script refuses to pack if `schema.sql` is older than the newest migration. Use a plain `1.0.N` number each release: the server refuses a version that is not newer.
+3. Carry the zip to the server (AnyDesk file transfer).
+
+**On the server, elevated PowerShell, outside lab hours**
+
+```powershell
+.\Update-Server.ps1 -Release D:\Drop\release-1.0.N.zip -BackupDir D:\Backups -CopyDir E:\LabBackups
+```
+
+(`-BackupDir` is remembered in `update-state.json` after the first run.) It checks the release, takes and verifies a backup (stops if that fails), runs `schema.sql`, moves the share's `current` to `previous`, mirrors the new release into `current` (`version.txt` removed first and written last), checks the result, and writes `update-state.json` and `update.log` in the share root (`C:\DiagnosticLabs`). Open the app once on the server PC to confirm, then it reaches the stations as they are launched. A station that stays open all day updates the next morning.
+
+**What the stations show**
+
+- **New-version notice:** an open app looks at the share's `version.txt` every 10 minutes. When it differs from the version the program was built as, a yellow bar under the header says so, with **Restart now** (asks about unsaved changes first, closes the app, and the launcher reopens it on the new version a few seconds later) and **Later** (hides it for that release only). The launcher passes the share path and its own location to the app through the environment variables `Update__SharePath` and `Update__Launcher`, so there is nothing to configure per station; an app started any other way (a developer build) never shows the notice.
+- **Stations list** (Settings, administrators only; module 34, read-only): every PC that has signed in, its version, last user and last-seen time, with "Behind" in red for any PC not on the share's version. The app writes its own row (table `StationVersions`, one row per computer name) at sign-in and every 10 minutes while open; "Open now" means seen in the last 25 minutes. If the share cannot be read from the server PC, the newest version any station reported is used as the yardstick.
+- The release number is the build's `-Version` (`Publish-Release.ps1 -Version 1.0.N`), so keep it identical to what you give `Update-Server.ps1`; a plain `dotnet build` shows `1.0.0`.
+
+**Going back:** `.\Rollback-Server.ps1` puts `previous` back on the share. If the update applied migrations, the old program refuses to run on the newer database, so the script stops and asks for `-RestoreDatabase`, which restores the pre-update backup after a safety backup of the current data. **Everything entered since the update is lost**, so everyone must be out of the app, and the script wants the database name typed to confirm. Often the better answer to a bad release is a fixed release (1.0.N+1) rather than a rollback.
+
+Rules that keep this safe:
+
+- Make migrations additive (new columns and tables, renames done in two releases) wherever possible, so the previous program can still run if you must go back.
+- Batch fixes into a few releases a week, not one per fix; note what changed for the lab.
+- Not tested on the real server yet: the backup step inside `Update-Server.ps1` and the `-RestoreDatabase` path. The rest (checks, schema.sql on an empty database, share swap, version order, rollback refusals, app-only rollback) ran against a scratch database and folder.
 
 ## Server install script
 

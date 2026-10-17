@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomFormResultService, CustomFormResultService>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IPackageCatalogService, PackageCatalogService>();
+        services.AddScoped<DiagnosticLabs.Application.Stations.IStationVersionService, DiagnosticLabs.Application.Stations.StationVersionService>();
         return services;
     }
 }

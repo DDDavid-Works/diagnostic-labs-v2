@@ -95,7 +95,8 @@ INSERT INTO [Modules] ([Id], [ModuleTypeId], [ModuleName], [HasView], [HasCreate
   (30, 3, N'Clinical Microscopy', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 15, 1, 15),
   (31, 5, N'Batch Print', 1, 0, 0, 0, 0, 1, 0, 0, N'report', 3, 1, NULL),
   (32, 4, N'Custom Lab Form', 1, 1, 1, 0, 0, 0, 0, 0, N'services', 8, 1, NULL),
-  (33, 3, N'Medical Examination Report', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 16, 1, 16)
+  (33, 3, N'Medical Examination Report', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 16, 1, 16),
+  (34, 6, N'Stations', 1, 0, 0, 0, 0, 0, 0, 0, N'user', 3, 1, NULL)
 ;
 
 INSERT INTO [ModuleDefaults] ([ModuleId], [Defaults], [IsActive]) VALUES

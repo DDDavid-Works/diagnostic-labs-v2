@@ -81,6 +81,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<CodeSequence> CodeSequences => Set<CodeSequence>();
 
+    public DbSet<StationVersion> StationVersions => Set<StationVersion>();
+
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public void SetOriginalRowVersion(AuditableEntity entity, byte[] rowVersion) =>

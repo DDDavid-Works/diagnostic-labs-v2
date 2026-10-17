@@ -15,6 +15,13 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+
+        // "Restart now" was chosen (and any unsaved form dealt with): close without asking again; the launcher starts the new version.
+        viewModel.RestartRequested += (_, _) =>
+        {
+            _leaveConfirmed = true;
+            Close();
+        };
     }
 
     public event EventHandler? SignedOut;

@@ -3675,6 +3675,42 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                     b.ToTable("ModuleDefaults");
                 });
 
+            modelBuilder.Entity("DiagnosticLabs.Domain.Settings.StationVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AppVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("FirstSeenUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("LastSeenUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("LastUserName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("StationName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StationName")
+                        .IsUnique();
+
+                    b.ToTable("StationVersions");
+                });
+
             modelBuilder.Entity("DiagnosticLabs.Domain.Auditing.AuditLog", b =>
                 {
                     b.HasOne("DiagnosticLabs.Domain.Identity.User", null)

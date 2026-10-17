@@ -118,6 +118,9 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<IServicePickerDialog, ServicePickerDialog>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
         builder.Services.AddSingleton<IReportPreviewDialog, ReportPreviewDialog>();
+        builder.Services.AddSingleton<DiagnosticLabs.Application.Stations.IAppInfo, AppInfo>();
+        builder.Services.AddSingleton<IUpdateChecker, UpdateChecker>();
+        builder.Services.AddTransient<StationsViewModel>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<PatientsViewModel>();
         builder.Services.AddTransient<RegistrationsViewModel>();

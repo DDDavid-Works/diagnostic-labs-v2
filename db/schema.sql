@@ -3005,3 +3005,52 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261017084114_StationVersions'
+)
+BEGIN
+    CREATE TABLE [StationVersions] (
+        [Id] int NOT NULL IDENTITY,
+        [StationName] nvarchar(100) NOT NULL,
+        [AppVersion] nvarchar(50) NOT NULL,
+        [LastUserName] nvarchar(200) NULL,
+        [FirstSeenUtc] datetime2(3) NOT NULL,
+        [LastSeenUtc] datetime2(3) NOT NULL,
+        CONSTRAINT [PK_StationVersions] PRIMARY KEY ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261017084114_StationVersions'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_StationVersions_StationName] ON [StationVersions] ([StationName]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261017084114_StationVersions'
+)
+BEGIN
+
+                    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 27) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 34)
+                        INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+                        SELECT 34, ModuleTypeId, N'Stations', 1, 0, 0, 0, 0, 0, 0, 0, Icon, SortOrder + 1, 1, NULL FROM Modules WHERE Id = 27;
+                
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261017084114_StationVersions'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261017084114_StationVersions', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

@@ -120,6 +120,7 @@ internal static partial class Program
     {
         if (args[0] == "probe") { MainWindowProbe(); return 0; }
         _out = args[0];
+        if (_out.EndsWith("stations")) FakeUpdates.ShareVersion = "1.0.1";
         var connection = args[1];
 
         var bindingErrors = new List<string>();
@@ -142,11 +143,13 @@ internal static partial class Program
         services.AddSingleton<IServicePickerDialog, ScriptedPicker>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IReportPreviewDialog, CapturePreview>();
+        services.AddSingleton<DiagnosticLabs.Application.Stations.IAppInfo, FakeAppInfo>();
+        services.AddSingleton<IUpdateChecker, FakeUpdates>();
         foreach (var vm in new[]
                  {
                      typeof(PatientsViewModel), typeof(RegistrationsViewModel), typeof(PaymentsViewModel), typeof(StoolFecalysisViewModel), typeof(UrinalysisViewModel), typeof(HematologyViewModel), typeof(PhysicalExaminationViewModel), typeof(ClinicalMicroscopyViewModel), typeof(MedicalExamReportViewModel), typeof(SerologyViewModel), typeof(ImmunologyViewModel), typeof(PregnancyTestViewModel), typeof(ClinicalChemistryViewModel), typeof(ClinicalChemistry1ViewModel), typeof(ClinicalChemistry2ViewModel), typeof(MedicalExaminationViewModel), typeof(HomeViewModel), typeof(AnnualPhysicalExamViewModel), typeof(CompaniesViewModel), typeof(DepartmentsViewModel), typeof(ServicesViewModel),
                      typeof(PackagesViewModel), typeof(ItemsViewModel), typeof(ItemLocationsViewModel), typeof(DiscountsViewModel),
-                     typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(StatementOfAccountViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(FormDesignerViewModel), typeof(LoginViewModel),
+                     typeof(StationsViewModel), typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(StatementOfAccountViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(FormDesignerViewModel), typeof(LoginViewModel),
                  })
             services.AddTransient(vm);
         var provider = services.BuildServiceProvider();
@@ -191,6 +194,7 @@ internal static partial class Program
         if (_out.EndsWith("home")) { HomeChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("statement")) { StatementChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("batch")) { BatchPrintChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
+        if (_out.EndsWith("stations")) { StationsChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); if (_main.IsLoaded) _main.Close(); return _failures; }
         if (_out.EndsWith("sales")) { SalesChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("mer")) { MedicalExaminationChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("chemistry2")) { Chemistry2Checks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }

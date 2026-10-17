@@ -44,7 +44,7 @@ CREATE USER dl_app FOR LOGIN dl_app;
 ALTER ROLE db_datareader ADD MEMBER dl_app;
 ALTER ROLE db_datawriter ADD MEMBER dl_app;
 ```
-- [ ] From a **station**: `sqlcmd -S SERVER,1433 -U dl_app -P ... -d DiagnosticLabsV2 -C -Q "SELECT COUNT(*) FROM Modules"` returns 33.
+- [ ] From a **station**: `sqlcmd -S SERVER,1433 -U dl_app -P ... -d DiagnosticLabsV2 -C -Q "SELECT COUNT(*) FROM Modules"` returns 34.
 - [ ] Note any extra right the app turns out to need (write it here: ________). The login must not be able to change the schema.
 
 ### A4. Update share

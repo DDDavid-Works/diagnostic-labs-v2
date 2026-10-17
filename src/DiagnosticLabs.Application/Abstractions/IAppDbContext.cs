@@ -77,6 +77,8 @@ public interface IAppDbContext
 
     DbSet<CodeSequence> CodeSequences { get; }
 
+    DbSet<StationVersion> StationVersions { get; }
+
     DbSet<AuditLog> AuditLogs { get; }
 
     /// <summary>Any mapped entity set, for the per-type lab result tables.</summary>

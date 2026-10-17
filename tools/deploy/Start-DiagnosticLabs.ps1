@@ -78,6 +78,10 @@ try {
         else { Show-Message "No database settings found for this PC.`nAsk your administrator to add appsettings.Local.json." }
     }
 
+    # Tell the app where the share is and how to restart through this launcher (its "new version ready" notice and Restart now button).
+    if ($SharePath) { $env:Update__SharePath = $SharePath }
+    $env:Update__Launcher = Join-Path $PSScriptRoot 'Start-DiagnosticLabs.cmd'
+
     Start-Process -FilePath $exe -WorkingDirectory $InstallDir
 }
 catch {

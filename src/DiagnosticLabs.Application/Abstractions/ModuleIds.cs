@@ -46,6 +46,9 @@ public static class ModuleIds
     /// <summary>The two-page Medical Examination Report (added after the legacy modules; not the same as Annual Physical Exam Page 2).</summary>
     public const int MedicalExamReport = 33;
 
+    /// <summary>The Stations screen (administration): which version each PC runs and when it was last seen (added after the legacy modules).</summary>
+    public const int Stations = 34;
+
     /// <summary>Modules of the forms made in the Custom Lab Form designer take ids from here up, so they never meet an id added later for a built-in module.</summary>
     public const int FirstCustomForm = 1000;
 

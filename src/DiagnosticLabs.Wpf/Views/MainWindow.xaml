@@ -20,6 +20,9 @@
     <DataTemplate DataType="{x:Type vm:HomeViewModel}">
       <views:HomeView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:StationsViewModel}">
+      <views:StationsView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:BatchPrintViewModel}">
       <views:BatchPrintView />
     </DataTemplate>
@@ -52,6 +55,19 @@
         <TextBlock Text="Diagnostic Labs" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
         <TextBlock Text="{Binding Greeting}" VerticalAlignment="Center" Margin="18,0,0,0"
                    Foreground="{StaticResource MutedTextBrush}" />
+      </DockPanel>
+    </Border>
+
+    <!-- A new release is on the server: shown until this PC restarts into it (or "Later" for that release). -->
+    <Border DockPanel.Dock="Top" Padding="16,8" Background="#FFF4D6" BorderBrush="#E0B84C" BorderThickness="0,0,0,1"
+            Visibility="{Binding IsUpdateNoticeVisible, Converter={StaticResource BoolToVis}}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="Restart now" Padding="12,3" MinWidth="0" Command="{Binding RestartToUpdateCommand}"
+                  Visibility="{Binding CanRestartToUpdate, Converter={StaticResource BoolToVis}}" ToolTip="Close the program and open it again on the new version" />
+          <Button Content="Later" Padding="12,3" MinWidth="0" Margin="8,0,0,0" Command="{Binding DismissUpdateCommand}" ToolTip="Hide this until the next release" />
+        </StackPanel>
+        <TextBlock Text="{Binding UpdateNotice}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0" />
       </DockPanel>
     </Border>
 

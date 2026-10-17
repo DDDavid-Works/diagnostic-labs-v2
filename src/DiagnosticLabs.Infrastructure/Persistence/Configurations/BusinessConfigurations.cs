@@ -343,3 +343,14 @@ internal sealed class LabReportPhotoConfiguration : IEntityTypeConfiguration<Lab
         builder.Property(p => p.ContentType).HasMaxLength(100);
     }
 }
+
+internal sealed class StationVersionConfiguration : IEntityTypeConfiguration<StationVersion>
+{
+    public void Configure(EntityTypeBuilder<StationVersion> builder)
+    {
+        builder.Property(s => s.StationName).HasMaxLength(100);
+        builder.Property(s => s.AppVersion).HasMaxLength(50);
+        builder.Property(s => s.LastUserName).HasMaxLength(200);
+        builder.HasIndex(s => s.StationName).IsUnique();
+    }
+}
