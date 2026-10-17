@@ -51,9 +51,21 @@ else {
     Set-Content -Path (Join-Path $publish 'version.txt') -Value $Version -Encoding ASCII
     Write-Host "Built $Version in $publish (no share given, nothing copied)."
     if ($Zip) {
+        # The zip also carries db\schema.sql in _server\ for Update-Server.ps1 (never copied to the share).
+        $schema = Join-Path $repo 'db\schema.sql'
+        $newestMigration = Get-ChildItem (Join-Path $repo 'src\DiagnosticLabs.Infrastructure\Persistence\Migrations') -Filter '*.cs' |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($newestMigration.LastWriteTime -gt (Get-Item $schema).LastWriteTime) {
+            throw "db\schema.sql is older than $($newestMigration.Name). Regenerate it first (dotnet dotnet-ef migrations script --idempotent ... -o db/schema.sql)."
+        }
+        $serverDir = Join-Path $publish '_server'
+        New-Item -ItemType Directory -Force -Path $serverDir | Out-Null
+        Copy-Item $schema -Destination $serverDir
+
         $zipFile = Join-Path $repo "artifacts\release-$Version.zip"
         if (Test-Path $zipFile) { Remove-Item $zipFile -Force }
         Compress-Archive -Path (Join-Path $publish "*") -DestinationPath $zipFile -CompressionLevel Optimal
+        Remove-Item $serverDir -Recurse -Force
         Write-Host "Packed $zipFile"
     }
 }
