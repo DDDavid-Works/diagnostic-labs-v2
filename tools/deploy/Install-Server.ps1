@@ -44,6 +44,8 @@ param(
     [switch]$SkipShare,
     [switch]$SkipBackups,
     [switch]$ApplySchemaUpdate,
+    # Create the tables but not the starting data: for the one-time legacy migration, which needs an EMPTY database (db\migrate-from-legacy.sql adds the menu itself).
+    [switch]$SkipSeed,
     [switch]$SetPrivateNetwork
 )
 
@@ -205,7 +207,11 @@ try {
     $created = $false
     if ($existing -eq 'no') { Invoke-Sql "CREATE DATABASE [$Database]"; $created = $true; Ok 'Database created' }
     $tables = [int](Invoke-Sql 'SELECT COUNT(*) FROM sys.tables' $Database -Scalar)
-    if ($tables -eq 0) {
+    if ($tables -eq 0 -and $SkipSeed) {
+        $n = Invoke-SqlFile (Join-Path $dbRoot 'schema.sql') $Database
+        Ok "schema.sql applied ($n batches); seed.sql skipped (-SkipSeed): the database is empty, ready for db\migrate-from-legacy.sql"
+    }
+    elseif ($tables -eq 0) {
         $adminPw = $env:DL_ADMIN_PASSWORD
         if (-not $adminPw) {
             $s1 = Read-Host 'Temporary password for the Admin user (8+ letters/digits, no quotes; changed at first sign-in)' -AsSecureString

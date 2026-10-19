@@ -123,7 +123,7 @@ A migration is only safe to ship if `schema.sql` also builds an empty database: 
 
 1. **Rehearsal on a spare PC:** install SQL Server Express, run `schema.sql`, publish the app, run a station through the launcher.
 2. **Pilot:** server plus 2 Windows 10/11 stations for about a week, with staff entering real-looking test registrations. Printing is the thing to check: preview, printer choice and PDF export on the actual lab printers (US Letter).
-3. **Go-live:** clear the pilot test data (or restore the clean starting-data backup), then bring stations on in batches. There is no legacy data to migrate or freeze.
+3. **Go-live:** clear the pilot test data (or restore the clean starting-data backup), then bring stations on in batches. The client's legacy setup data (services and prices, packages, companies, a few test patients) is migrated once, before go-live: see "Migrating the client's legacy data".
 4. **Retire the old database** on the client PC: take a last backup of `DiagnosticLabsDB`, keep it somewhere safe for a while, then drop it.
 
 ## Open items
@@ -225,6 +225,31 @@ Releases after the first install add migrations (for example Batch Print, and St
 2. Migrations may change permissions on existing users (the Statement of Accounts migration gives users who could print it Create and Delete as well). Read the migration's comment first and tell the lab's administrator.
 3. New screens that only some users should see (Batch Print, Custom Lab Form) need the permission granted in Users; the seeded Admin sees everything. Each form a lab makes in Custom Lab Form is a screen of its own and needs its own permission too. Those forms live in the database (tables `CustomForms*`), so they are in the backups and are not part of `db/seed.sql`.
 4. **Saved Statements of Accounts are records the lab hands to companies:** they are copies that do not change when payments change, so the backups of this database are the only way to reproduce them. Keep the backup routine from this document running and tested.
+
+## Migrating the client's legacy data (one time, on the server)
+
+The client entered real services with prices, packages and companies in the legacy build. `db\migrate-from-legacy.sql` copies all of it into an **empty** V2 database in one transaction (any error rolls everything back; the legacy database is only read). It also adds the menu entries the legacy build never had (modules 29 to 34) and gives administrators full permissions. Dry-run on the client's 2026-10-17 backup: every row count and payment/amount sum matched; only Modules (+6), Services (+3, priced 0), ModuleDefaults and UserPermissions differ, as expected.
+
+Do it before any station is used, once. In an elevated PowerShell on the server, in the kit folder (needs the **current** `db\schema.sql`, `db\migrate-from-legacy.sql`, `db\verify-migration.sql` and `Install-Server.ps1` with `-SkipSeed`: rebuild the kit with `Make-ServerKit.ps1` and carry it over). SQL instance below is `.\SQLEXPRESS`.
+
+1. **Find the legacy data.** `sqlcmd -S .\SQLEXPRESS -E -C -Q "SELECT name FROM sys.databases"`. If `DiagnosticLabsDB` is there, that is the client's data. Close the legacy app everywhere. If it is not there, restore the newest client backup (`db\DiagnosticLabs10172026.bak` is from 2026-10-17 and misses anything entered since: ask for a fresh one).
+2. **Work on a copy.** Back up the legacy database, restore it as `DiagnosticLabsDB_Client` (`RESTORE ... WITH MOVE` to this instance's data folder), and add the column the older build lacks: `ALTER TABLE Payments ADD IsCharge bit NOT NULL CONSTRAINT DF_Payments_IsCharge DEFAULT 0;` (skip if it exists). The original is never touched.
+3. **Back up V2 as it is** (`Backup-Database.ps1`), and confirm nothing real was entered in it: only the seed's Admin and menu.
+4. **Rebuild V2 empty.** With everyone out of the app: `ALTER DATABASE DiagnosticLabsV2 SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE DiagnosticLabsV2;` then `.\Install-Server.ps1 -SkipNetwork -SkipShare -SkipBackups -SkipSeed`. It creates the database with `schema.sql` only and re-grants `dl_app` (the login and the share's `config` file stay as they are).
+5. **Migrate.** Make a wrapper file (sqlcmd `-v` rejects values with spaces) `run-migrate.sql`:
+   ```
+   :setvar Legacy DiagnosticLabsDB_Client
+   :setvar LegacyTimeZone "Singapore Standard Time"
+   :r db\migrate-from-legacy.sql
+   ```
+   then `sqlcmd -S .\SQLEXPRESS -d DiagnosticLabsV2 -E -C -I -b -i run-migrate.sql`. It ends with "Migration committed" after a list of skipped rows (should be empty).
+6. **Verify.** `sqlcmd -S .\SQLEXPRESS -d DiagnosticLabsV2 -E -C -I -b -i db\verify-migration.sql -v Legacy=DiagnosticLabsDB_Client`: everything `ok` except the expected differences above. Take a backup of the migrated V2.
+7. **Sign in** with the legacy administrator account (legacy passwords keep working and are re-hashed at first sign-in; the seed's temporary Admin no longer exists). Set the prices of Physical Examination, Clinical Microscopy and Medical Examination Report (new services, price 0), grant the new screens to the users who need them, and check Home, a package, a company and a printout.
+8. **Then release the app** (`Update-Server.ps1`, see below) and bring the stations on.
+
+Going back is safe at any point before step 8: drop V2 and repeat from step 4. The legacy database and the `_Client` copy are never changed by the migration.
+
+If the generator changes (a new module or migration after this document), regenerate the script with `tools\Generate-LegacyMigration.ps1 -Server <dev server>` and dry-run it again on a scratch database first.
 
 ## Releasing an update (after go-live)
 

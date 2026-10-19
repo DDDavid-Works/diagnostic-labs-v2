@@ -1032,6 +1032,20 @@ END
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 33) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 33)
     INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (33, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
 
+-- Modules added to the new app after the legacy build (what the EF migrations insert, but those ran on an empty database and found nothing to copy from)
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 24) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 31)
+    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+    SELECT 31, ModuleTypeId, N'Batch Print', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 3, 1, NULL FROM Modules WHERE Id = 24;
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 19) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 32)
+    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+    SELECT 32, ModuleTypeId, N'Custom Lab Form', 1, 1, 1, 0, 0, 0, 0, 0, Icon, 8, 1, NULL FROM Modules WHERE Id = 19;
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 27) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 34)
+    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+    SELECT 34, ModuleTypeId, N'Stations', 1, 0, 0, 0, 0, 0, 0, 0, Icon, SortOrder + 1, 1, NULL FROM Modules WHERE Id = 27;
+-- Statement of Accounts now saves statements: whoever could print it may also create and delete them (the Statement of Accounts migration does the same on a live database)
+UPDATE Modules SET HasCreate = 1, HasDelete = 1 WHERE Id = 25;
+UPDATE UserPermissions SET AllowCreate = 1, AllowDelete = 1 WHERE ModuleId = 25 AND AllowPrint = 1;
+
 -- Medical Examination (14) and Medical Examination Page 2 (15) are hidden from the menu until the client says what they are
 UPDATE [Modules] SET [IsActive] = 0 WHERE [Id] IN (14, 15);
 

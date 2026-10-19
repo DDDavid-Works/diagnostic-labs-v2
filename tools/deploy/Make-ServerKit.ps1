@@ -13,7 +13,7 @@ if (-not $OutputDir) { $OutputDir = Join-Path $repo 'artifacts\server-kit' }
 if (Test-Path $OutputDir) { Remove-Item $OutputDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path (Join-Path $OutputDir 'db') | Out-Null
 Get-ChildItem (Join-Path $repo 'tools\deploy') -File | Copy-Item -Destination $OutputDir
-Copy-Item (Join-Path $repo 'db\schema.sql'), (Join-Path $repo 'db\seed.sql') -Destination (Join-Path $OutputDir 'db')
+Copy-Item (Join-Path $repo 'db\schema.sql'), (Join-Path $repo 'db\seed.sql'), (Join-Path $repo 'db\migrate-from-legacy.sql'), (Join-Path $repo 'db\verify-migration.sql') -Destination (Join-Path $OutputDir 'db')
 Copy-Item (Join-Path $repo 'docs\DEPLOYMENT.md') -Destination $OutputDir
 
 $zip = "$OutputDir.zip"
