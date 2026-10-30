@@ -3187,3 +3187,24 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261030084359_PhysicalExaminationBloodTypingNotes'
+)
+BEGIN
+    ALTER TABLE [PhysicalExaminationReports] ADD [BloodTypingNotes] nvarchar(500) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261030084359_PhysicalExaminationBloodTypingNotes'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261030084359_PhysicalExaminationBloodTypingNotes', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

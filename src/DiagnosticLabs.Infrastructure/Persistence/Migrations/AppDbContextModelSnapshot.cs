@@ -2780,6 +2780,10 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly?>("BloodTypingDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("BloodTypingNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateOnly?>("CbcDate")
                         .HasColumnType("date");
 

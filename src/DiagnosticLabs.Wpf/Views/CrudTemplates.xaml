@@ -2579,9 +2579,11 @@
               </Grid>
               </StackPanel>
             </Border>
-            <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Grid.Column="2" VerticalAlignment="Top">
-              <StackPanel>
-              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1"><DockPanel Margin="6,4,6,4"><TextBlock DockPanel.Dock="Left" Text="Date:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,8,0" /><DatePicker SelectedDate="{Binding Dates[BloodTypingDate].Value}" HorizontalAlignment="Left" Width="175" /></DockPanel></Border>
+            <!-- Blood typing: as tall as the blood count, as on the sheet; the unlabelled space under Rh Typing is the blood typing notes -->
+            <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Grid.Column="2">
+              <DockPanel>
+              <Border DockPanel.Dock="Top" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1"><DockPanel Margin="6,4,6,4"><TextBlock DockPanel.Dock="Left" Text="Date:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,8,0" /><DatePicker SelectedDate="{Binding Dates[BloodTypingDate].Value}" HorizontalAlignment="Left" Width="175" /></DockPanel></Border>
+              <Border DockPanel.Dock="Top" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,0,1">
               <Grid Margin="6,0,6,6">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -2590,7 +2592,10 @@
                 <TextBlock Grid.Row="1" Text="Rh Typing:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
                 <ctl:ChoiceBox Grid.Row="1" Grid.Column="1" Margin="0,2" ItemsSource="{Binding Choices[RhTyping].Items}" Text="{Binding Choices[RhTyping].Value}" EditCommand="{Binding Choices[RhTyping].EditCommand}" />
               </Grid>
-              </StackPanel>
+              </Border>
+              <ctl:TemplateTextBox Margin="6" MinHeight="60" Text="{Binding Cells[BloodTypingNotes].Value, UpdateSourceTrigger=PropertyChanged}" Options="{Binding BloodTypingNotesTemplates}" EditCommand="{Binding EditBloodTypingNotesTemplatesCommand}"
+                                   ToolTip="Blood typing notes: printed in the blood typing box under Rh Typing, without a label" />
+              </DockPanel>
             </Border>
           </Grid>
 

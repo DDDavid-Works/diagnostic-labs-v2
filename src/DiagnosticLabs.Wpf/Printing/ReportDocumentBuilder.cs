@@ -1465,6 +1465,9 @@ internal static class PhysicalExaminationLayout
         PageDrawing.PutFit(canvas, f("BloodTyping"), x + 100.0, 256.0, width - 108.0, Size);
         PageDrawing.PutText(canvas, "Rh Typing:", x + 4.0, 276.0, Size, bold: false);
         PageDrawing.PutFit(canvas, f("RhTyping"), x + 100.0, 276.0, width - 108.0, Size);
+
+        // The blood typing notes fill the unlabelled space under the rule (500 characters at most, so they stay inside the box).
+        PageDrawing.PutFlow(canvas, f("BloodTypingNotes"), x + 4.0, 303.0, width - 8.0, Size);
     }
 
     private static void DrawUrinalysis(Canvas canvas, Func<string, string?> f, double line)

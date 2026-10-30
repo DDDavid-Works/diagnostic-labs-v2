@@ -60,6 +60,9 @@ public class PhysicalExaminationReport : LabReportDetail
 
     public string? RhTyping { get; set; }
 
+    /// <summary>The free text in the blood typing box under Rh Typing (the sheet gives it no label).</summary>
+    public string? BloodTypingNotes { get; set; }
+
     // Urinalysis
     public string? UrineColor { get; set; }
 

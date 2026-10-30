@@ -49,9 +49,10 @@ public static class PhysicalExaminationFields
         Choice("FecalysisColor", "Color", "Fecalysis Color"), Choice("FecalysisConsistency", "Consistency", "Fecalysis Consistency"),
     ];
 
-    /// <summary>The free texts, each with a list of reusable texts of its own.</summary>
+    /// <summary>The free texts, each with a list of reusable texts of its own (the blood typing notes are the unlabelled space under Rh Typing).</summary>
     public static readonly (string Name, string Label, EntryField Entry)[] Texts =
     [
+        ("BloodTypingNotes", "Blood typing notes", Template("Blood Typing Notes")),
         ("UrineOthers", "Others", Template("Urinalysis Others")), ("FecalysisResult", "Result", Template("Fecalysis Result")), ("Others", "Others", Template("Others")),
     ];
 

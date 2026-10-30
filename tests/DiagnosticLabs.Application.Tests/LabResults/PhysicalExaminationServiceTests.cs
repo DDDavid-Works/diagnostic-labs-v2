@@ -98,6 +98,7 @@ public class PhysicalExaminationServiceTests
     [InlineData("HematocritResult", PhysicalExaminationFields.CellMaxLength)]
     [InlineData("Others", PhysicalExaminationFields.TextMaxLength)]
     [InlineData("FecalysisResult", PhysicalExaminationFields.TextMaxLength)]
+    [InlineData("BloodTypingNotes", PhysicalExaminationFields.TextMaxLength)]
     public async Task A_value_that_is_too_long_is_refused(string field, int max)
     {
         await using var db = _env.CreateDb();
@@ -125,6 +126,7 @@ public class PhysicalExaminationServiceTests
         Assert.Equal("Laboratory Results", print.Title);
         Assert.Equal("v-HematocritFemaleNValue", print.Fields!["HematocritFemaleNValue"]);
         Assert.Equal("v-UrineAmorphousUratesPO4", print.Fields["UrineAmorphousUratesPO4"]);
+        Assert.Equal("v-BloodTypingNotes", print.Fields["BloodTypingNotes"]);
         Assert.Equal(Today.ToString("d", System.Globalization.CultureInfo.CurrentCulture), print.Fields["CbcDate"]);
         Assert.Equal(PhysicalExaminationFields.Dates.Length + AllTextFields().Count(), print.Fields.Count);
         Assert.Equal(["Medical Technologist", "Pathologist"], print.Signatories.Select(s => s.Role));

@@ -4,7 +4,7 @@
              xmlns:local="clr-namespace:DiagnosticLabs.Wpf.Controls">
   <!-- A multi-line text box with its "Saved texts" dropdown quietly in the upper right corner. -->
   <Grid>
-    <TextBox x:Name="Box" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="6,5,118,5"
+    <TextBox x:Name="Box" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" Padding="6,5,118,5"
              Text="{Binding Text, RelativeSource={RelativeSource AncestorType=local:TemplateTextBox}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
     <local:TemplatePicker HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,18,0"
                           Options="{Binding Options, RelativeSource={RelativeSource AncestorType=local:TemplateTextBox}}"

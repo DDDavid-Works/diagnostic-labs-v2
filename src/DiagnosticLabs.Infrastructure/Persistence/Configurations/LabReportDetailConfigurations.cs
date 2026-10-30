@@ -362,6 +362,7 @@ internal sealed class PhysicalExaminationReportConfiguration : IEntityTypeConfig
         builder.Property(e => e.UrineCasts).HasMaxLength(50);
         builder.Property(e => e.FecalysisColor).HasMaxLength(50);
         builder.Property(e => e.FecalysisConsistency).HasMaxLength(50);
+        builder.Property(e => e.BloodTypingNotes).HasMaxLength(500);
         builder.Property(e => e.UrineOthers).HasMaxLength(500);
         builder.Property(e => e.FecalysisResult).HasMaxLength(500);
         builder.Property(e => e.Others).HasMaxLength(500);

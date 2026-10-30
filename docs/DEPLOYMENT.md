@@ -285,12 +285,13 @@ Rules that keep this safe:
 
 ## Next server update (after 1.0.2): notes
 
-Pending for the next release (1.0.3 or later). Two migrations change the client's live data, so read this before running `Update-Server.ps1`.
+Pending for the next release, **1.0.3**. Three migrations: two change the client's live data (merge, rename), one only adds a column. Read this before running `Update-Server.ps1`.
 
 **What changes for the lab**
 
 1. **Annual Physical Exam Page 2 is part of the Annual Physical Exam** (migration `MergeAnnualPhysicalExamPage2`). The Annual Physical Exam screen has two tabs (Annual Physical Exam, Page 2) and one Defaults button; Print always gives both pages. "Annual Physical Exam Page 2" disappears from the menu, from Home and from the services.
 2. **Medical Examination Report is renamed "Physical Examination (Walk-In)"** in the menu, on the screen and as a service (migration `RenameMedicalExamReportToWalkIn`). The printout keeps its title, MEDICAL EXAMINATION REPORT.
+3. **Physical Examination has a text box under Rh Typing** (migration `PhysicalExaminationBloodTypingNotes`, a new column only): the blank space of the blood typing box on the sheet. No label on the screen or the paper; it has saved texts and can have a default.
 
 **What the update does to existing data** (all inside `schema.sql`, in one go)
 
@@ -313,12 +314,21 @@ SELECT p.PackageName FROM PackageServices ps JOIN Packages p ON p.Id = ps.Packag
 
 If the lab gave the Page 2 service a price, ask them what the Annual Physical Exam should cost now that it includes Page 2 (registrations already made keep what they were billed).
 
-**Release:** the usual steps above (`Publish-Release.ps1 -Version 1.0.N -Zip`, then `Update-Server.ps1`). `db/schema.sql`, `db/seed.sql` and `db/migrate-from-legacy.sql` are already regenerated with both migrations.
+**Steps** (`db/schema.sql`, `db/seed.sql` and `db/migrate-from-legacy.sql` are already regenerated with all three migrations):
+
+1. **Build PC:** pull `main`, `dotnet test` green, then `.\tools\deploy\Publish-Release.ps1 -Version 1.0.3 -Zip` → `artifacts\release-1.0.3.zip`.
+2. Carry the zip to the server (AnyDesk file transfer) into `D:\Drop`.
+3. **Server, outside lab hours, everyone out of the app:** run the read-only SQL above in SSMS and save its output next to `update.log`.
+4. Elevated PowerShell: `.\Update-Server.ps1 -Release D:\Drop\release-1.0.3.zip` (`-BackupDir` is remembered). It stops if the backup fails; read `update.log` if it stops anywhere.
+5. Open the app on the server PC and check the version is 1.0.3 (Settings → Stations shows it). Then work through **After the update** below.
+6. Stations pick it up on their next launch; one left open shows the yellow new-version bar within 10 minutes. Settings → Stations shows who is still "Behind".
 
 **After the update**
 
 - Sign in and open Annual Physical Exam: both tabs, and Print gives two pages. Open one of the registrations listed above and check its total.
-- **Services:** set the Annual Physical Exam price if it changes (see above).
+- Open Physical Examination: the blank box under Rh Typing takes text and prints inside the blood typing box.
+- Open Physical Examination (Walk-In): the menu, screen and service carry the new name; the printout still says MEDICAL EXAMINATION REPORT.
+- **Services:** set the Annual Physical Exam price if it changes (see above), and the Physical Examination (Walk-In) price (still 0 unless the lab set one).
 - **Users:** anyone who had only "Annual Physical Exam Page 2" needs "Annual Physical Exam" (the old permission row stays but no longer opens anything).
 - **Defaults:** an administrator opens Annual Physical Exam → Defaults once and checks both tabs.
 - Tell the lab: Page 2 is now a tab; "Medical Examination Report" is now "Physical Examination (Walk-In)" in the menu (it sits next to "Physical Examination", the Laboratory Results sheet, so point out which is which).

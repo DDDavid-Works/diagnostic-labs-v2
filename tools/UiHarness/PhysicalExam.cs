@@ -37,6 +37,7 @@ internal static partial class Program
                 vm.Cells[c + "Result"].Value = c == "Hemoglobin" ? "132 g/l" : "0.4" + c.Length;
             vm.Choices["BloodTyping"].Value = "O";
             vm.Choices["RhTyping"].Value = "Positive";
+            vm.Cells["BloodTypingNotes"].Value = "Blood typing done twice; same result.\nSample taken at 8:30 AM.";
             foreach (var (k, v) in new Dictionary<string, string> { ["UrineColor"] = "YELLOW", ["UrineAppearance"] = "CLEAR", ["UrineReaction"] = "6.0", ["UrineSPGravity"] = "1.015", ["UrineAlbumin"] = "NEGATIVE",
                 ["UrineSugar"] = "NEGATIVE", ["UrinePusCells"] = "0-2/HPF", ["UrineRedCells"] = "0-1/HPF", ["UrineMucusThreads"] = "RARE", ["UrineEpithelialCells"] = "FEW", ["UrineAmorphousUratesPO4"] = "NONE",
                 ["UrineBacteria"] = "FEW", ["UrineCrystals"] = "NONE", ["UrineCasts"] = "NONE", ["FecalysisColor"] = "BROWN", ["FecalysisConsistency"] = "FORMED" })
@@ -67,7 +68,7 @@ internal static partial class Program
         Act(() => vm.SearchCommand.Execute(null), 1500);
         Act(() => vm.SelectedItem = vm.Items.First(), 1800);
         Check("it reopens with every section", vm.Cells["HemoglobinResult"].Value == "132 g/l" && vm.Choices["RhTyping"].Value == "Positive" && vm.Choices["UrineAmorphousUratesPO4"].Value == "NONE"
-            && vm.Cells["FecalysisResult"].Value == "No ova or parasite seen" && vm.Dates["UrinalysisDate"].Value == new DateTime(2026, 10, 9) && vm.Cells["Others"].Value == "For repeat after one week." && !vm.IsDirty,
+            && vm.Cells["FecalysisResult"].Value == "No ova or parasite seen" && vm.Dates["UrinalysisDate"].Value == new DateTime(2026, 10, 9) && vm.Cells["Others"].Value == "For repeat after one week." && vm.Cells["BloodTypingNotes"].Value?.StartsWith("Blood typing done twice", StringComparison.Ordinal) == true && !vm.IsDirty,
             $"{vm.Cells["HemoglobinResult"].Value}/{vm.IsDirty}");
         Act(() => vm.ToggleSearchCommand.Execute(null));
         Act(() => vm.PrintCommand.Execute(null), 3000);

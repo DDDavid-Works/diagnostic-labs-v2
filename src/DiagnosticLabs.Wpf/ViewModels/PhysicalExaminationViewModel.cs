@@ -46,7 +46,7 @@ public partial class PhysicalExaminationViewModel(
 
     public IReadOnlyDictionary<string, DateCell> Dates { get; } = PhysicalExaminationFields.Dates.ToDictionary(n => n, n => new DateCell(n));
 
-    /// <summary>The cells of the blood count and the three free texts.</summary>
+    /// <summary>The cells of the blood count and the four free texts.</summary>
     public IReadOnlyDictionary<string, ValueCell> Cells { get; } = PhysicalExaminationFields.CbcCells
         .Concat(PhysicalExaminationFields.Texts.Select(t => t.Name))
         .ToDictionary(n => n, n => new ValueCell(n));
@@ -54,6 +54,8 @@ public partial class PhysicalExaminationViewModel(
     /// <summary>The fields picked from a list of their own (blood typing, urinalysis, fecalysis).</summary>
     public IReadOnlyDictionary<string, ChoiceField> Choices { get; } = PhysicalExaminationFields.Choices
         .ToDictionary(c => c.Name, c => new ChoiceField(c.Name, c.Label, c.Entry));
+
+    public TemplateOptions BloodTypingNotesTemplates { get; } = new();
 
     public TemplateOptions UrineOthersTemplates { get; } = new();
 
@@ -80,7 +82,7 @@ public partial class PhysicalExaminationViewModel(
 
     private async Task LoadTextTemplatesAsync()
     {
-        foreach (var (name, templates) in new[] { ("UrineOthers", UrineOthersTemplates), ("FecalysisResult", FecalysisResultTemplates), ("Others", OthersTemplates) })
+        foreach (var (name, templates) in new[] { ("BloodTypingNotes", BloodTypingNotesTemplates), ("UrineOthers", UrineOthersTemplates), ("FecalysisResult", FecalysisResultTemplates), ("Others", OthersTemplates) })
         {
             var cell = Cells[name];
             var entry = PhysicalExaminationFields.Texts.First(t => t.Name == name).Entry;
@@ -122,12 +124,16 @@ public partial class PhysicalExaminationViewModel(
             cell.Value = null;
     }
 
-    // The normal values of the blood count are what a new form starts with (the results are per person); the dates start empty.
+    // The normal values of the blood count and the blood typing notes are what a new form starts with (the results are per person); the dates start empty.
     protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
-        Cells.Values.Where(c => c.Name.EndsWith("NValue", StringComparison.Ordinal)).Select(c => new DefaultField(c.Name, () => c.Value, v => c.Value = v));
+        Cells.Values.Where(c => c.Name.EndsWith("NValue", StringComparison.Ordinal) || c.Name == "BloodTypingNotes")
+            .Select(c => new DefaultField(c.Name, () => c.Value, v => c.Value = v));
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IPhysicalExaminationService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditBloodTypingNotesTemplatesAsync() => EditMultiLineAsync(PhysicalExaminationFields.Texts.First(t => t.Name == "BloodTypingNotes").Entry);
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
     private Task EditUrineOthersTemplatesAsync() => EditMultiLineAsync(PhysicalExaminationFields.Texts.First(t => t.Name == "UrineOthers").Entry);
