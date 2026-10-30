@@ -26,9 +26,15 @@ public partial class LoginViewModel(IServiceScopeFactory scopeFactory, ILogger<L
     [NotifyCanExecuteChangedFor(nameof(LoginCommand))]
     private bool _isBusy;
 
-    /// <summary>The laboratory name, tagline and logo shown above the sign-in form (set by Company Setup).</summary>
+    /// <summary>The laboratory name, subcompany name, tagline and logo shown above the sign-in form (set by Company Setup).</summary>
     [ObservableProperty]
     private string _brandName = "Diagnostic Labs";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSubCompanyName))]
+    private string _subCompanyName = string.Empty;
+
+    public bool HasSubCompanyName => SubCompanyName.Length > 0;
 
     [ObservableProperty]
     private string _brandTagline = string.Empty;
@@ -50,6 +56,7 @@ public partial class LoginViewModel(IServiceScopeFactory scopeFactory, ILogger<L
             var branding = await scope.ServiceProvider.GetRequiredService<ICompanySetupService>().GetBrandingAsync();
             if (!string.IsNullOrWhiteSpace(branding.CompanyName))
                 BrandName = branding.CompanyName;
+            SubCompanyName = branding.SubCompanyName?.Trim() ?? string.Empty;
             BrandTagline = branding.Tagline ?? string.Empty;
             LogoImage = ImageLoader.FromBytes(branding.Logo);
         }

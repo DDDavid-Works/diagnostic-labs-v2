@@ -11,6 +11,8 @@
     <Image Source="{Binding LogoImage}" MaxHeight="90" HorizontalAlignment="Left" Margin="0,0,0,12" RenderOptions.BitmapScalingMode="HighQuality"
            Visibility="{Binding HasLogo, Converter={StaticResource BoolToVis}}" />
     <TextBlock Text="{Binding BrandName}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding SubCompanyName}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0"
+               Visibility="{Binding HasSubCompanyName, Converter={StaticResource BoolToVis}}" />
     <TextBlock Text="{Binding BrandTagline}" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
     <Separator Margin="0,16,0,18" />
 
