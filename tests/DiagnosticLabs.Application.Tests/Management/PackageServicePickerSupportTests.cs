@@ -2,6 +2,7 @@ using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Lookups;
 using DiagnosticLabs.Application.Management;
 using DiagnosticLabs.Domain.Catalog;
+using DiagnosticLabs.Domain.Patients;
 
 namespace DiagnosticLabs.Application.Tests.Management;
 
@@ -26,6 +27,29 @@ public class PackageServicePickerSupportTests
         var options = await new ReferenceLookups(db).GetServicesAsync();
 
         Assert.Equal(["Zinc", "Albumin", "Calcium"], options.Select(o => o.Name));
+    }
+
+    [Fact]
+    public async Task A_company_sees_its_own_packages_then_the_general_ones_but_not_another_companys()
+    {
+        await using var db = _env.CreateDb();
+        var acme = new Company { CompanyName = "Acme" };
+        var other = new Company { CompanyName = "Other" };
+        db.Companies.AddRange(acme, other);
+        await db.SaveChangesAsync();
+        db.Packages.AddRange(
+            new Package { PackageName = "General A", PackageDescription = "d", Price = 100 },
+            new Package { PackageName = "Acme Z", PackageDescription = "d", Price = 200, CompanyId = acme.Id },
+            new Package { PackageName = "Other only", PackageDescription = "d", Price = 300, CompanyId = other.Id },
+            new Package { PackageName = "General retired", PackageDescription = "d", Price = 400, IsActive = false });
+        await db.SaveChangesAsync();
+        var lookups = new ReferenceLookups(db);
+
+        var forAcme = await lookups.GetPackagesAsync(acme.Id);
+        var forWalkIn = await lookups.GetPackagesAsync(null);
+
+        Assert.Equal(["Acme Z", "General A"], forAcme.Select(p => p.Name));
+        Assert.Equal(["General A"], forWalkIn.Select(p => p.Name));
     }
 
     [Fact]

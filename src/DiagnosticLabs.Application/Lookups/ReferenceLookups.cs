@@ -27,7 +27,7 @@ public interface IReferenceLookups
 
     Task<IReadOnlyList<LookupOption>> GetItemLocationsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>The packages offered to a company; <c>null</c> means no company, which sees the general packages (those not tied to a company).</summary>
+    /// <summary>The packages offered to a company: its own packages, then the general ones (those not tied to a company); <c>null</c> means no company, which sees only the general packages.</summary>
     Task<IReadOnlyList<PackageOption>> GetPackagesAsync(long? companyId, CancellationToken cancellationToken = default);
 
     /// <summary>The services of a package at their package prices (<see cref="ServiceOption.Id"/> is the service id).</summary>
@@ -61,8 +61,9 @@ public sealed class ReferenceLookups(IAppDbContext db) : IReferenceLookups
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<PackageOption>> GetPackagesAsync(long? companyId, CancellationToken cancellationToken = default) =>
-        await db.Packages.AsNoTracking().Where(p => p.IsActive && p.CompanyId == companyId)
-            .OrderBy(p => p.PackageName).ThenBy(p => p.Id)
+        await db.Packages.AsNoTracking().Where(p => p.IsActive && (p.CompanyId == null || p.CompanyId == companyId))
+            .OrderBy(p => p.CompanyId == null) // the company's own packages first, then the general ones
+            .ThenBy(p => p.PackageName).ThenBy(p => p.Id)
             .Select(p => new PackageOption(p.Id, p.PackageName, p.Price))
             .ToListAsync(cancellationToken);
 
