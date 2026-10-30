@@ -34,7 +34,8 @@ public sealed record PrintSignatory(string Role, string? Name, string? LicenseNo
 
 /// <summary>
 /// Everything a printout needs, already worked out and free of any UI, so what appears on paper is covered by tests.
-/// The WPF layer only lays it out on a page.
+/// The WPF layer only lays it out on a page. <paramref name="NextPage"/> is a page printed right after this one, for a form whose pages
+/// have designs of their own (the Annual Physical Exam and its Page 2).
 /// </summary>
 public sealed record PrintableReport(
     ReportLayout Layout,
@@ -46,7 +47,8 @@ public sealed record PrintableReport(
     IReadOnlyList<PrintSignatory> Signatories,
     string FooterNote,
     IReadOnlyDictionary<string, string?>? Fields = null,
-    CustomFormPrint? Custom = null);
+    CustomFormPrint? Custom = null,
+    PrintableReport? NextPage = null);
 
 /// <summary>One row of a group on the printout of a custom form: a test with its result and reference value, or a heading line.</summary>
 public sealed record CustomFormPrintRow(bool IsSection, string Name, string? Result, string? Reference);

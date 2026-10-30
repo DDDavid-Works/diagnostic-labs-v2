@@ -28,7 +28,7 @@ public static class ReportDocumentBuilder
 
         foreach (var report in reports)
         {
-            // Most forms are one page; the Medical Examination Report is two (its pages follow each other, also in Batch Print).
+            // Most forms are one page; the Medical Examination Report and the Annual Physical Exam are two (their pages follow each other, also in Batch Print).
             foreach (var canvas in DrawPages(report))
             {
                 var page = new FixedPage { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
@@ -43,9 +43,12 @@ public static class ReportDocumentBuilder
         return document;
     }
 
-    /// <summary>The pages one report takes on paper.</summary>
+    /// <summary>The pages one report takes on paper (with the page that follows it, like Page 2 of the Annual Physical Exam).</summary>
     public static IReadOnlyList<Canvas> DrawPages(PrintableReport report) =>
-        report.Layout == ReportLayout.MedicalExamReport ? MedicalExamReportLayout.Draw(report) : [DrawPage(report)];
+    [
+        .. report.Layout == ReportLayout.MedicalExamReport ? MedicalExamReportLayout.Draw(report) : [DrawPage(report)],
+        .. report.NextPage is { } next ? DrawPages(next) : [],
+    ];
 
     private static Canvas DrawPage(PrintableReport report)
     {
@@ -637,7 +640,7 @@ internal static class ClinicalChemistry2Layout
     }
 }
 /// <summary>
-/// The Medical Examination Report, printed as Annual Physical Exam Page 2. Like the first APE page it has a centred letterhead and its own
+/// The Medical Examination Report, printed as Page 2 of the Annual Physical Exam. Like the first APE page it has a centred letterhead and its own
 /// person box, and no "computer generated" line; the laboratory/X-ray table and the classification sit side by side, then three text boxes
 /// and the physician's signature block. Every position is measured from the client's printed form (one Letter page, Crystal Reports).
 /// A long text grows its box and moves everything below it down.

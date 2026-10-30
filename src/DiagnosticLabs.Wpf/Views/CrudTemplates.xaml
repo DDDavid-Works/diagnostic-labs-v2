@@ -917,161 +917,6 @@
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>
   </DataTemplate>
-  <!-- ===================================================== Annual Physical Exam Page 2 (the Medical Examination Report) -->
-  <DataTemplate DataType="{x:Type vm:MedicalExaminationViewModel}">
-    <DataTemplate.Resources>
-      <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
-      </Style>
-    </DataTemplate.Resources>
-    <ctl:CrudLayout FormMaxWidth="940">
-      <ctl:CrudLayout.SearchFilters>
-        <DockPanel Margin="0,0,0,8" LastChildFill="True">
-          <Button DockPanel.Dock="Right" icn:ButtonIcon.Data="{StaticResource Icon.Funnel}" Content="Clear filters" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}" />
-          <DatePicker SelectedDate="{Binding DateFilter}" ToolTip="Only show results of one day" />
-        </DockPanel>
-      </ctl:CrudLayout.SearchFilters>
-
-      <ctl:CrudLayout.GridContent>
-        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
-          <DataGrid.Columns>
-            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat='dd MMM yy'}" Width="75" />
-            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
-            <DataGridTextColumn Header="Registration" Binding="{Binding RegistrationCode}" Width="138" />
-          </DataGrid.Columns>
-        </DataGrid>
-      </ctl:CrudLayout.GridContent>
-
-      <ctl:CrudLayout.FooterContent>
-        <StackPanel Orientation="Horizontal">
-          <Button icn:ButtonIcon.Data="{StaticResource Icon.Save}" Content="Save &amp; New" Command="{Binding SaveAndNewCommand}" IsEnabled="{Binding CanSave}"
-                  ToolTip="Save, then start the next result (Ctrl+S saves)" />
-          <Button icn:ButtonIcon.Data="{StaticResource Icon.Print}" Content="Print" Margin="8,0,0,0" Command="{Binding PrintCommand}"
-                  ToolTip="Save, then open the print preview" />
-          <Button icn:ButtonIcon.Data="{StaticResource Icon.Undo}" Content="Reset to defaults" Margin="8,0,0,0" Command="{Binding ResetToDefaultsCommand}"
-                  Visibility="{Binding CanResetToDefaults, Converter={StaticResource BoolToVis}}"
-                  ToolTip="Put the saved defaults back into the result fields" />
-          <Button icn:ButtonIcon.Data="{StaticResource Icon.Sliders}" Content="Defaults" Margin="8,0,0,0" Command="{Binding EnterDefaultsCommand}"
-                  Visibility="{Binding ShowDefaultsButton, Converter={StaticResource BoolToVis}}"
-                  ToolTip="Set the values every new result starts with (administrators)" />
-        </StackPanel>
-      </ctl:CrudLayout.FooterContent>
-
-      <ctl:CrudLayout.FormContent>
-        <StackPanel>
-          <ctl:LabResultTop />
-
-          <!-- The rest of the person box -->
-          <Grid Margin="0,-10,0,10" IsEnabled="{Binding IsNotSettingDefaults}">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="170" />
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="170" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Contact No.:" Style="{StaticResource PaperLabel}" />
-            <TextBox Grid.Column="1" Margin="0,2,14,2" Text="{Binding ContactNo, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Text="Civil Status:" Style="{StaticResource PaperLabel}" />
-            <ctl:ChoiceBox Grid.Column="3" Margin="0,2" ItemsSource="{Binding CivilStatuses}" Text="{Binding CivilStatus}" EditCommand="{Binding EditCivilStatusListCommand}" />
-          </Grid>
-
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="1.35*" />
-              <ColumnDefinition Width="14" />
-              <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- V. Laboratory / X-ray results -->
-            <StackPanel Grid.Column="0">
-              <TextBlock Text="V. LABORATORY / X-RAY RESULTS" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
-              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
-                <ItemsControl ItemsSource="{Binding Rows}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <Grid>
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="150" />
-                          <ColumnDefinition Width="122" />
-                          <ColumnDefinition Width="122" />
-                          <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,5">
-                          <TextBlock Text="{Binding Label}" Style="{StaticResource PaperLabel}" TextWrapping="Wrap" />
-                        </Border>
-                        <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="8,4">
-                          <CheckBox Content="{Binding NormalCaption}" IsChecked="{Binding Normal.IsChecked}" VerticalAlignment="Center" />
-                        </Border>
-                        <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="8,4">
-                          <CheckBox Content="{Binding FindingsCaption}" IsChecked="{Binding Findings.IsChecked}" VerticalAlignment="Center" />
-                        </Border>
-                        <Border Grid.Column="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,3">
-                          <TextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" ToolTip="A note for this result" />
-                        </Border>
-                      </Grid>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </Border>
-            </StackPanel>
-
-            <!-- VI. Classification -->
-            <StackPanel Grid.Column="2">
-              <TextBlock Text="VI. CLASSIFICATION" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
-              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Padding="8,6">
-                <StackPanel>
-                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Fit].IsChecked}">
-                    <TextBlock Text="A - Fit for employment." TextWrapping="Wrap" />
-                  </CheckBox>
-                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Fit2].IsChecked}">
-                    <TextBlock Text="B - Fit for employment; with minor ailment/defect." TextWrapping="Wrap" />
-                  </CheckBox>
-                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Acceptable].IsChecked}">
-                    <TextBlock Text="C - Acceptable employment; defect may not be easily corrected." TextWrapping="Wrap" />
-                  </CheckBox>
-                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Unfit].IsChecked}">
-                    <TextBlock Text="D - Unfit for employment." TextWrapping="Wrap" />
-                  </CheckBox>
-                  <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Pending].IsChecked}">
-                    <TextBlock Text="PENDING - Incomplete medical laboratory exam." TextWrapping="Wrap" />
-                  </CheckBox>
-                </StackPanel>
-              </Border>
-            </StackPanel>
-          </Grid>
-
-          <TextBlock Text="Medical/Surgical History:" Style="{StaticResource PaperLabel}" Margin="0,10,0,2" />
-          <ctl:TemplateTextBox Text="{Binding MedicalSurgicalHistory, UpdateSourceTrigger=PropertyChanged}" Options="{Binding HistoryTemplates}" EditCommand="{Binding EditHistoryTemplatesCommand}" MinHeight="84" MaxHeight="150" />
-
-          <TextBlock Text="Assessment:" Style="{StaticResource PaperLabel}" Margin="0,8,0,2" />
-          <ctl:TemplateTextBox Text="{Binding Assessment, UpdateSourceTrigger=PropertyChanged}" Options="{Binding AssessmentTemplates}" EditCommand="{Binding EditAssessmentTemplatesCommand}" MinHeight="120" MaxHeight="200" />
-
-          <TextBlock Text="Remarks:" Style="{StaticResource PaperLabel}" Margin="0,8,0,2" />
-          <ctl:TemplateTextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" Options="{Binding RemarksTemplates}" EditCommand="{Binding EditRemarksTemplatesCommand}" MinHeight="84" MaxHeight="150" />
-
-          <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="40" />
-              <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0">
-              <TextBlock Text="Assessment Done By" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
-              <ctl:ChoiceBox ItemsSource="{Binding Technologists}" Text="{Binding AssessmentDoneBy.Value}" EditCommand="{Binding EditTechnologistListCommand}" />
-            </StackPanel>
-            <StackPanel Grid.Column="2">
-              <TextBlock Text="Physician Name" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
-              <ctl:ChoiceBox ItemsSource="{Binding Pathologists}" Text="{Binding PhysicianName.Value}" EditCommand="{Binding EditPathologistListCommand}" />
-              <DockPanel Margin="0,6,0,0">
-                <TextBlock DockPanel.Dock="Left" Text="License No:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                <TextBox Text="{Binding PhysicianLicense.Value, UpdateSourceTrigger=PropertyChanged}" />
-              </DockPanel>
-            </StackPanel>
-          </Grid>
-        </StackPanel>
-      </ctl:CrudLayout.FormContent>
-    </ctl:CrudLayout>
-  </DataTemplate>
   <!-- ===================================================== Medical Examination Report (two pages; History / Physical Exam / Page 2 tabs) -->
   <DataTemplate DataType="{x:Type vm:MedicalExamReportViewModel}">
     <DataTemplate.Resources>
@@ -1860,234 +1705,340 @@
             <TextBox Grid.Column="7" Margin="0,2" Text="{Binding ContactNo, UpdateSourceTrigger=PropertyChanged}" />
           </Grid>
 
-          <!-- ================= Past medical history -->
-          <TextBlock Text="PAST MEDICAL HISTORY" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
-          <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
-            <StackPanel>
-              <ItemsControl ItemsSource="{Binding HistoryRows}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
+          <TabControl>
+            <!-- ============================================ Page 1 -->
+            <TabItem Header="Annual Physical Exam">
+              <StackPanel Margin="0,4,0,8">
+                <!-- ================= Past medical history -->
+                <TextBlock Text="PAST MEDICAL HISTORY" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
+                <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+                  <StackPanel>
+                    <ItemsControl ItemsSource="{Binding HistoryRows}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="170" />
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="170" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
+                              <TextBlock Text="{Binding Left.Label}" Style="{StaticResource PaperLabel}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Left.Label}" />
+                            </Border>
+                            <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
+                              <ctl:ChoiceBox ItemsSource="{Binding Left.Items}" Text="{Binding Left.Value}" EditCommand="{Binding Left.EditCommand}" />
+                            </Border>
+                            <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
+                              <TextBlock Text="{Binding Right.Label}" Style="{StaticResource PaperLabel}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Right.Label}" />
+                            </Border>
+                            <Border Grid.Column="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
+                              <ctl:ChoiceBox ItemsSource="{Binding Right.Items}" Text="{Binding Right.Value}" EditCommand="{Binding Right.EditCommand}" />
+                            </Border>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Others -->
+                    <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                      <DockPanel>
+                        <TextBlock Text="Others:" Style="{StaticResource PaperLabel}" />
+                        <ctl:TemplateTextBox Margin="8,0,0,0" Text="{Binding OthersPast, UpdateSourceTrigger=PropertyChanged}" Options="{Binding OthersPastTemplates}" EditCommand="{Binding EditOthersPastTemplatesCommand}" MinHeight="26" MaxHeight="70" />
+                      </DockPanel>
+                    </Border>
+
+                    <!-- Medications | Allergies -->
                     <Grid>
                       <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="170" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="170" />
                         <ColumnDefinition Width="*" />
                       </Grid.ColumnDefinitions>
-                      <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
-                        <TextBlock Text="{Binding Left.Label}" Style="{StaticResource PaperLabel}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Left.Label}" />
+                      <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                        <DockPanel>
+                          <TextBlock DockPanel.Dock="Top" Text="Medications:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
+                          <ctl:TemplateTextBox Text="{Binding Medications, UpdateSourceTrigger=PropertyChanged}" Options="{Binding MedicationsTemplates}" EditCommand="{Binding EditMedicationsTemplatesCommand}" MinHeight="40" MaxHeight="70" />
+                        </DockPanel>
                       </Border>
-                      <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
-                        <ctl:ChoiceBox ItemsSource="{Binding Left.Items}" Text="{Binding Left.Value}" EditCommand="{Binding Left.EditCommand}" />
-                      </Border>
-                      <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,3">
-                        <TextBlock Text="{Binding Right.Label}" Style="{StaticResource PaperLabel}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Right.Label}" />
-                      </Border>
-                      <Border Grid.Column="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,2">
-                        <ctl:ChoiceBox ItemsSource="{Binding Right.Items}" Text="{Binding Right.Value}" EditCommand="{Binding Right.EditCommand}" />
+                      <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                        <DockPanel>
+                          <TextBlock DockPanel.Dock="Top" Text="Allergies:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
+                          <ctl:TemplateTextBox Text="{Binding Allergies, UpdateSourceTrigger=PropertyChanged}" Options="{Binding AllergiesTemplates}" EditCommand="{Binding EditAllergiesTemplatesCommand}" MinHeight="40" MaxHeight="70" />
+                        </DockPanel>
                       </Border>
                     </Grid>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
 
-              <!-- Others -->
-              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
-                <DockPanel>
-                  <TextBlock Text="Others:" Style="{StaticResource PaperLabel}" />
-                  <ctl:TemplateTextBox Margin="8,0,0,0" Text="{Binding OthersPast, UpdateSourceTrigger=PropertyChanged}" Options="{Binding OthersPastTemplates}" EditCommand="{Binding EditOthersPastTemplatesCommand}" MinHeight="26" MaxHeight="70" />
-                </DockPanel>
-              </Border>
-
-              <!-- Medications | Allergies -->
-              <Grid>
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
-                  <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Medications:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
-                    <ctl:TemplateTextBox Text="{Binding Medications, UpdateSourceTrigger=PropertyChanged}" Options="{Binding MedicationsTemplates}" EditCommand="{Binding EditMedicationsTemplatesCommand}" MinHeight="40" MaxHeight="70" />
-                  </DockPanel>
+                    <!-- Review of systems -->
+                    <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                      <DockPanel>
+                        <TextBlock Text="Review of Systems:" Style="{StaticResource PaperLabel}" />
+                        <ctl:TemplateTextBox Margin="8,0,0,0" Text="{Binding ReviewOfSystems, UpdateSourceTrigger=PropertyChanged}" Options="{Binding ReviewOfSystemsTemplates}" EditCommand="{Binding EditReviewOfSystemsTemplatesCommand}" MinHeight="26" MaxHeight="70" />
+                      </DockPanel>
+                    </Border>
+                  </StackPanel>
                 </Border>
-                <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
-                  <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Allergies:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
-                    <ctl:TemplateTextBox Text="{Binding Allergies, UpdateSourceTrigger=PropertyChanged}" Options="{Binding AllergiesTemplates}" EditCommand="{Binding EditAllergiesTemplatesCommand}" MinHeight="40" MaxHeight="70" />
-                  </DockPanel>
-                </Border>
-              </Grid>
 
-              <!-- Review of systems -->
-              <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,4">
-                <DockPanel>
-                  <TextBlock Text="Review of Systems:" Style="{StaticResource PaperLabel}" />
-                  <ctl:TemplateTextBox Margin="8,0,0,0" Text="{Binding ReviewOfSystems, UpdateSourceTrigger=PropertyChanged}" Options="{Binding ReviewOfSystemsTemplates}" EditCommand="{Binding EditReviewOfSystemsTemplatesCommand}" MinHeight="26" MaxHeight="70" />
-                </DockPanel>
-              </Border>
-            </StackPanel>
-          </Border>
+                <!-- ================= Present medical history -->
+                <TextBlock Text="PRESENT MEDICAL HISTORY" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,10,0,3" />
+                <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="170" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="120" />
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="90" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-          <!-- ================= Present medical history -->
-          <TextBlock Text="PRESENT MEDICAL HISTORY" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,10,0,3" />
-          <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White">
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="170" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="120" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="90" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-              </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Smoking:" Style="{StaticResource PaperLabel}" Margin="6,6,0,6" />
+                    <ItemsControl Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Smoking.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Since when:" Style="{StaticResource PaperLabel}" Margin="10,0,6,0" />
+                    <TextBox Grid.Row="0" Grid.Column="3" Margin="0,3" Text="{Binding SmokingSinceWhen, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Row="0" Grid.Column="4" Text="# of Sticks per day:" Style="{StaticResource PaperLabel}" Margin="14,0,6,0" />
+                    <TextBox Grid.Row="0" Grid.Column="5" Margin="0,3" Text="{Binding SticksPerDay, UpdateSourceTrigger=PropertyChanged}" />
 
-              <TextBlock Grid.Row="0" Grid.Column="0" Text="Smoking:" Style="{StaticResource PaperLabel}" Margin="6,6,0,6" />
-              <ItemsControl Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Smoking.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
-              <TextBlock Grid.Row="0" Grid.Column="2" Text="Since when:" Style="{StaticResource PaperLabel}" Margin="10,0,6,0" />
-              <TextBox Grid.Row="0" Grid.Column="3" Margin="0,3" Text="{Binding SmokingSinceWhen, UpdateSourceTrigger=PropertyChanged}" />
-              <TextBlock Grid.Row="0" Grid.Column="4" Text="# of Sticks per day:" Style="{StaticResource PaperLabel}" Margin="14,0,6,0" />
-              <TextBox Grid.Row="0" Grid.Column="5" Margin="0,3" Text="{Binding SticksPerDay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Drinking (Alcoholic):" Style="{StaticResource PaperLabel}" Margin="6,6,0,6" />
+                    <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Drinking.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Since when:" Style="{StaticResource PaperLabel}" Margin="10,0,6,0" />
+                    <TextBox Grid.Row="1" Grid.Column="3" Margin="0,3" Text="{Binding DrinkingSinceWhen, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Row="1" Grid.Column="4" Text="# of Bottles:" Style="{StaticResource PaperLabel}" Margin="14,0,6,0" />
+                    <TextBox Grid.Row="1" Grid.Column="5" Margin="0,3" Text="{Binding Bottles, UpdateSourceTrigger=PropertyChanged}" />
+                    <ItemsControl Grid.Row="1" Grid.Column="6" Margin="14,0,0,0" ItemsSource="{Binding DrinkingFrequency.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
 
-              <TextBlock Grid.Row="1" Grid.Column="0" Text="Drinking (Alcoholic):" Style="{StaticResource PaperLabel}" Margin="6,6,0,6" />
-              <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Drinking.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
-              <TextBlock Grid.Row="1" Grid.Column="2" Text="Since when:" Style="{StaticResource PaperLabel}" Margin="10,0,6,0" />
-              <TextBox Grid.Row="1" Grid.Column="3" Margin="0,3" Text="{Binding DrinkingSinceWhen, UpdateSourceTrigger=PropertyChanged}" />
-              <TextBlock Grid.Row="1" Grid.Column="4" Text="# of Bottles:" Style="{StaticResource PaperLabel}" Margin="14,0,6,0" />
-              <TextBox Grid.Row="1" Grid.Column="5" Margin="0,3" Text="{Binding Bottles, UpdateSourceTrigger=PropertyChanged}" />
-              <ItemsControl Grid.Row="1" Grid.Column="6" Margin="14,0,0,0" ItemsSource="{Binding DrinkingFrequency.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
-
-              <StackPanel Grid.Row="2" Grid.ColumnSpan="7" Orientation="Horizontal" Margin="6,3,6,3">
-                <TextBlock Text="LMP (First day of last menstrual period):" Style="{StaticResource PaperLabel}" />
-                <TextBox Width="140" Margin="8,0,16,0" Text="{Binding Lmp, UpdateSourceTrigger=PropertyChanged}" />
-                <ItemsControl ItemsSource="{Binding LmpType.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="7" Orientation="Horizontal" Margin="6,3,6,3">
+                      <TextBlock Text="LMP (First day of last menstrual period):" Style="{StaticResource PaperLabel}" />
+                      <TextBox Width="140" Margin="8,0,16,0" Text="{Binding Lmp, UpdateSourceTrigger=PropertyChanged}" />
+                      <ItemsControl ItemsSource="{Binding LmpType.Options}" ItemTemplate="{StaticResource OptionTick}" ItemsPanel="{StaticResource HorizontalPanel}" VerticalAlignment="Center" />
               </StackPanel>
-            </Grid>
-          </Border>
+                  </Grid>
+                </Border>
 
-          <!-- ================= Vital signs, BMI category and visual acuity -->
-          <TextBlock Text="VITAL SIGNS AND VISUAL ACUITY" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,10,0,3" />
-          <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Padding="8,6">
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="12" />
-                <ColumnDefinition Width="130" />
-                <ColumnDefinition Width="12" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
+                <!-- ================= Vital signs, BMI category and visual acuity -->
+                <TextBlock Text="VITAL SIGNS AND VISUAL ACUITY" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,10,0,3" />
+                <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Padding="8,6">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="12" />
+                      <ColumnDefinition Width="130" />
+                      <ColumnDefinition Width="12" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-              <!-- Vital signs -->
-              <Grid Grid.Column="0">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="76" />
-                  <ColumnDefinition Width="76" />
-                  <ColumnDefinition Width="12" />
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="56" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                  <RowDefinition Height="Auto" />
-                  <RowDefinition Height="Auto" />
-                  <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="1st" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="2nd" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="BP Reading (mm/Hg):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
-                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,2,3,2" Text="{Binding Bp1st, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Grid.Row="1" Grid.Column="2" Margin="3,2,0,2" Text="{Binding Bp2nd, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Cardiac Rate (bpm):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
-                <TextBox Grid.Row="2" Grid.Column="1" Margin="0,2,3,2" Text="{Binding CardiacRate1st, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Grid.Row="2" Grid.Column="2" Margin="3,2,0,2" Text="{Binding CardiacRate2nd, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Row="1" Grid.Column="4" Text="Height (feet):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
-                <TextBox Grid.Row="1" Grid.Column="5" Margin="0,2" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Row="2" Grid.Column="4" Text="Weight (Kg):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
-                <TextBox Grid.Row="2" Grid.Column="5" Margin="0,2" Text="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" />
-              </Grid>
+                    <!-- Vital signs -->
+                    <Grid Grid.Column="0">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="76" />
+                        <ColumnDefinition Width="76" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="56" />
+                      </Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+                      <TextBlock Grid.Row="0" Grid.Column="1" Text="1st" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
+                      <TextBlock Grid.Row="0" Grid.Column="2" Text="2nd" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
+                      <TextBlock Grid.Row="1" Grid.Column="0" Text="BP Reading (mm/Hg):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
+                      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,2,3,2" Text="{Binding Bp1st, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBox Grid.Row="1" Grid.Column="2" Margin="3,2,0,2" Text="{Binding Bp2nd, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBlock Grid.Row="2" Grid.Column="0" Text="Cardiac Rate (bpm):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
+                      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,2,3,2" Text="{Binding CardiacRate1st, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBox Grid.Row="2" Grid.Column="2" Margin="3,2,0,2" Text="{Binding CardiacRate2nd, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBlock Grid.Row="1" Grid.Column="4" Text="Height (feet):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
+                      <TextBox Grid.Row="1" Grid.Column="5" Margin="0,2" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBlock Grid.Row="2" Grid.Column="4" Text="Weight (Kg):" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
+                      <TextBox Grid.Row="2" Grid.Column="5" Margin="0,2" Text="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" />
+                    </Grid>
 
-              <!-- BMI category: a tall box between the vital signs and the visual acuity, as on paper -->
-              <DockPanel Grid.Column="2">
-                <TextBlock DockPanel.Dock="Top" Text="BMI Category:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
-                <ctl:TemplateTextBox Text="{Binding BmiCategory, UpdateSourceTrigger=PropertyChanged}" Options="{Binding BmiCategoryTemplates}" EditCommand="{Binding EditBmiCategoryTemplatesCommand}" PickerOnTop="True" MinHeight="60" />
-              </DockPanel>
+                    <!-- BMI category: a tall box between the vital signs and the visual acuity, as on paper -->
+                    <DockPanel Grid.Column="2">
+                      <TextBlock DockPanel.Dock="Top" Text="BMI Category:" Style="{StaticResource PaperLabel}" Margin="0,0,0,2" />
+                      <ctl:TemplateTextBox Text="{Binding BmiCategory, UpdateSourceTrigger=PropertyChanged}" Options="{Binding BmiCategoryTemplates}" EditCommand="{Binding EditBmiCategoryTemplatesCommand}" PickerOnTop="True" MinHeight="60" />
+                    </DockPanel>
 
-              <!-- Visual acuity -->
-              <Grid Grid.Column="4">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="*" MinWidth="56" />
-                  <ColumnDefinition Width="*" MinWidth="56" />
-                  <ColumnDefinition Width="12" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                  <RowDefinition Height="Auto" />
-                  <RowDefinition Height="Auto" />
-                  <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="Right Eye" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="Left Eye" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Far w/ eyeglasses:" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
-                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,2,3,2" Text="{Binding VaRightWith, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Grid.Row="1" Grid.Column="2" Margin="3,2,0,2" Text="{Binding VaLeftWith, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Far w/o eyeglasses:" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
-                <TextBox Grid.Row="2" Grid.Column="1" Margin="0,2,3,2" Text="{Binding VaRightWithout, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBox Grid.Row="2" Grid.Column="2" Margin="3,2,0,2" Text="{Binding VaLeftWithout, UpdateSourceTrigger=PropertyChanged}" />
-                <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="4" VerticalAlignment="Center">
-                  <CheckBox Content="Normal" Margin="0,2" IsChecked="{Binding VisualAcuity[Normal].IsChecked}" />
-                  <CheckBox Content="EOR" Margin="0,2" IsChecked="{Binding VisualAcuity[EOR].IsChecked}" />
-                  <CheckBox Margin="0,2" VerticalContentAlignment="Top" IsChecked="{Binding VisualAcuity[Corrected].IsChecked}">
-                    <TextBlock Text="Corrected with eyeglasses / contact lenses" TextWrapping="Wrap" MaxWidth="100" />
-                  </CheckBox>
-                </StackPanel>
-              </Grid>
-            </Grid>
-          </Border>
+                    <!-- Visual acuity -->
+                    <Grid Grid.Column="4">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="56" />
+                        <ColumnDefinition Width="*" MinWidth="56" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+                      <TextBlock Grid.Row="0" Grid.Column="1" Text="Right Eye" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
+                      <TextBlock Grid.Row="0" Grid.Column="2" Text="Left Eye" Style="{StaticResource PaperLabel}" HorizontalAlignment="Center" />
+                      <TextBlock Grid.Row="1" Grid.Column="0" Text="Far w/ eyeglasses:" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
+                      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,2,3,2" Text="{Binding VaRightWith, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBox Grid.Row="1" Grid.Column="2" Margin="3,2,0,2" Text="{Binding VaLeftWith, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBlock Grid.Row="2" Grid.Column="0" Text="Far w/o eyeglasses:" Style="{StaticResource PaperLabel}" Margin="0,0,8,0" />
+                      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,2,3,2" Text="{Binding VaRightWithout, UpdateSourceTrigger=PropertyChanged}" />
+                      <TextBox Grid.Row="2" Grid.Column="2" Margin="3,2,0,2" Text="{Binding VaLeftWithout, UpdateSourceTrigger=PropertyChanged}" />
+                      <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="4" VerticalAlignment="Center">
+                        <CheckBox Content="Normal" Margin="0,2" IsChecked="{Binding VisualAcuity[Normal].IsChecked}" />
+                        <CheckBox Content="EOR" Margin="0,2" IsChecked="{Binding VisualAcuity[EOR].IsChecked}" />
+                        <CheckBox Margin="0,2" VerticalContentAlignment="Top" IsChecked="{Binding VisualAcuity[Corrected].IsChecked}">
+                          <TextBlock Text="Corrected with eyeglasses / contact lenses" TextWrapping="Wrap" MaxWidth="100" />
+                        </CheckBox>
+                      </StackPanel>
+                    </Grid>
+                  </Grid>
+                </Border>
 
-          <!-- ================= Physical examination -->
-          <DockPanel Margin="0,10,0,3">
-            <TextBlock DockPanel.Dock="Right" Text="N - Normal or None; F - With Findings, if with Findings, describe" Foreground="{StaticResource MutedTextBrush}" />
-            <TextBlock Text="PHYSICAL EXAMINATION" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
-          </DockPanel>
-          <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
-              <ItemsControl Grid.Column="0" ItemsSource="{Binding ExamColumn1}" ItemTemplate="{StaticResource ExamRow}" />
-              <ItemsControl Grid.Column="1" ItemsSource="{Binding ExamColumn2}" ItemTemplate="{StaticResource ExamRow}" />
-              <ItemsControl Grid.Column="2" ItemsSource="{Binding ExamColumn3}" ItemTemplate="{StaticResource ExamRow}" />
-            </Grid>
-          </Border>
+                <!-- ================= Physical examination -->
+                <DockPanel Margin="0,10,0,3">
+                  <TextBlock DockPanel.Dock="Right" Text="N - Normal or None; F - With Findings, if with Findings, describe" Foreground="{StaticResource MutedTextBrush}" />
+                  <TextBlock Text="PHYSICAL EXAMINATION" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" />
+                </DockPanel>
+                <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ItemsControl Grid.Column="0" ItemsSource="{Binding ExamColumn1}" ItemTemplate="{StaticResource ExamRow}" />
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding ExamColumn2}" ItemTemplate="{StaticResource ExamRow}" />
+                    <ItemsControl Grid.Column="2" ItemsSource="{Binding ExamColumn3}" ItemTemplate="{StaticResource ExamRow}" />
+                  </Grid>
+                </Border>
 
-          <!-- ================= Findings and who took the measurements -->
-          <TextBlock Text="Findings:" Style="{StaticResource PaperLabel}" Margin="0,10,0,2" />
-          <ctl:TemplateTextBox Text="{Binding Findings, UpdateSourceTrigger=PropertyChanged}" Options="{Binding FindingsTemplates}" EditCommand="{Binding EditFindingsTemplatesCommand}" MinHeight="46" MaxHeight="90" />
+                <!-- ================= Findings and who took the measurements -->
+                <TextBlock Text="Findings:" Style="{StaticResource PaperLabel}" Margin="0,10,0,2" />
+                <ctl:TemplateTextBox Text="{Binding Findings, UpdateSourceTrigger=PropertyChanged}" Options="{Binding FindingsTemplates}" EditCommand="{Binding EditFindingsTemplatesCommand}" MinHeight="46" MaxHeight="90" />
 
-          <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="40" />
-              <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0">
-              <TextBlock Text="Vital Signs Done By" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
-              <ctl:ChoiceBox ItemsSource="{Binding VitalSignsBy.Items}" Text="{Binding VitalSignsBy.Value}" EditCommand="{Binding VitalSignsBy.EditCommand}" />
-            </StackPanel>
-            <StackPanel Grid.Column="2">
-              <TextBlock Text="Height and Weight Done By" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
-              <ctl:ChoiceBox ItemsSource="{Binding HeightWeightBy.Items}" Text="{Binding HeightWeightBy.Value}" EditCommand="{Binding HeightWeightBy.EditCommand}" />
-            </StackPanel>
-          </Grid>
+                <Grid Margin="0,10,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="Vital Signs Done By" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
+                    <ctl:ChoiceBox ItemsSource="{Binding VitalSignsBy.Items}" Text="{Binding VitalSignsBy.Value}" EditCommand="{Binding VitalSignsBy.EditCommand}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="Height and Weight Done By" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
+                    <ctl:ChoiceBox ItemsSource="{Binding HeightWeightBy.Items}" Text="{Binding HeightWeightBy.Value}" EditCommand="{Binding HeightWeightBy.EditCommand}" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </TabItem>
+
+            <!-- ============================================ Page 2 (the Medical Examination Report) -->
+            <TabItem Header="Page 2">
+              <StackPanel Margin="0,4,0,8">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.35*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+
+                  <!-- V. Laboratory / X-ray results -->
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="V. LABORATORY / X-RAY RESULTS" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
+                    <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1,1,0,0" Background="White">
+                      <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="122" />
+                                <ColumnDefinition Width="122" />
+                                <ColumnDefinition Width="*" />
+                              </Grid.ColumnDefinitions>
+                              <Border Grid.Column="0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="6,5">
+                                <TextBlock Text="{Binding Label}" Style="{StaticResource PaperLabel}" TextWrapping="Wrap" />
+                              </Border>
+                              <Border Grid.Column="1" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="8,4">
+                                <CheckBox Content="{Binding NormalCaption}" IsChecked="{Binding Normal.IsChecked}" VerticalAlignment="Center" />
+                              </Border>
+                              <Border Grid.Column="2" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="8,4">
+                                <CheckBox Content="{Binding FindingsCaption}" IsChecked="{Binding Findings.IsChecked}" VerticalAlignment="Center" />
+                              </Border>
+                              <Border Grid.Column="3" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="0,0,1,1" Padding="4,3">
+                                <TextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" ToolTip="A note for this result" />
+                              </Border>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Border>
+                  </StackPanel>
+
+                  <!-- VI. Classification -->
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="VI. CLASSIFICATION" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" Margin="0,0,0,3" />
+                    <Border BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" Padding="8,6">
+                      <StackPanel>
+                        <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Fit].IsChecked}">
+                          <TextBlock Text="A - Fit for employment." TextWrapping="Wrap" />
+                        </CheckBox>
+                        <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Fit2].IsChecked}">
+                          <TextBlock Text="B - Fit for employment; with minor ailment/defect." TextWrapping="Wrap" />
+                        </CheckBox>
+                        <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Acceptable].IsChecked}">
+                          <TextBlock Text="C - Acceptable employment; defect may not be easily corrected." TextWrapping="Wrap" />
+                        </CheckBox>
+                        <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Unfit].IsChecked}">
+                          <TextBlock Text="D - Unfit for employment." TextWrapping="Wrap" />
+                        </CheckBox>
+                        <CheckBox Margin="0,4" VerticalContentAlignment="Top" IsChecked="{Binding Classification[Pending].IsChecked}">
+                          <TextBlock Text="PENDING - Incomplete medical laboratory exam." TextWrapping="Wrap" />
+                        </CheckBox>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+
+                <TextBlock Text="Medical/Surgical History:" Style="{StaticResource PaperLabel}" Margin="0,10,0,2" />
+                <ctl:TemplateTextBox Text="{Binding MedicalSurgicalHistory, UpdateSourceTrigger=PropertyChanged}" Options="{Binding HistoryTemplates}" EditCommand="{Binding EditHistoryTemplatesCommand}" MinHeight="84" MaxHeight="150" />
+
+                <TextBlock Text="Assessment:" Style="{StaticResource PaperLabel}" Margin="0,8,0,2" />
+                <ctl:TemplateTextBox Text="{Binding Assessment, UpdateSourceTrigger=PropertyChanged}" Options="{Binding AssessmentTemplates}" EditCommand="{Binding EditAssessmentTemplatesCommand}" MinHeight="120" MaxHeight="200" />
+
+                <TextBlock Text="Remarks:" Style="{StaticResource PaperLabel}" Margin="0,8,0,2" />
+                <ctl:TemplateTextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" Options="{Binding RemarksTemplates}" EditCommand="{Binding EditRemarksTemplatesCommand}" MinHeight="84" MaxHeight="150" />
+
+                <Grid Margin="0,10,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="Assessment Done By" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
+                    <ctl:ChoiceBox ItemsSource="{Binding Technologists}" Text="{Binding AssessmentDoneBy.Value}" EditCommand="{Binding EditTechnologistListCommand}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="Physician Name" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
+                    <ctl:ChoiceBox ItemsSource="{Binding Pathologists}" Text="{Binding PhysicianName.Value}" EditCommand="{Binding EditPathologistListCommand}" />
+                    <DockPanel Margin="0,6,0,0">
+                      <TextBlock DockPanel.Dock="Left" Text="License No:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                      <TextBox Text="{Binding PhysicianLicense.Value, UpdateSourceTrigger=PropertyChanged}" />
+                    </DockPanel>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </TabItem>
+          </TabControl>
         </StackPanel>
       </ctl:CrudLayout.FormContent>
     </ctl:CrudLayout>

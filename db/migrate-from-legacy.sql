@@ -1017,17 +1017,17 @@ UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."RBCReference"', N
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CrystalsReference"', N'hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CrystalsReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CastsReference"', N'lpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CastsReference"') IS NULL;
 
--- Medical Examination Report (a form added after the legacy app): its module record and billable service
+-- Physical Examination (Walk-In), the Medical Examination Report (a form added after the legacy app): its module record and billable service
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 33)
 BEGIN
-    DECLARE @serviceIdMer bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Medical Examination Report' ORDER BY Id);
+    DECLARE @serviceIdMer bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName IN (N'Physical Examination (Walk-In)', N'Medical Examination Report') ORDER BY Id);
     IF @serviceIdMer IS NULL
     BEGIN
-        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Medical Examination Report', N'Medical Examination Report', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Physical Examination (Walk-In)', N'Physical Examination (Walk-In)', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
         SET @serviceIdMer = SCOPE_IDENTITY();
     END
     INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
-    SELECT 33, ModuleTypeId, N'Medical Examination Report', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 16, 1, @serviceIdMer FROM Modules WHERE Id = 6;
+    SELECT 33, ModuleTypeId, N'Physical Examination (Walk-In)', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 16, 1, @serviceIdMer FROM Modules WHERE Id = 6;
 END
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 33) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 33)
     INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (33, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
@@ -1048,6 +1048,97 @@ UPDATE UserPermissions SET AllowCreate = 1, AllowDelete = 1 WHERE ModuleId = 25 
 
 -- Medical Examination (14) and Medical Examination Page 2 (15) are hidden from the menu until the client says what they are
 UPDATE [Modules] SET [IsActive] = 0 WHERE [Id] IN (14, 15);
+
+-- Annual Physical Exam Page 2 (17) is the second tab of the Annual Physical Exam (16): the MergeAnnualPhysicalExamPage2 migration, on the imported rows
+-- 1. Saved Page 2 results become Page 2 of an Annual Physical Exam
+DECLARE @pairs TABLE (Page2Id bigint PRIMARY KEY, ApeId bigint NOT NULL UNIQUE);
+WITH p AS (
+    SELECT Id, PatientRegistrationId, ROW_NUMBER() OVER (PARTITION BY PatientRegistrationId ORDER BY Id) AS n
+    FROM LabReports WHERE ReportType = N'MedicalExamination' AND IsDeleted = 0 AND PatientRegistrationId IS NOT NULL),
+a AS (
+    SELECT r.Id, r.PatientRegistrationId, ROW_NUMBER() OVER (PARTITION BY r.PatientRegistrationId ORDER BY r.Id) AS n
+    FROM LabReports r
+    WHERE r.ReportType = N'AnnualPhysicalExam' AND r.IsDeleted = 0 AND r.PatientRegistrationId IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM MedicalExaminationReports x WHERE x.LabReportId = r.Id))
+INSERT INTO @pairs (Page2Id, ApeId)
+SELECT p.Id, a.Id FROM p JOIN a ON a.PatientRegistrationId = p.PatientRegistrationId AND a.n = p.n;
+
+-- a Page 2 of a registration that has an Annual PE: its row moves there, with its Remarks, contact number and civil status where the Annual PE has none
+UPDATE x SET LabReportId = pr.ApeId FROM MedicalExaminationReports x JOIN @pairs pr ON pr.Page2Id = x.LabReportId;
+UPDATE a SET Remarks = COALESCE(a.Remarks, m.Remarks)
+FROM LabReports a JOIN @pairs pr ON pr.ApeId = a.Id JOIN LabReports m ON m.Id = pr.Page2Id;
+UPDATE e SET ContactNo = COALESCE(e.ContactNo, x.ContactNo), CivilStatus = COALESCE(e.CivilStatus, x.CivilStatus)
+FROM AnnualPhysicalExamReports e JOIN @pairs pr ON pr.ApeId = e.LabReportId JOIN MedicalExaminationReports x ON x.LabReportId = e.LabReportId;
+UPDATE LabReports SET IsDeleted = 1, DeletedAtUtc = SYSUTCDATETIME() WHERE Id IN (SELECT Page2Id FROM @pairs);
+
+-- any other Page 2 becomes an Annual PE itself, with an empty first page that takes its contact number and civil status
+INSERT INTO AnnualPhysicalExamReports (LabReportId, ContactNo, CivilStatus, LMPType, VitalSignsBy, HeightWeightBy)
+SELECT m.Id, x.ContactNo, x.CivilStatus, N'', N'', N''
+FROM LabReports m LEFT JOIN MedicalExaminationReports x ON x.LabReportId = m.Id
+WHERE m.ReportType = N'MedicalExamination' AND m.Id NOT IN (SELECT Page2Id FROM @pairs)
+  AND NOT EXISTS (SELECT 1 FROM AnnualPhysicalExamReports e WHERE e.LabReportId = m.Id);
+UPDATE LabReports SET ReportType = N'AnnualPhysicalExam'
+WHERE ReportType = N'MedicalExamination' AND Id NOT IN (SELECT Page2Id FROM @pairs);
+
+-- 2. Page 2's entry lists belong to the Annual PE now
+UPDATE v SET ModuleId = 16 FROM LookupValues v
+WHERE v.ModuleId = 17 AND NOT EXISTS (SELECT 1 FROM LookupValues o WHERE o.ModuleId = 16 AND o.FieldName = v.FieldName);
+
+-- 3. One Defaults: Page 2's saved defaults join the Annual PE's (a value the Annual PE already has wins)
+IF EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 17)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 16)
+        UPDATE ModuleDefaults SET ModuleId = 16 WHERE ModuleId = 17;
+    ELSE
+    BEGIN
+        DECLARE @merged nvarchar(max) = (SELECT Defaults FROM ModuleDefaults WHERE ModuleId = 16);
+        DECLARE @keys TABLE (n int IDENTITY PRIMARY KEY, [key] nvarchar(4000), value nvarchar(max));
+        INSERT INTO @keys ([key], value)
+        SELECT [key], value FROM OPENJSON((SELECT Defaults FROM ModuleDefaults WHERE ModuleId = 17)) WHERE type = 1;
+        DECLARE @i int = 1, @last int = (SELECT COUNT(*) FROM @keys), @key nvarchar(4000), @value nvarchar(max);
+        WHILE @i <= @last
+        BEGIN
+            SELECT @key = [key], @value = value FROM @keys WHERE n = @i;
+            IF JSON_VALUE(@merged, N'$."' + @key + N'"') IS NULL
+                SET @merged = JSON_MODIFY(@merged, N'$."' + @key + N'"', @value);
+            SET @i += 1;
+        END;
+        UPDATE ModuleDefaults SET Defaults = @merged, UpdatedAtUtc = SYSUTCDATETIME() WHERE ModuleId = 16;
+        DELETE FROM ModuleDefaults WHERE ModuleId = 17;
+    END;
+END;
+
+-- 4. The Page 2 service is deleted and its module hidden
+DECLARE @page2Service bigint = (SELECT ServiceId FROM Modules WHERE Id = 17);
+DECLARE @apeService bigint = (SELECT ServiceId FROM Modules WHERE Id = 16);
+UPDATE Modules SET ServiceId = NULL, IsActive = 0 WHERE Id = 17;
+-- (without an Annual PE service there is nothing to move the lines to: the Page 2 service is then left as it is, unlinked)
+IF @page2Service IS NOT NULL AND @apeService IS NOT NULL
+BEGIN
+    -- a registration billed for both keeps its total: the Page 2 price is added to its Annual PE line, so the lines still add up to the amount due
+    UPDATE a SET Price = a.Price + x.Total, UpdatedAtUtc = SYSUTCDATETIME()
+    FROM PatientRegistrationServices a
+    JOIN (SELECT p.PatientRegistrationId, SUM(p.Price) AS Total,
+                 (SELECT MIN(o.Id) FROM PatientRegistrationServices o
+                  WHERE o.PatientRegistrationId = p.PatientRegistrationId AND o.ServiceId = @apeService AND o.IsDeleted = 0) AS ApeLineId
+          FROM PatientRegistrationServices p
+          WHERE p.ServiceId = @page2Service AND p.IsDeleted = 0
+          GROUP BY p.PatientRegistrationId) x ON x.ApeLineId = a.Id;
+    DELETE s FROM PatientRegistrationServices s
+    WHERE s.ServiceId = @page2Service
+      AND EXISTS (SELECT 1 FROM PatientRegistrationServices o WHERE o.PatientRegistrationId = s.PatientRegistrationId AND o.ServiceId = @apeService AND o.IsDeleted = 0);
+    UPDATE PatientRegistrationServices SET ServiceId = @apeService WHERE ServiceId = @page2Service;
+
+    -- a package lists services but is priced as a whole, so dropping a line does not change what it costs
+    DELETE s FROM PackageServices s
+    WHERE s.ServiceId = @page2Service
+      AND EXISTS (SELECT 1 FROM PackageServices o WHERE o.PackageId = s.PackageId AND o.ServiceId = @apeService);
+    UPDATE PackageServices SET ServiceId = @apeService WHERE ServiceId = @page2Service;
+
+    DELETE FROM ServiceItemQuantities WHERE ServiceId = @page2Service;
+    IF NOT EXISTS (SELECT 1 FROM Modules WHERE ServiceId = @page2Service)
+        DELETE FROM Services WHERE Id = @page2Service;
+END;
 
 -- Administrators get full access to every module, including those the legacy build did not have
 INSERT INTO UserPermissions (UserId, ModuleId, AllowCreate, AllowEdit, AllowDelete, AllowPrint, CreatedAtUtc, UpdatedAtUtc)

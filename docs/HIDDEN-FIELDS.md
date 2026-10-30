@@ -10,6 +10,7 @@ Do not drop one until the client has confirmed that nothing in it is needed. Add
 | `LookupValues` (module 5, field "Result") | the saved Result texts | Fecalysis | Fecalysis rework | The reusable texts of the old Result box. Still in the table, no longer offered by any screen. |
 | `ModuleDefaults` (module 5) | the saved default for "Result" | Fecalysis | Fecalysis rework | An administrator's saved default for the old Result box, if there was one. The screen ignores a saved key it does not know. |
 | `HematologyReports` | `StabNValue`, `StabResult` | Hematology | Hematology rework (`HematologyRework`) | The Stab line (normal value and result). The client's new form has no Stab line. Old results keep what they had; the new form cannot show or change it. |
+| `MedicalExaminationReports` | `ContactNo`, `CivilStatus` | Annual Physical Exam, Page 2 | Page 2 merged into the Annual PE (`MergeAnnualPhysicalExamPage2`) | Page 2's own contact number and civil status. Page 2 now shows and prints the first page's; the migration copied these into the first page where it had none. |
 
 ## Dropping a hidden field later
 
@@ -26,5 +27,6 @@ Modules that exist in the database but are switched off (`Modules.IsActive = 0`)
 | Medical Examination | 14 | `HideMedicalExaminationModules` | Not built; the client has not said what it is. |
 | Medical Examination Page 2 | 15 | `HideMedicalExaminationModules` | Same. |
 | Items, Item Locations | 21, 22 | the legacy data | Switched off in the old app already. |
+| Annual Physical Exam Page 2 | 17 | `MergeAnnualPhysicalExamPage2` | Now the Page 2 tab of the Annual Physical Exam (16). Its service was deleted (a registration or package line of it became an Annual PE line; where the Annual PE was already there the line was dropped, and on a registration its price was added to the Annual PE line); its entry lists and saved defaults moved to module 16. |
 
 The billable services linked to modules 14 and 15 ("Medical Examination", "Medical Examination Page 2") still exist; deactivate them in the Services screen if they should not be offered at registration.

@@ -348,5 +348,6 @@ public class BatchPrintServiceTests
         Assert.Equal(ReportLayout.CustomForm, printable.Value.Single().Layout);
         Assert.Equal("Lipid Profile", printable.Value.Single().Title);
         Assert.Null(printers.For(ModuleIds.MedicalExamination)); // a module with no result form still has no printer
+        Assert.Null(printers.For(ModuleIds.AnnualPhysicalExamPage2)); // Page 2 prints with the Annual Physical Exam
     }
 }

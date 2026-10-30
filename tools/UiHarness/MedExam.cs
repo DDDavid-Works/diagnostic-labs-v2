@@ -96,19 +96,16 @@ internal static partial class Program
         Pump(1000);
         Check("Annual Physical Exam uses the shared Civil Status list and has its Edit entries command", ape.CivilStatuses.SequenceEqual(expected) && ape.EditCivilStatusListCommand is not null, $"{ape.CivilStatuses.Count} vs {expected.Count}");
         Snapshot("civil-ape.png");
-        var page2 = Open<MedicalExaminationViewModel>(ModuleIds.AnnualPhysicalExamPage2);
-        Pump(1000);
-        Check("Annual Physical Exam Page 2 uses it too", page2.CivilStatuses.SequenceEqual(expected) && page2.EditCivilStatusListCommand is not null, "");
         var mer = Open<MedicalExamReportViewModel>(ModuleIds.MedicalExamReport);
         Pump(1000);
         Check("so does the Medical Examination Report", mer.CivilStatuses.SequenceEqual(expected) && mer.EditCivilStatusListCommand is not null, "");
 
-        // Annual Physical Exam Page 2: the physician is picked from the Pathologist list and the licence number follows the name.
+        // Page 2 of the Annual Physical Exam: the physician is picked from the Pathologist list and the licence number follows the name.
         var saved = provider.GetRequiredService<IServiceRunner>().RunAsync<DiagnosticLabs.Application.Entries.IEntryService, DiagnosticLabs.Application.Common.Result<DiagnosticLabs.Application.Entries.SingleLineEntryList>>(
-            s => s.SaveSingleLineAsync(DiagnosticLabs.Application.Entries.EntryFields.Pathologist, ModuleIds.AnnualPhysicalExamPage2,
+            s => s.SaveSingleLineAsync(DiagnosticLabs.Application.Entries.EntryFields.Pathologist, ModuleIds.AnnualPhysicalExam,
                 [new DiagnosticLabs.Application.Entries.SingleLineEntry(0, "Dr. Romeo G. Malonzo", "87844")])).GetAwaiter().GetResult();
         Check("a physician with a licence number is saved in the Pathologist list", saved.IsSuccess, saved.IsFailure ? saved.Error.Message : "");
-        var page2Again = Open<MedicalExaminationViewModel>(ModuleIds.AnnualPhysicalExamPage2);
+        var page2Again = Open<AnnualPhysicalExamViewModel>(ModuleIds.AnnualPhysicalExam);
         Pump(1500);
         Check("Page 2 offers the physician from the Pathologist list", page2Again.Pathologists.Contains("Dr. Romeo G. Malonzo"), string.Join("|", page2Again.Pathologists));
         Act(() => page2Again.PhysicianName.Value = "Dr. Romeo G. Malonzo", 600);

@@ -25,7 +25,6 @@ public sealed class LabResultPrinters(IServiceProvider services) : ILabResultPri
         ModuleIds.ClinicalChemistry1 => services.GetRequiredService<IClinicalChemistry1Service>(),
         ModuleIds.ClinicalChemistry2 => services.GetRequiredService<IClinicalChemistry2Service>(),
         ModuleIds.AnnualPhysicalExam => services.GetRequiredService<IAnnualPhysicalExamService>(),
-        ModuleIds.AnnualPhysicalExamPage2 => services.GetRequiredService<IMedicalExaminationService>(),
         ModuleIds.PhysicalExamination => services.GetRequiredService<IPhysicalExaminationService>(),
         ModuleIds.ClinicalMicroscopy => services.GetRequiredService<IClinicalMicroscopyService>(),
         ModuleIds.MedicalExamReport => services.GetRequiredService<IMedicalExamReportService>(),

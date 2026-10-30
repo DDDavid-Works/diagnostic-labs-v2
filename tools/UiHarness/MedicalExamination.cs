@@ -16,16 +16,21 @@ internal static partial class Program
         _main.Top = 0;
         Pump(800);
 
-        var vm = Open<MedicalExaminationViewModel>(ModuleIds.AnnualPhysicalExamPage2);
+        // Page 2 is the second tab of the Annual Physical Exam.
+        var vm = Open<AnnualPhysicalExamViewModel>(ModuleIds.AnnualPhysicalExam);
         Pump(1000);
-        Check("seven rows and the lists", vm.Rows.Count == 7 && vm.AssessmentDoneBy.EditCommand is not null, "");
+        Check("seven rows and the lists", vm.Rows.Count == 7 && vm.EditHistoryTemplatesCommand is not null && vm.EditAssessmentTemplatesCommand is not null, "");
+        SelectTab(1);
         Snapshot("mer-1-new.png");
 
         Act(() => vm.FindText = "Emma", 1500);
         var pick = vm.Suggestions.FirstOrDefault();
         if (pick is not null)
             Act(() => vm.PickSuggestionCommand.Execute(pick), 1500);
-        Check("a registration fills the patient block", vm.HasRegistration && vm.PatientName.Length > 0, vm.PatientName);
+        if (pick is not null)
+            Check("a registration fills the patient block", vm.HasRegistration && vm.PatientName.Length > 0, vm.PatientName);
+        else
+            vm.PatientName = "EMMA PAGE TWO"; // a scratch database without registrations: a result for someone who is not registered
 
         vm.ContactNo = "34555";
         vm.CivilStatus = "Single";
@@ -48,6 +53,9 @@ internal static partial class Program
         _main.Height = 1700;
         Pump(700);
         Snapshot("mer-2-tall.png");
+        SelectTab(0);
+        Snapshot("mer-3-page1-tab.png");
+        SelectTab(1);
         _main.Height = 728;
         Pump(300);
 
@@ -64,7 +72,9 @@ internal static partial class Program
             && vm.MedicalSurgicalHistory == "QQQ HISTORY" && vm.Remarks == "WWW REMARKS" && vm.PhysicianLicense.Value == "W2234O4504", $"{vm.Classification.Value}/{vm.PhysicianName.Value}");
 
         Act(() => vm.PrintCommand.Execute(null), 3000);
-        Check("print opens the layout", CapturePreview.Last is { Layout: DiagnosticLabs.Application.LabResults.ReportLayout.MedicalExamination }, CapturePreview.Last?.Layout.ToString() ?? "none");
+        Check("print gives the first page, then Page 2",
+            CapturePreview.Last is { Layout: DiagnosticLabs.Application.LabResults.ReportLayout.AnnualPhysicalExam, NextPage.Layout: DiagnosticLabs.Application.LabResults.ReportLayout.MedicalExamination }
+            && CapturePreview.PageCount == 2, $"{CapturePreview.Last?.Layout}/{CapturePreview.Last?.NextPage?.Layout}/{CapturePreview.PageCount}");
 
         Act(() => vm.NewRecordCommand.Execute(null), 800);
         Act(() => vm.EnterDefaultsCommand.Execute(null), 800);

@@ -34,7 +34,16 @@ public class AnnualPhysicalExamServiceTests
         Findings = "findings 001", VitalSignsBy = "NURSE A", HeightWeightBy = "NURSE B",
     };
 
-    private AnnualPhysicalExamInput Input(AnnualPhysicalExamData? data = null) => new(0, Header(), data ?? FullData(), null);
+    private static MedicalExaminationData FullPage2() => new()
+    {
+        ChestXray = new("N", "clear"), CBC = new("F", null), Urinalysis = new("N", null), Fecalysis = new("F", "ova"),
+        HBsAg = new("N", null), DrugTest2Panel = new("F", null), DrugTest4Panel = new("N", "none"),
+        Classification = "Fit", MedicalSurgicalHistory = "qqq", Assessment = "sss",
+        AssessmentDoneBy = "DR. FIORA", PhysicianName = "DR. MALONZO", PhysicianLicense = "W2234O4504",
+    };
+
+    private AnnualPhysicalExamInput Input(AnnualPhysicalExamData? data = null, MedicalExaminationData? page2 = null) =>
+        new(0, Header(), data ?? FullData(), page2 ?? FullPage2(), null);
 
     [Fact]
     public async Task Every_field_is_saved_and_read_back()
@@ -76,7 +85,7 @@ public class AnnualPhysicalExamServiceTests
         SignInAsAdmin();
         var service = CreateService(db);
 
-        var empty = (await service.SaveAsync(Input(new AnnualPhysicalExamData()))).Value;
+        var empty = (await service.SaveAsync(Input(new AnnualPhysicalExamData(), new MedicalExaminationData()))).Value;
 
         Assert.Null(empty.Data.IsSmoking);
         Assert.Null(empty.Data.LMPType);
@@ -118,5 +127,110 @@ public class AnnualPhysicalExamServiceTests
 
         Assert.Single((await ape.SearchAsync(new CrudSearch(null))).Value.Items);
         Assert.Single((await stool.SearchAsync(new CrudSearch(null))).Value.Items);
+    }
+
+    // ---------------------------------------------------------------- Page 2 (merged into the Annual Physical Exam)
+
+    [Fact]
+    public async Task Page_2_is_saved_in_the_medical_examination_table_under_the_same_result()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+
+        var saved = (await service.SaveAsync(Input())).Value;
+
+        var report = await db.LabReports.AsNoTracking().SingleAsync();
+        var page2 = await db.Set<Domain.Lab.Reports.MedicalExaminationReport>().AsNoTracking().SingleAsync();
+        Assert.Equal(saved.Id, report.Id);
+        Assert.Equal(report.Id, page2.LabReportId);
+        Assert.Equal("clear", page2.ChestXrayRemarks);
+        Assert.Equal("DR. MALONZO", page2.PhysicianName);
+    }
+
+    [Fact]
+    public async Task Page_2_of_a_result_saved_before_the_merge_is_added_when_it_is_saved_again()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+        var saved = (await service.SaveAsync(Input())).Value;
+        db.Set<Domain.Lab.Reports.MedicalExaminationReport>().RemoveRange(db.Set<Domain.Lab.Reports.MedicalExaminationReport>());
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var before = (await CreateService(db).GetAsync(saved.Id)).Value;
+        Assert.Equal(new MedicalExaminationData(), before.Page2);
+
+        var again = await CreateService(db).SaveAsync(new AnnualPhysicalExamInput(saved.Id, Header(), FullData(), FullPage2() with { Assessment = "later" }, before.RowVersion));
+
+        Assert.True(again.IsSuccess, again.IsFailure ? again.Error.Message : null);
+        Assert.Equal("later", (await db.Set<Domain.Lab.Reports.MedicalExaminationReport>().AsNoTracking().SingleAsync()).Assessment);
+    }
+
+    [Fact]
+    public async Task Page_2s_own_contact_number_and_civil_status_are_hidden_and_left_alone()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+        var saved = (await service.SaveAsync(Input())).Value;
+        var hidden = await db.Set<Domain.Lab.Reports.MedicalExaminationReport>().SingleAsync();
+        hidden.ContactNo = "OLD 1";
+        hidden.CivilStatus = "Widowed";
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var reopened = (await CreateService(db).GetAsync(saved.Id)).Value;
+        await CreateService(db).SaveAsync(new AnnualPhysicalExamInput(saved.Id, Header(), FullData(), FullPage2(), reopened.RowVersion));
+
+        var page2 = await db.Set<Domain.Lab.Reports.MedicalExaminationReport>().AsNoTracking().SingleAsync();
+        Assert.Equal("OLD 1", page2.ContactNo);
+        Assert.Equal("Widowed", page2.CivilStatus);
+    }
+
+    [Fact]
+    public async Task A_page_2_mark_other_than_N_or_F_an_unknown_classification_and_long_texts_are_refused()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+
+        var badMark = await service.SaveAsync(Input(page2: FullPage2() with { CBC = new("X", null) }));
+        var badClass = await service.SaveAsync(Input(page2: FullPage2() with { Classification = "E" }));
+        var tooLong = await service.SaveAsync(Input(page2: FullPage2() with { Assessment = new string('x', 501) }));
+
+        Assert.True(badMark.IsFailure);
+        Assert.Contains("Classification", badClass.Error.Message, StringComparison.Ordinal);
+        Assert.Contains("Assessment", tooLong.Error.Message, StringComparison.Ordinal);
+        Assert.Empty(await db.LabReports.ToListAsync());
+    }
+
+    [Fact]
+    public async Task The_printout_is_the_first_page_followed_by_page_2()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var service = CreateService(db);
+        var saved = (await service.SaveAsync(Input() with { Header = Header() with { Remarks = "www" } })).Value;
+
+        var printable = (await service.GetPrintableAsync(saved.Id)).Value;
+
+        Assert.Equal(ReportLayout.AnnualPhysicalExam, printable.Layout);
+        Assert.Equal("NURSE A", printable.Fields!["VitalSignsBy"]);
+        var page2 = Assert.IsType<PrintableReport>(printable.NextPage);
+        Assert.Null(page2.NextPage);
+        Assert.Equal(ReportLayout.MedicalExamination, page2.Layout);
+        Assert.Equal("Medical Examination Report", page2.Title);
+        Assert.Equal("Emma Millstein", page2.Fields!["Name"]);
+        Assert.Equal("0438945984", page2.Fields["ContactNo"]); // the first page's
+        Assert.Equal("Single", page2.Fields["CivilStatus"]);
+        Assert.Equal("N", page2.Fields["ChestXray"]);
+        Assert.Equal("Fit", page2.Fields["Classification"]);
+        Assert.Equal("DR. FIORA", page2.Fields["AssessmentDoneBy"]);
+        Assert.Equal("DR. MALONZO", page2.Fields["PhysicianName"]);
+        Assert.Equal("W2234O4504", page2.Fields["PhysicianLicense"]);
+        Assert.Equal("qqq", page2.ResultTexts.Single(t => t.Label == "Medical/Surgical History").Text);
+        Assert.Equal("www", page2.ResultTexts.Single(t => t.Label == "Remarks").Text);
     }
 }

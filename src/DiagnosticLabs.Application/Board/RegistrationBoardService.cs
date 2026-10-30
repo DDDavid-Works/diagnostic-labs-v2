@@ -68,7 +68,6 @@ public static class LabResultModules
         [ModuleIds.ClinicalChemistry1] = LabReportType.ClinicalChemistry1,
         [ModuleIds.ClinicalChemistry2] = LabReportType.ClinicalChemistry2,
         [ModuleIds.AnnualPhysicalExam] = LabReportType.AnnualPhysicalExam,
-        [ModuleIds.AnnualPhysicalExamPage2] = LabReportType.MedicalExamination,
         [ModuleIds.PhysicalExamination] = LabReportType.PhysicalExamination,
         [ModuleIds.ClinicalMicroscopy] = LabReportType.ClinicalMicroscopy,
         [ModuleIds.MedicalExamReport] = LabReportType.MedicalExamReport,

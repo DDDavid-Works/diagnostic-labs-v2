@@ -180,9 +180,32 @@ public class MedicalExamReportServiceTests
         var service = CreateService(db);
         var saved = (await service.SaveAsync(Input())).Value;
 
-        Assert.Equal("Medical Examination Report.NotFound", (await service.GetPrintableAsync(999)).Error.Code);
+        Assert.Equal("Physical Examination (Walk-In).NotFound", (await service.GetPrintableAsync(999)).Error.Code);
 
         _env.Session.SignIn(new AuthenticatedUser(7, "viewer", "Viewer", false, false, [new ModulePermission(ModuleIds.MedicalExamReport, false, false, false, false)]));
         Assert.Equal("Auth.Forbidden", (await service.GetPrintableAsync(saved.Id)).Error.Code);
+    }
+
+    [Fact]
+    public async Task The_app_calls_it_Physical_Examination_Walk_In_while_the_printout_keeps_its_title()
+    {
+        await using var db = _env.CreateDb();
+        SignInAsAdmin();
+        var registration = new Domain.Registrations.PatientRegistration
+        {
+            RegistrationCode = "R-1",
+            Patient = new Domain.Patients.Patient { PatientCode = "P-1", PatientName = "Rosa Dimaano" },
+            InputDate = DateTime.UtcNow,
+        };
+        db.PatientRegistrations.Add(registration);
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+        var input = Input() with { Header = Header() with { RegistrationId = registration.Id } };
+
+        var saved = (await service.SaveAsync(input)).Value;
+        var second = await service.SaveAsync(input);
+
+        Assert.Equal("This registration already has a Physical Examination (Walk-In) result. Save another one anyway?", second.Error.Message);
+        Assert.Equal("Medical Examination Report", (await service.GetPrintableAsync(saved.Id)).Value.Title);
     }
 }

@@ -66,6 +66,39 @@ public sealed class PhysicalExamRow(string name, string label)
     public ExclusiveOption Findings => State["F"];
 }
 
+/// <summary>One line of the laboratory/X-ray table of Page 2: normal or with findings (two tick boxes of which one can be ticked) and a note.</summary>
+public sealed partial class FindingRow(string name, string label, string normalCaption, string findingsCaption) : ObservableObject
+{
+    public string Name { get; } = name;
+
+    public string Label { get; } = label;
+
+    public string NormalCaption { get; } = normalCaption;
+
+    public string FindingsCaption { get; } = findingsCaption;
+
+    public ExclusiveGroup State { get; } = new("N", "F");
+
+    public ExclusiveOption Normal => State["N"];
+
+    public ExclusiveOption Findings => State["F"];
+
+    [ObservableProperty]
+    private string? _remarks;
+
+    public FindingEntry ToEntry() => new(State.Value, Remarks);
+
+    public void Show(FindingEntry entry)
+    {
+        State.Value = entry.Result;
+        Remarks = entry.Remarks;
+    }
+}
+
+/// <summary>
+/// The Annual Physical Exam in two tabs, as it prints on two pages: the first page, and Page 2 (the Medical Examination Report: the laboratory
+/// and X-ray results, the classification, the history, the assessment, the Remarks and who did and signed it). One result, one Defaults.
+/// </summary>
 public partial class AnnualPhysicalExamViewModel(
     IServiceRunner runner,
     IDialogService dialogs,
@@ -234,6 +267,46 @@ public partial class AnnualPhysicalExamViewModel(
 
     public TemplateOptions FindingsTemplates { get; } = new();
 
+    // ===== Page 2 =====
+
+    // ----- laboratory / X-ray results -----
+    public IReadOnlyList<FindingRow> Rows { get; } =
+    [
+        new("ChestXray", "Chest X-Ray", "Normal", "With Findings"),
+        new("CBC", "CBC", "Normal", "With Findings"),
+        new("Urinalysis", "Urinalysis", "Normal", "With Findings"),
+        new("Fecalysis", "Fecalysis", "Normal", "With Findings"),
+        new("HBsAg", "HBsAg", "Non-Reactive", "Reactive"),
+        new("DrugTest2Panel", "Drug Test: METH/THC (2 Panel)", "Negative", "Positive"),
+        new("DrugTest4Panel", "Drug Test: COC/PCP (4 Panel) OPI, AMP", "Negative", "Positive"),
+    ];
+
+    // ----- classification (the values the old app saved) -----
+    public ExclusiveGroup Classification { get; } = new(AnnualPhysicalExamService.Classifications);
+
+    // ----- history and assessment (the Remarks box is the shared one) -----
+    [ObservableProperty]
+    private string? _medicalSurgicalHistory;
+
+    [ObservableProperty]
+    private string? _assessment;
+
+    public TemplateOptions HistoryTemplates { get; } = new();
+
+    public TemplateOptions AssessmentTemplates { get; } = new();
+
+    // ----- who did the assessment and the physician (Page 2's own signatories) -----
+    // They only hold the values: the names are picked from the shared Medical Technologist / Pathologist lists (with their licence numbers).
+    public ChoiceField AssessmentDoneBy { get; } = new("AssessmentDoneBy", "Assessment Done By", EntryFields.MerAssessmentDoneBy);
+
+    public ChoiceField PhysicianName { get; } = new("PhysicianName", "Physician Name", EntryFields.MerPhysicianName);
+
+    public ChoiceField PhysicianLicense { get; } = new("PhysicianLicense", "Physician License", EntryFields.MerPhysicianLicense);
+
+    private bool _showingSaved;
+    private bool _wired;
+
+    private FindingRow Row(string name) => Rows.First(r => r.Name == name);
 
     protected override IEnumerable<ChoiceField> ChoiceFields =>
     [
@@ -241,11 +314,23 @@ public partial class AnnualPhysicalExamViewModel(
         Infectious, Neurological, Surgical, VitalSignsBy, HeightWeightBy,
     ];
 
-    // The remarks box is not on this form; the findings take its place.
-    protected override EntryField RemarksField => EntryFields.ApeFindings;
+    // The Remarks box is on Page 2.
+    protected override EntryField RemarksField => EntryFields.MerRemarks;
 
     protected override async Task OnInitializeAsync()
     {
+        if (!_wired)
+        {
+            _wired = true;
+
+            // Picking a physician fills in the licence number from the Pathologist list (a saved form keeps the one it was saved with).
+            PhysicianName.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ChoiceField.Value) && !_showingSaved)
+                    PhysicianLicense.Value = PathologistLicenseOf(PhysicianName.Value);
+            };
+        }
+
         await base.OnInitializeAsync();
         await LoadTextTemplatesAsync();
     }
@@ -264,6 +349,8 @@ public partial class AnnualPhysicalExamViewModel(
         await LoadAsync(ReviewOfSystemsTemplates, EntryFields.ApeReviewOfSystems, text => ReviewOfSystems = text);
         await LoadAsync(BmiCategoryTemplates, EntryFields.ApeBmiCategory, text => BmiCategory = text);
         await LoadAsync(FindingsTemplates, EntryFields.ApeFindings, text => Findings = text);
+        await LoadAsync(HistoryTemplates, EntryFields.MerMedicalSurgicalHistory, text => MedicalSurgicalHistory = text);
+        await LoadAsync(AssessmentTemplates, EntryFields.MerAssessment, text => Assessment = text);
     }
 
     private async Task LoadAsync(TemplateOptions options, EntryField field, Action<string> apply)
@@ -340,7 +427,24 @@ public partial class AnnualPhysicalExamViewModel(
             HeightWeightBy = HeightWeightBy.Value,
         };
 
-        return new AnnualPhysicalExamInput(Id, BuildHeader(), data, RowVersion);
+        var page2 = new MedicalExaminationData
+        {
+            ChestXray = Row("ChestXray").ToEntry(),
+            CBC = Row("CBC").ToEntry(),
+            Urinalysis = Row("Urinalysis").ToEntry(),
+            Fecalysis = Row("Fecalysis").ToEntry(),
+            HBsAg = Row("HBsAg").ToEntry(),
+            DrugTest2Panel = Row("DrugTest2Panel").ToEntry(),
+            DrugTest4Panel = Row("DrugTest4Panel").ToEntry(),
+            Classification = Classification.Value,
+            MedicalSurgicalHistory = MedicalSurgicalHistory,
+            Assessment = Assessment,
+            AssessmentDoneBy = AssessmentDoneBy.Value,
+            PhysicianName = PhysicianName.Value,
+            PhysicianLicense = PhysicianLicense.Value,
+        };
+
+        return new AnnualPhysicalExamInput(Id, BuildHeader(), data, page2, RowVersion);
     }
 
     private static bool? YesNo(string? answer) => answer switch { "Yes" => true, "No" => false, _ => null };
@@ -414,6 +518,30 @@ public partial class AnnualPhysicalExamViewModel(
         Findings = data.Findings;
         VitalSignsBy.Value = data.VitalSignsBy;
         HeightWeightBy.Value = data.HeightWeightBy;
+
+        var page2 = d.Page2;
+        Row("ChestXray").Show(page2.ChestXray);
+        Row("CBC").Show(page2.CBC);
+        Row("Urinalysis").Show(page2.Urinalysis);
+        Row("Fecalysis").Show(page2.Fecalysis);
+        Row("HBsAg").Show(page2.HBsAg);
+        Row("DrugTest2Panel").Show(page2.DrugTest2Panel);
+        Row("DrugTest4Panel").Show(page2.DrugTest4Panel);
+        Classification.Value = page2.Classification;
+        MedicalSurgicalHistory = page2.MedicalSurgicalHistory;
+        Assessment = page2.Assessment;
+        AssessmentDoneBy.Value = page2.AssessmentDoneBy;
+        _showingSaved = true;
+        try
+        {
+            PhysicianName.Value = page2.PhysicianName;
+            PhysicianLicense.Value = page2.PhysicianLicense;
+        }
+        finally
+        {
+            _showingSaved = false;
+        }
+
         RowVersion = d.RowVersion;
     }
 
@@ -463,9 +591,20 @@ public partial class AnnualPhysicalExamViewModel(
             row.State.Value = null;
 
         Findings = null;
+
+        foreach (var row in Rows)
+            row.Show(new FindingEntry(null, null));
+
+        Classification.Value = null;
+        MedicalSurgicalHistory = null;
+        Assessment = null;
+        AssessmentDoneBy.Value = null;
+        PhysicianName.Value = null;
+        PhysicianLicense.Value = null;
     }
 
-    // What a new form starts with: the usual wording of the long texts and the physical examination marks (everything else is per person).
+    // What a new form starts with, on both tabs: the usual wording of the long texts, the physical examination and laboratory marks, the
+    // classification and Page 2's signatories (everything else is per person). The Page 2 names are the ones Page 2 used on its own.
     protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
     [
         new("OthersPast", () => OthersPast, v => OthersPast = v),
@@ -475,6 +614,14 @@ public partial class AnnualPhysicalExamViewModel(
         new("BMICategory", () => BmiCategory, v => BmiCategory = v),
         new("Findings", () => Findings, v => Findings = v),
         .. Exam.Select(r => new DefaultField("Exam." + r.Name, () => r.State.Value, v => r.State.Value = v)),
+        new("MedicalSurgicalHistory", () => MedicalSurgicalHistory, v => MedicalSurgicalHistory = v),
+        new("Assessment", () => Assessment, v => Assessment = v),
+        new("Classification", () => Classification.Value, v => Classification.Value = v),
+        new("AssessmentDoneBy", () => AssessmentDoneBy.Value, v => AssessmentDoneBy.Value = v),
+        new("PhysicianName", () => PhysicianName.Value, v => PhysicianName.Value = v),
+        new("PhysicianLicense", () => PhysicianLicense.Value, v => PhysicianLicense.Value = v),
+        .. Rows.Select(r => new DefaultField("State." + r.Name, () => r.State.Value, v => r.State.Value = v)),
+        .. Rows.Select(r => new DefaultField("Note." + r.Name, () => r.Remarks, v => r.Remarks = v)),
     ];
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
@@ -497,4 +644,10 @@ public partial class AnnualPhysicalExamViewModel(
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
     private Task EditFindingsTemplatesAsync() => EditMultiLineAsync(EntryFields.ApeFindings);
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditHistoryTemplatesAsync() => EditMultiLineAsync(EntryFields.MerMedicalSurgicalHistory);
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditAssessmentTemplatesAsync() => EditMultiLineAsync(EntryFields.MerAssessment);
 }

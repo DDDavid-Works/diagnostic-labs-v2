@@ -29,8 +29,9 @@ Add-Type -AssemblyName System.Data
 $defaultsModules = 7, 11, 29, 30
 # Modules from this id up are the forms a lab made in the Custom Lab Form screen (ModuleIds.FirstCustomForm): they belong to that lab and are never part of the starting data.
 $firstCustomForm = 1000
-# Menu entries kept inactive (the unbuilt "Medical Examination" screens); their services are inactive too.
-$inactiveModules = 14, 15
+# Menu entries kept inactive (the unbuilt "Medical Examination" screens, and Annual Physical Exam Page 2, now a tab of the Annual Physical Exam);
+# their services are inactive too (Page 2 has none any more: the MergeAnnualPhysicalExamPage2 migration deleted it).
+$inactiveModules = 14, 15, 17
 
 $conn = New-Object System.Data.SqlClient.SqlConnection "Server=$Server;Database=$Database;Integrated Security=True;TrustServerCertificate=True;ApplicationIntent=ReadOnly"
 $conn.Open()

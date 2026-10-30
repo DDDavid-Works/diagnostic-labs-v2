@@ -84,6 +84,9 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
     protected abstract ReportLayout Layout { get; }
 
+    /// <summary>What the form is called in the "already has a … result" question (the printed title unless the screen is named otherwise).</summary>
+    protected virtual string ResultName => Title;
+
     protected abstract IReadOnlyList<PrintLine> ResultLines(TDetail detail);
 
     protected abstract IReadOnlyList<PrintText> ResultTexts(TDetail detail);
@@ -111,6 +114,9 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
     /// <summary>Every value by name, for page designs (like the annual physical exam) that place each one at its own spot.</summary>
     protected virtual IReadOnlyDictionary<string, string?> PrintFields(LabReport report, TDetail detail) => new Dictionary<string, string?>();
+
+    /// <summary>A second page with a design of its own, printed right after the first (none unless a form says otherwise).</summary>
+    protected virtual PrintableReport? NextPage(LabReport report, TDetail detail, ReportLetterhead letterhead, IReadOnlyList<PrintLine> patient) => null;
 
     protected override DbSet<LabReport> Set => Db.LabReports;
 
@@ -235,7 +241,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
             && CurrentUser.Can(_module, ModuleAction.Create)
             && await Db.LabReports.AnyAsync(r => r.PatientRegistrationId == registrationId && r.ReportType == reportType, cancellationToken))
         {
-            return Result<TDetails>.Failure(new Error(DuplicateCode, $"This registration already has a {Title} result. Save another one anyway?"));
+            return Result<TDetails>.Failure(new Error(DuplicateCode, $"This registration already has a {ResultName} result. Save another one anyway?"));
         }
 
         return await base.SaveAsync(input, cancellationToken);
@@ -320,6 +326,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
             texts,
             Signatories(report, detail),
             FooterText,
-            PrintFields(report, detail)));
+            PrintFields(report, detail),
+            NextPage: NextPage(report, detail, letterhead, patient)));
     }
 }

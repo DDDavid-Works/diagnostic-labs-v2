@@ -1,7 +1,9 @@
+using System.Runtime.CompilerServices;
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Domain.Lab;
 using DiagnosticLabs.Domain.Lab.Reports;
+using Microsoft.EntityFrameworkCore;
 
 namespace DiagnosticLabs.Application.LabResults;
 
@@ -140,13 +142,21 @@ public sealed record AnnualPhysicalExamData
     public string? HeightWeightBy { get; init; }
 }
 
-public sealed record AnnualPhysicalExamDetails(long Id, LabResultHeader Header, AnnualPhysicalExamData Data, byte[]? Photo, byte[] RowVersion) : IHasId;
+/// <summary>A saved Annual Physical Exam: the first page (<paramref name="Data"/>) and Page 2 (<paramref name="Page2"/>) of one result.</summary>
+public sealed record AnnualPhysicalExamDetails(
+    long Id, LabResultHeader Header, AnnualPhysicalExamData Data, MedicalExaminationData Page2, byte[]? Photo, byte[] RowVersion) : IHasId;
 
-public sealed record AnnualPhysicalExamInput(long Id, LabResultHeader Header, AnnualPhysicalExamData Data, byte[]? RowVersion) : ICrudInput;
+public sealed record AnnualPhysicalExamInput(
+    long Id, LabResultHeader Header, AnnualPhysicalExamData Data, MedicalExaminationData Page2, byte[]? RowVersion) : ICrudInput;
 
 public interface IAnnualPhysicalExamService
     : ICrudService<LabResultListItem, AnnualPhysicalExamDetails, AnnualPhysicalExamInput>, ILabResultPrinting;
 
+/// <summary>
+/// The Annual Physical Exam with its Page 2 (the Medical Examination Report), one result printed on two pages. The first page is saved in
+/// <c>AnnualPhysicalExamReports</c>, Page 2 in <c>MedicalExaminationReports</c>, both under the same <see cref="LabReport"/>; Page 2 has
+/// its own signatories (assessment done by, the physician) and prints the result's Remarks.
+/// </summary>
 public sealed class AnnualPhysicalExamService(IAppDbContext db, ICurrentUser currentUser, IClock clock)
     : LabResultService<AnnualPhysicalExamInput, AnnualPhysicalExamDetails, AnnualPhysicalExamReport>(
         db, currentUser, clock, ModuleIds.AnnualPhysicalExam, "Annual Physical Exam", LabReportType.AnnualPhysicalExam),
@@ -156,18 +166,56 @@ public sealed class AnnualPhysicalExamService(IAppDbContext db, ICurrentUser cur
     public static readonly string[] LmpTypes = ["Regular", "Irregular"];
     public static readonly string[] VisualAcuities = ["Normal", "EOR", "Corrected"];
 
+    /// <summary>The classifications of Page 2.</summary>
+    public static readonly string[] Classifications = ["Fit", "Fit2", "Acceptable", "Unfit", "Pending"];
+
+    private readonly ConditionalWeakTable<LabReport, MedicalExaminationReport> _page2 = [];
+
     protected override string Title => "Annual Physical Exam";
 
     protected override ReportLayout Layout => ReportLayout.AnnualPhysicalExam;
 
     protected override LabResultHeader HeaderOf(AnnualPhysicalExamInput input) => input.Header;
 
+    // ---------------------------------------------------------------- Page 2 (its own detail row of the same result)
+
+    protected override async Task PrepareAsync(LabReport entity, CancellationToken cancellationToken)
+    {
+        await base.PrepareAsync(entity, cancellationToken);
+        if (entity.Id == 0 || _page2.TryGetValue(entity, out _))
+            return;
+
+        var page2 = await Db.Set<MedicalExaminationReport>().FirstOrDefaultAsync(d => d.LabReportId == entity.Id, cancellationToken);
+        if (page2 is not null)
+            _page2.Add(entity, page2);
+    }
+
+    protected override void Apply(LabReport report, AnnualPhysicalExamInput input)
+    {
+        base.Apply(report, input);
+
+        // A new result, or one saved before the pages were merged, gets its Page 2 row now.
+        if (!_page2.TryGetValue(report, out var page2))
+        {
+            page2 = new MedicalExaminationReport { LabReport = report };
+            Db.Set<MedicalExaminationReport>().Add(page2);
+            _page2.Add(report, page2);
+        }
+
+        AnnualPhysicalExamPage2.Apply(page2, input.Page2);
+    }
+
+    private MedicalExaminationReport Page2Of(LabReport report) => _page2.TryGetValue(report, out var page2) ? page2 : new MedicalExaminationReport();
+
+    protected override PrintableReport? NextPage(LabReport report, AnnualPhysicalExamReport detail, ReportLetterhead letterhead, IReadOnlyList<PrintLine> patient) =>
+        AnnualPhysicalExamPage2.Printable(report, detail, Page2Of(report), letterhead, patient);
+
     // ---------------------------------------------------------------- validation
 
     protected override IEnumerable<string> ValidateDetail(AnnualPhysicalExamInput input)
     {
         var d = input.Data;
-        var errors = new List<string>();
+        var errors = new List<string>(AnnualPhysicalExamPage2.Validate(input.Page2));
 
         void Text(string label, string? value, int max) => Max(errors, value, max, label);
 
@@ -376,6 +424,7 @@ public sealed class AnnualPhysicalExamService(IAppDbContext db, ICurrentUser cur
             VitalSignsBy = string.IsNullOrEmpty(e.VitalSignsBy) ? null : e.VitalSignsBy,
             HeightWeightBy = string.IsNullOrEmpty(e.HeightWeightBy) ? null : e.HeightWeightBy,
         },
+        AnnualPhysicalExamPage2.DataOf(Page2Of(report)),
         report.Photo?.Content,
         report.RowVersion);
 

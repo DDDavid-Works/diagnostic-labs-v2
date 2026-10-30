@@ -477,17 +477,17 @@ Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."RBCReferen
 Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CrystalsReference"'', N''hpf'') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CrystalsReference"'') IS NULL;'
 Emit 'UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, ''$."CastsReference"'', N''lpf'') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, ''$."CastsReference"'') IS NULL;'
 Emit ''
-Emit '-- Medical Examination Report (a form added after the legacy app): its module record and billable service'
+Emit '-- Physical Examination (Walk-In), the Medical Examination Report (a form added after the legacy app): its module record and billable service'
 Emit 'IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 33)'
 Emit 'BEGIN'
-Emit '    DECLARE @serviceIdMer bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N''Medical Examination Report'' ORDER BY Id);'
+Emit '    DECLARE @serviceIdMer bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName IN (N''Physical Examination (Walk-In)'', N''Medical Examination Report'') ORDER BY Id);'
 Emit '    IF @serviceIdMer IS NULL'
 Emit '    BEGIN'
-Emit '        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N''Medical Examination Report'', N''Medical Examination Report'', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);'
+Emit '        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N''Physical Examination (Walk-In)'', N''Physical Examination (Walk-In)'', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);'
 Emit '        SET @serviceIdMer = SCOPE_IDENTITY();'
 Emit '    END'
 Emit '    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)'
-Emit '    SELECT 33, ModuleTypeId, N''Medical Examination Report'', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 16, 1, @serviceIdMer FROM Modules WHERE Id = 6;'
+Emit '    SELECT 33, ModuleTypeId, N''Physical Examination (Walk-In)'', HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, 16, 1, @serviceIdMer FROM Modules WHERE Id = 6;'
 Emit 'END'
 Emit 'IF EXISTS (SELECT 1 FROM Modules WHERE Id = 33) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 33)'
 Emit '    INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (33, N''{}'', 1, SYSUTCDATETIME(), SYSUTCDATETIME());'
@@ -508,6 +508,16 @@ Emit 'UPDATE UserPermissions SET AllowCreate = 1, AllowDelete = 1 WHERE ModuleId
 Emit ''
 Emit '-- Medical Examination (14) and Medical Examination Page 2 (15) are hidden from the menu until the client says what they are'
 Emit 'UPDATE [Modules] SET [IsActive] = 0 WHERE [Id] IN (14, 15);'
+Emit ''
+
+# Annual Physical Exam Page 2 is the second tab of the Annual Physical Exam: the MergeAnnualPhysicalExamPage2 migration's SQL, read from the migration
+# itself so there is one copy (it ran on the empty database, so it runs again here on the imported rows).
+$mergeMigration = Get-ChildItem (Join-Path $root 'src\DiagnosticLabs.Infrastructure\Persistence\Migrations') -Filter '*_MergeAnnualPhysicalExamPage2.cs' |
+    Where-Object { $_.Name -notlike '*.Designer.cs' } | Select-Object -First 1
+$mergeMatch = [regex]::Match((Get-Content $mergeMigration.FullName -Raw), '(?s)MergeSql = """\r?\n(.*?)\r?\n\s*""";')
+if (-not $mergeMatch.Success) { throw 'MergeSql not found in the MergeAnnualPhysicalExamPage2 migration.' }
+Emit '-- Annual Physical Exam Page 2 (17) is the second tab of the Annual Physical Exam (16): the MergeAnnualPhysicalExamPage2 migration, on the imported rows'
+foreach ($line in ($mergeMatch.Groups[1].Value -split '\r?\n')) { Emit ($line -replace '^ {12}', '') }
 Emit ''
 Emit '-- Administrators get full access to every module, including those the legacy build did not have'
 Emit 'INSERT INTO UserPermissions (UserId, ModuleId, AllowCreate, AllowEdit, AllowDelete, AllowPrint, CreatedAtUtc, UpdatedAtUtc)'
@@ -561,6 +571,7 @@ foreach ($lab in $labs) {
 }
 [void]$v.AppendLine("SELECT Item, LegacyValue, NewValue, CASE WHEN LegacyValue = NewValue THEN 'ok' ELSE 'DIFFERENT' END AS Status FROM #r ORDER BY Item;")
 [void]$v.AppendLine("-- Expected difference: Companies is equal (the WALK-IN row is kept); any DIFFERENT lab row count means rows were skipped (see the migration summary).")
+[void]$v.AppendLine("-- Services, PackageServices and ServiceItemQuantities may differ: the Annual Physical Exam Page 2 service is deleted (it is part of the Annual Physical Exam now).")
 [IO.File]::WriteAllText((Join-Path $root 'db\verify-migration.sql'), $v.ToString(), (New-Object Text.UTF8Encoding($true)))
 
 "Wrote db\migrate-from-legacy.sql ($($sql.Length) chars) and db\verify-migration.sql"

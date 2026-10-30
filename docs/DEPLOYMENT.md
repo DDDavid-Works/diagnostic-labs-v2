@@ -244,7 +244,7 @@ Do it before any station is used, once. In an elevated PowerShell on the server,
    ```
    then `sqlcmd -S .\SQLEXPRESS -d DiagnosticLabsV2 -E -C -I -b -i run-migrate.sql`. It ends with "Migration committed" after a list of skipped rows (should be empty).
 6. **Verify.** `sqlcmd -S .\SQLEXPRESS -d DiagnosticLabsV2 -E -C -I -b -i db\verify-migration.sql -v Legacy=DiagnosticLabsDB_Client`: everything `ok` except the expected differences above. Take a backup of the migrated V2.
-7. **Sign in** with the legacy administrator account (legacy passwords keep working and are re-hashed at first sign-in; the seed's temporary Admin no longer exists). Set the prices of Physical Examination, Clinical Microscopy and Medical Examination Report (new services, price 0), grant the new screens to the users who need them, and check Home, a package, a company and a printout.
+7. **Sign in** with the legacy administrator account (legacy passwords keep working and are re-hashed at first sign-in; the seed's temporary Admin no longer exists). Set the prices of Physical Examination, Clinical Microscopy and Physical Examination (Walk-In) (new services, price 0), grant the new screens to the users who need them, and check Home, a package, a company and a printout.
 8. **Then release the app** (`Update-Server.ps1`, see below) and bring the stations on.
 
 Going back is safe at any point before step 8: drop V2 and repeat from step 4. The legacy database and the `_Client` copy are never changed by the migration.
@@ -282,6 +282,48 @@ Rules that keep this safe:
 - Make migrations additive (new columns and tables, renames done in two releases) wherever possible, so the previous program can still run if you must go back.
 - Batch fixes into a few releases a week, not one per fix; note what changed for the lab.
 - Not tested on the real server yet: the backup step inside `Update-Server.ps1` and the `-RestoreDatabase` path. The rest (checks, schema.sql on an empty database, share swap, version order, rollback refusals, app-only rollback) ran against a scratch database and folder.
+
+## Next server update (after 1.0.2): notes
+
+Pending for the next release (1.0.3 or later). Two migrations change the client's live data, so read this before running `Update-Server.ps1`.
+
+**What changes for the lab**
+
+1. **Annual Physical Exam Page 2 is part of the Annual Physical Exam** (migration `MergeAnnualPhysicalExamPage2`). The Annual Physical Exam screen has two tabs (Annual Physical Exam, Page 2) and one Defaults button; Print always gives both pages. "Annual Physical Exam Page 2" disappears from the menu, from Home and from the services.
+2. **Medical Examination Report is renamed "Physical Examination (Walk-In)"** in the menu, on the screen and as a service (migration `RenameMedicalExamReportToWalkIn`). The printout keeps its title, MEDICAL EXAMINATION REPORT.
+
+**What the update does to existing data** (all inside `schema.sql`, in one go)
+
+- A saved Page 2 result joins the Annual PE of the same registration (its Remarks, contact number and civil status fill in what the Annual PE does not have; the emptied Page 2 record is soft-deleted). A Page 2 with no Annual PE to join becomes an Annual PE with an empty first page.
+- The **Page 2 service is deleted.** A registration line for it becomes an Annual PE line at the same price. A registration that had **both** keeps one Annual PE line priced at the two together, so its total and amount due do not change. In a package, the Page 2 line becomes an Annual PE line, or is removed if the package already has the Annual PE (a package's price is its own, so it does not change).
+- Page 2's entry lists and saved defaults move to the Annual PE (where both had a default for the same field, the Annual PE's is kept).
+- The Walk-In service is renamed only if it is still called "Medical Examination Report" (a name the lab gave it is kept).
+
+**Before the update** (on the server, read only; save the output with the update log):
+
+```sql
+-- what the merge will touch
+SELECT COUNT(*) AS Page2Results FROM LabReports WHERE ReportType = N'MedicalExamination' AND IsDeleted = 0;
+SELECT s.Id, s.ServiceName, s.Price FROM Services s JOIN Modules m ON m.ServiceId = s.Id WHERE m.Id IN (16, 17, 33);
+SELECT r.RegistrationCode, rs.Price, CASE WHEN EXISTS (SELECT 1 FROM PatientRegistrationServices o WHERE o.PatientRegistrationId = r.Id AND o.ServiceId = (SELECT ServiceId FROM Modules WHERE Id = 16) AND o.IsDeleted = 0) THEN 'also has APE' END AS Note
+FROM PatientRegistrationServices rs JOIN PatientRegistrations r ON r.Id = rs.PatientRegistrationId
+WHERE rs.ServiceId = (SELECT ServiceId FROM Modules WHERE Id = 17) AND rs.IsDeleted = 0;
+SELECT p.PackageName FROM PackageServices ps JOIN Packages p ON p.Id = ps.PackageId WHERE ps.ServiceId = (SELECT ServiceId FROM Modules WHERE Id = 17);
+```
+
+If the lab gave the Page 2 service a price, ask them what the Annual Physical Exam should cost now that it includes Page 2 (registrations already made keep what they were billed).
+
+**Release:** the usual steps above (`Publish-Release.ps1 -Version 1.0.N -Zip`, then `Update-Server.ps1`). `db/schema.sql`, `db/seed.sql` and `db/migrate-from-legacy.sql` are already regenerated with both migrations.
+
+**After the update**
+
+- Sign in and open Annual Physical Exam: both tabs, and Print gives two pages. Open one of the registrations listed above and check its total.
+- **Services:** set the Annual Physical Exam price if it changes (see above).
+- **Users:** anyone who had only "Annual Physical Exam Page 2" needs "Annual Physical Exam" (the old permission row stays but no longer opens anything).
+- **Defaults:** an administrator opens Annual Physical Exam → Defaults once and checks both tabs.
+- Tell the lab: Page 2 is now a tab; "Medical Examination Report" is now "Physical Examination (Walk-In)" in the menu (it sits next to "Physical Examination", the Laboratory Results sheet, so point out which is which).
+
+**Going back:** these migrations are not additive (a service is deleted and results are merged), and the 1.0.2 program refuses the newer database, so a rollback needs `Rollback-Server.ps1 -RestoreDatabase` (the pre-update backup; anything entered since is lost). Prefer a fixed release.
 
 ## Server install script
 

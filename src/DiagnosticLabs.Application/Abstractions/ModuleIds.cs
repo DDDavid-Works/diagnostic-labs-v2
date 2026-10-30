@@ -19,6 +19,7 @@ public static class ModuleIds
     public const int MedicalExamination = 14;
     public const int MedicalExaminationPage2 = 15;
     public const int AnnualPhysicalExam = 16;
+    /// <summary>No longer a screen of its own: Page 2 is the second tab of the Annual Physical Exam (the module stays, hidden, for old permissions).</summary>
     public const int AnnualPhysicalExamPage2 = 17;
     public const int Departments = 18;
     public const int Services = 19;
@@ -43,7 +44,10 @@ public static class ModuleIds
     /// <summary>The Custom Lab Form designer, where the client makes its own result forms (added after the legacy modules).</summary>
     public const int FormDesigner = 32;
 
-    /// <summary>The two-page Medical Examination Report (added after the legacy modules; not the same as Annual Physical Exam Page 2).</summary>
+    /// <summary>
+    /// Physical Examination (Walk-In): the two-page Medical Examination Report, which still prints under that title (added after the legacy modules;
+    /// not the same as Page 2 of the Annual Physical Exam, nor as Physical Examination, module 29).
+    /// </summary>
     public const int MedicalExamReport = 33;
 
     /// <summary>The Stations screen (administration): which version each PC runs and when it was last seen (added after the legacy modules).</summary>

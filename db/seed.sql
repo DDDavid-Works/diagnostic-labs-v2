@@ -55,10 +55,9 @@ INSERT INTO [Services] ([Id], [ServiceName], [ServiceDescription], [Price], [IsA
   (10, N'Medical Examination', N'Medical Examination', 0, 0),
   (11, N'Medical Examination Page 2', N'Medical Examination Page 2', 0, 0),
   (12, N'Annual Physical Exam', N'Annual Physical Exam', 0, 1),
-  (13, N'Annual Physical Exam Page 2', N'Annual Physical Exam Page 2', 0, 1),
   (14, N'Physical Examination', N'Physical Examination', 0, 1),
   (15, N'Clinical Microscopy', N'Clinical Microscopy', 0, 1),
-  (16, N'Medical Examination Report', N'Medical Examination Report', 0, 1)
+  (17, N'Physical Examination (Walk-In)', N'Physical Examination (Walk-In)', 0, 1)
 ;
 SET IDENTITY_INSERT [Services] OFF;
 
@@ -79,7 +78,7 @@ INSERT INTO [Modules] ([Id], [ModuleTypeId], [ModuleName], [HasView], [HasCreate
   (14, 3, N'Medical Examination', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 10, 0, 10),
   (15, 3, N'Medical Examination Page 2', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 11, 0, 11),
   (16, 3, N'Annual Physical Exam', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 12, 1, 12),
-  (17, 3, N'Annual Physical Exam Page 2', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 13, 1, 13),
+  (17, 3, N'Annual Physical Exam Page 2', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 13, 0, NULL),
   (18, 4, N'Departments', 1, 1, 1, 1, 1, 1, 1, 0, N'departments', 1, 1, NULL),
   (19, 4, N'Services', 1, 1, 1, 1, 1, 1, 0, 0, N'services', 2, 1, NULL),
   (20, 4, N'Packages', 1, 1, 1, 1, 1, 1, 0, 0, N'package', 4, 1, NULL),
@@ -95,7 +94,7 @@ INSERT INTO [Modules] ([Id], [ModuleTypeId], [ModuleName], [HasView], [HasCreate
   (30, 3, N'Clinical Microscopy', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 15, 1, 15),
   (31, 5, N'Batch Print', 1, 0, 0, 0, 0, 1, 0, 0, N'report', 3, 1, NULL),
   (32, 4, N'Custom Lab Form', 1, 1, 1, 0, 0, 0, 0, 0, N'services', 8, 1, NULL),
-  (33, 3, N'Medical Examination Report', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 16, 1, 16),
+  (33, 3, N'Physical Examination (Walk-In)', 1, 1, 1, 1, 1, 1, 0, 1, N'lab-result', 16, 1, 17),
   (34, 6, N'Stations', 1, 0, 0, 0, 0, 0, 0, 0, N'user', 3, 1, NULL)
 ;
 

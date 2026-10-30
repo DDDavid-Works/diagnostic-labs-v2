@@ -204,9 +204,12 @@ public interface IMedicalExamReportService
 /// </summary>
 public sealed class MedicalExamReportService(IAppDbContext db, ICurrentUser currentUser, IClock clock)
     : LabResultService<MedicalExamReportInput, MedicalExamReportDetails, MedicalExamReport>(
-        db, currentUser, clock, ModuleIds.MedicalExamReport, "Medical Examination Report", LabReportType.MedicalExamReport),
+        db, currentUser, clock, ModuleIds.MedicalExamReport, ScreenName, LabReportType.MedicalExamReport),
       IMedicalExamReportService
 {
+    /// <summary>The form's name in the app (menu, screen, service); the printout keeps its own title, "Medical Examination Report".</summary>
+    public const string ScreenName = "Physical Examination (Walk-In)";
+
     /// <summary>The role printed for the physician under the last signature.</summary>
     public const string PhysicianRole = "Physician";
 
@@ -217,6 +220,8 @@ public sealed class MedicalExamReportService(IAppDbContext db, ICurrentUser curr
     protected override string Title => "Medical Examination Report";
 
     protected override ReportLayout Layout => ReportLayout.MedicalExamReport;
+
+    protected override string ResultName => ScreenName;
 
     protected override string FooterText => string.Empty;
 

@@ -183,7 +183,7 @@ public partial class MedicalExamReportViewModel(
     IReportPreviewDialog preview,
     ILogger<MedicalExamReportViewModel> logger)
     : LabResultViewModel<IMedicalExamReportService, MedicalExamReportDetails, MedicalExamReportInput>(
-        runner, dialogs, user, entryBuilder, preview, ModuleIds.MedicalExamReport, "Medical Examination Report", logger)
+        runner, dialogs, user, entryBuilder, preview, ModuleIds.MedicalExamReport, MedicalExamReportService.ScreenName, logger)
 {
     private bool _wired;
 

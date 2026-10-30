@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -147,7 +147,7 @@ internal static partial class Program
         services.AddSingleton<IUpdateChecker, FakeUpdates>();
         foreach (var vm in new[]
                  {
-                     typeof(PatientsViewModel), typeof(RegistrationsViewModel), typeof(PaymentsViewModel), typeof(StoolFecalysisViewModel), typeof(UrinalysisViewModel), typeof(HematologyViewModel), typeof(PhysicalExaminationViewModel), typeof(ClinicalMicroscopyViewModel), typeof(MedicalExamReportViewModel), typeof(SerologyViewModel), typeof(ImmunologyViewModel), typeof(PregnancyTestViewModel), typeof(ClinicalChemistryViewModel), typeof(ClinicalChemistry1ViewModel), typeof(ClinicalChemistry2ViewModel), typeof(MedicalExaminationViewModel), typeof(HomeViewModel), typeof(AnnualPhysicalExamViewModel), typeof(CompaniesViewModel), typeof(DepartmentsViewModel), typeof(ServicesViewModel),
+                     typeof(PatientsViewModel), typeof(RegistrationsViewModel), typeof(PaymentsViewModel), typeof(StoolFecalysisViewModel), typeof(UrinalysisViewModel), typeof(HematologyViewModel), typeof(PhysicalExaminationViewModel), typeof(ClinicalMicroscopyViewModel), typeof(MedicalExamReportViewModel), typeof(SerologyViewModel), typeof(ImmunologyViewModel), typeof(PregnancyTestViewModel), typeof(ClinicalChemistryViewModel), typeof(ClinicalChemistry1ViewModel), typeof(ClinicalChemistry2ViewModel), typeof(HomeViewModel), typeof(AnnualPhysicalExamViewModel), typeof(CompaniesViewModel), typeof(DepartmentsViewModel), typeof(ServicesViewModel),
                      typeof(PackagesViewModel), typeof(ItemsViewModel), typeof(ItemLocationsViewModel), typeof(DiscountsViewModel),
                      typeof(StationsViewModel), typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(StatementOfAccountViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(FormDesignerViewModel), typeof(LoginViewModel),
                  })
