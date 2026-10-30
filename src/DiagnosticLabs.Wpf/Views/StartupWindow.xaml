@@ -1,0 +1,13 @@
+<Window x:Class="DiagnosticLabs.Wpf.Views.StartupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Diagnostic Labs" Width="360" SizeToContent="Height"
+        WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{StaticResource WindowBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
+  <!-- Shown the moment the app starts, while it connects and checks the database in the background. -->
+  <StackPanel Margin="28,24">
+    <TextBlock Text="Diagnostic Labs" FontSize="22" FontWeight="SemiBold" />
+    <TextBlock x:Name="StatusText" Text="Starting..." Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,14" />
+    <ProgressBar IsIndeterminate="True" Height="4" Foreground="{StaticResource AccentBrush}" BorderThickness="0" />
+  </StackPanel>
+</Window>

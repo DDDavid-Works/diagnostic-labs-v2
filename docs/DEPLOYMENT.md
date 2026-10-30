@@ -292,6 +292,7 @@ Pending for the next release, **1.0.3**. Three migrations: two change the client
 1. **Annual Physical Exam Page 2 is part of the Annual Physical Exam** (migration `MergeAnnualPhysicalExamPage2`). The Annual Physical Exam screen has two tabs (Annual Physical Exam, Page 2) and one Defaults button; Print always gives both pages. "Annual Physical Exam Page 2" disappears from the menu, from Home and from the services.
 2. **Medical Examination Report is renamed "Physical Examination (Walk-In)"** in the menu, on the screen and as a service (migration `RenameMedicalExamReportToWalkIn`). The printout keeps its title, MEDICAL EXAMINATION REPORT.
 3. **Physical Examination has a text box under Rh Typing** (migration `PhysicalExaminationBloodTypingNotes`, a new column only): the blank space of the blood typing box on the sheet. No label on the screen or the paper; it has saved texts and can have a default.
+4. **A "Starting..." window shows at once** when the app opens, while it connects and checks the database (before, nothing showed for a few seconds). No database change.
 
 **What the update does to existing data** (all inside `schema.sql`, in one go)
 

@@ -23,10 +23,19 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Something on screen at once: building the host and the first database round trip take a few seconds,
+        // so both run off the UI thread while this window shows.
+        var startup = new StartupWindow();
+        startup.Show();
+
         try
         {
-            _host = BuildHost();
-            await _host.StartAsync();
+            _host = await Task.Run(async () =>
+            {
+                var host = BuildHost();
+                await host.StartAsync();
+                return host;
+            });
 
             DispatcherUnhandledException += (_, args) =>
             {
@@ -40,16 +49,19 @@ public partial class App : System.Windows.Application
                 args.Handled = true;
             };
 
-            if (!await DatabaseVersionIsCurrentAsync())
+            startup.Status = "Checking the database...";
+            if (!await DatabaseVersionIsCurrentAsync(startup))
             {
                 Shutdown(1);
                 return;
             }
 
             ShowLogin();
+            startup.Close();
         }
         catch (Exception ex)
         {
+            startup.Close();
             Log.Fatal(ex, "Application failed to start");
             MessageBox.Show($"The application could not start.\n\n{ex.Message}", "Diagnostic Labs", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
@@ -57,13 +69,18 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>Stops start-up with a plain message when the database and this program are not the same version.</summary>
-    private async Task<bool> DatabaseVersionIsCurrentAsync()
+    private async Task<bool> DatabaseVersionIsCurrentAsync(Window startup)
     {
-        await using var scope = _host!.Services.CreateAsyncScope();
-        var result = await scope.ServiceProvider.GetRequiredService<ISchemaVersionService>().CheckAsync();
+        // Off the UI thread: EF builds its model and opens the first connection synchronously before its first await.
+        var result = await Task.Run(async () =>
+        {
+            await using var scope = _host!.Services.CreateAsyncScope();
+            return await scope.ServiceProvider.GetRequiredService<ISchemaVersionService>().CheckAsync();
+        });
         if (result.IsCurrent)
             return true;
 
+        startup.Close();
         Log.Warning("Start-up stopped, database check: {Status}. {Detail}", result.Status, result.Detail);
         MessageBox.Show(result.Message, "Diagnostic Labs", MessageBoxButton.OK, MessageBoxImage.Warning);
         return false;
