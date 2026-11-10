@@ -293,6 +293,7 @@ Pending for the next release, **1.0.3**. Three migrations: two change the client
 2. **Medical Examination Report is renamed "Physical Examination (Walk-In)"** in the menu, on the screen and as a service (migration `RenameMedicalExamReportToWalkIn`). The printout keeps its title, MEDICAL EXAMINATION REPORT.
 3. **Physical Examination has a text box under Rh Typing** (migration `PhysicalExaminationBloodTypingNotes`, a new column only): the blank space of the blood typing box on the sheet. No label on the screen or the paper; it has saved texts and can have a default.
 4. **A "Starting..." window shows at once** when the app opens, while it connects and checks the database (before, nothing showed for a few seconds). No database change.
+5. **The sign-in window shows the subcompany name** (from Company Setup) under the laboratory name; nothing shows when it is empty. No database change.
 
 **What the update does to existing data** (all inside `schema.sql`, in one go)
 
