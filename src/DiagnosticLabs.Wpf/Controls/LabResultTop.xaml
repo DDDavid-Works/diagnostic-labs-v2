@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ctl="clr-namespace:DiagnosticLabs.Wpf.Controls">
-  <!-- The top of every lab result form, in the order of the paper form: the registration box and photo box, the patient block, the yellow title bar. -->
+  <!-- The top of every lab result form, in the order of the paper form: the registration box, the patient block, the yellow title bar. -->
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
   </UserControl.Resources>
@@ -21,13 +21,8 @@
     </Border>
 
     <Grid Visibility="{Binding IsNotSettingDefaults, Converter={StaticResource BoolToVis}}">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
-
       <!-- Registration (optional) -->
-      <Border Grid.Column="0" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Background="White" Padding="12,0,12,6" Margin="0,2,12,0">
+      <Border BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Background="White" Padding="12,0,12,6" Margin="0,2,0,0">
         <StackPanel>
           <DockPanel Margin="0,4,0,2">
             <TextBlock DockPanel.Dock="Right" Text="{Binding RegistrationCaption}" Foreground="{StaticResource MutedTextBrush}" Margin="12,0,0,0"
@@ -93,10 +88,7 @@
         </StackPanel>
       </Border>
 
-      <!-- Photo box (kept from the old form) -->
-      <Border Grid.Column="1" Width="68" Height="68" Margin="0,2,0,0" BorderBrush="{StaticResource PaperLineBrush}" BorderThickness="1" Background="White" VerticalAlignment="Top">
-        <Image Source="{Binding Photo}" Stretch="Uniform" />
-      </Border>
+      <!-- The old form's photo box is not shown: the client does not use it (the Photo column is kept, see docs/HIDDEN-FIELDS.md). -->
     </Grid>
 
     <!-- A thin line separates the registration box from the form -->

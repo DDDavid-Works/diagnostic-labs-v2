@@ -10,6 +10,7 @@ Do not drop one until the client has confirmed that nothing in it is needed. Add
 | `LookupValues` (module 5, field "Result") | the saved Result texts | Fecalysis | Fecalysis rework | The reusable texts of the old Result box. Still in the table, no longer offered by any screen. |
 | `ModuleDefaults` (module 5) | the saved default for "Result" | Fecalysis | Fecalysis rework | An administrator's saved default for the old Result box, if there was one. The screen ignores a saved key it does not know. |
 | `HematologyReports` | `StabNValue`, `StabResult` | Hematology | Hematology rework (`HematologyRework`) | The Stab line (normal value and result). The client's new form has no Stab line. Old results keep what they had; the new form cannot show or change it. |
+| `LabReportPhotos` | `Content`, `ContentType` (the result's photo) | Every lab result form | Photo box removed from the screens and printouts (no migration) | The photo of the old forms, shown in an empty box at the top right. No screen ever set one in the new app and the client does not use it; the table had no rows when the box was removed. Photos migrated from the legacy app stay in the table. |
 | `MedicalExaminationReports` | `ContactNo`, `CivilStatus` | Annual Physical Exam, Page 2 | Page 2 merged into the Annual PE (`MergeAnnualPhysicalExamPage2`) | Page 2's own contact number and civil status. Page 2 now shows and prints the first page's; the migration copied these into the first page where it had none. |
 
 ## Dropping a hidden field later
