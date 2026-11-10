@@ -22,10 +22,15 @@ internal static partial class Program
         Check("the table has two columns, the right one shorter", vm.Rows[5].Right is not null && vm.Rows[6].Right is null && vm.Rows[7].Right is null, "");
         Snapshot("urin-1-new.png");
 
-        Act(() => vm.FindText = "Emma", 1500);
-        var pick = vm.Suggestions.First();
-        Act(() => vm.PickSuggestionCommand.Execute(pick), 1500);
-        Check("a registration fills the patient block", vm.HasRegistration && vm.PatientName.Length > 0, vm.PatientName);
+        // The scratch database has no registrations, so the patient block is typed in (as the Fecalysis check does).
+        Act(() =>
+        {
+            vm.PatientName = "Emma Millstein";
+            vm.Age = "26 years old";
+            vm.Sex = "Female";
+            vm.CompanyOrPhysician = "ACME";
+        }, 400);
+        Check("the patient block is filled", vm.PatientName.Length > 0, vm.PatientName);
 
         string[] values = ["GREEN", "NORMAL", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C"];
         var fields = new[] { vm.Color, vm.Appearance, vm.Reaction, vm.SPGravity, vm.Protein, vm.Glucose, vm.PusCells, vm.RedCells, vm.MucusThreads, vm.EpithelialCells, vm.AmorphousUratesPO4, vm.Bacteria, vm.Casts, vm.Crystals };

@@ -33,10 +33,10 @@ internal sealed class CapturePreview : IReportPreviewDialog
         var document = ReportDocumentBuilder.Build(report);
         DiagnosticLabs.Wpf.Printing.PdfExporter.Save(document, Path.Combine(OutputFolder, $"print-{report.Layout}.pdf"));
         var page = document.Pages[0].GetPageRoot(false);
-        page.Measure(new Size(ReportDocumentBuilder.PageWidth, ReportDocumentBuilder.PageHeight));
-        page.Arrange(new Rect(0, 0, ReportDocumentBuilder.PageWidth, ReportDocumentBuilder.PageHeight));
+        page.Measure(new Size(page.Width, page.Height));
+        page.Arrange(new Rect(0, 0, page.Width, page.Height));
         page.UpdateLayout();
-        var bitmap = new RenderTargetBitmap((int)ReportDocumentBuilder.PageWidth, (int)ReportDocumentBuilder.PageHeight, 96, 96, PixelFormats.Pbgra32);
+        var bitmap = new RenderTargetBitmap((int)page.Width, (int)page.Height, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(page);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
@@ -52,10 +52,10 @@ internal sealed class CapturePreview : IReportPreviewDialog
         for (var i = 1; i < document.Pages.Count; i++)
         {
             var extra = document.Pages[i].GetPageRoot(false);
-            extra.Measure(new Size(ReportDocumentBuilder.PageWidth, ReportDocumentBuilder.PageHeight));
-            extra.Arrange(new Rect(0, 0, ReportDocumentBuilder.PageWidth, ReportDocumentBuilder.PageHeight));
+            extra.Measure(new Size(extra.Width, extra.Height));
+            extra.Arrange(new Rect(0, 0, extra.Width, extra.Height));
             extra.UpdateLayout();
-            var extraBitmap = new RenderTargetBitmap((int)ReportDocumentBuilder.PageWidth, (int)ReportDocumentBuilder.PageHeight, 96, 96, PixelFormats.Pbgra32);
+            var extraBitmap = new RenderTargetBitmap((int)extra.Width, (int)extra.Height, 96, 96, PixelFormats.Pbgra32);
             extraBitmap.Render(extra);
             var extraEncoder = new PngBitmapEncoder();
             extraEncoder.Frames.Add(BitmapFrame.Create(extraBitmap));

@@ -18,6 +18,19 @@ public static class ReportDocumentBuilder
     public const double PageWidth = 816;
     public const double PageHeight = 1056;
 
+    /// <summary>Half a Letter sheet (8.5 x 5.5 inches), the paper of the forms short enough for it.</summary>
+    public const double HalfPageHeight = 528;
+
+    /// <summary>
+    /// How low the content of a half page may reach: most printers cannot print the last quarter inch, so a page whose content goes lower
+    /// (long Remarks or findings) is printed on a whole Letter sheet instead.
+    /// </summary>
+    public const double HalfPageContentLimit = HalfPageHeight - 24;
+
+    /// <summary>True when every page of the document is half a Letter sheet, so printing should ask the printer for that paper.</summary>
+    public static bool IsHalfLetter(FixedDocument document) =>
+        document.Pages.Count > 0 && document.Pages.All(p => p.Child is { } page && page.Height == HalfPageHeight);
+
     public static FixedDocument Build(PrintableReport report) => Build([report]);
 
     /// <summary>One document with a page per report, in the order given (Batch Print).</summary>
@@ -31,7 +44,10 @@ public static class ReportDocumentBuilder
             // Most forms are one page; the Medical Examination Report and the Annual Physical Exam are two (their pages follow each other, also in Batch Print).
             foreach (var canvas in DrawPages(report))
             {
-                var page = new FixedPage { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
+                if (document.Pages.Count == 0)
+                    document.DocumentPaginator.PageSize = new Size(canvas.Width, canvas.Height);
+
+                var page = new FixedPage { Width = canvas.Width, Height = canvas.Height, Background = Brushes.White };
                 page.Children.Add(canvas);
 
                 var pageContent = new PageContent();
@@ -43,16 +59,36 @@ public static class ReportDocumentBuilder
         return document;
     }
 
-    /// <summary>The pages one report takes on paper (with the page that follows it, like Page 2 of the Annual Physical Exam).</summary>
-    public static IReadOnlyList<Canvas> DrawPages(PrintableReport report) =>
-    [
-        .. report.Layout == ReportLayout.MedicalExamReport ? MedicalExamReportLayout.Draw(report) : [DrawPage(report)],
-        .. report.NextPage is { } next ? DrawPages(next) : [],
-    ];
-
-    private static Canvas DrawPage(PrintableReport report)
+    /// <summary>
+    /// The pages one report takes on paper (with the page that follows it, like Page 2 of the Annual Physical Exam). A one-page form whose content
+    /// fits on half a Letter sheet is printed on half a sheet; a form of more than one page always takes whole sheets.
+    /// </summary>
+    public static IReadOnlyList<Canvas> DrawPages(PrintableReport report)
     {
-        var canvas = new Canvas { Width = PageWidth, Height = PageHeight, Background = Brushes.White };
+        if (report.Layout == ReportLayout.MedicalExamReport)
+            return [.. MedicalExamReportLayout.Draw(report), .. report.NextPage is { } after ? DrawPages(after) : []];
+
+        if (report.NextPage is { } next)
+            return [DrawPage(report, PageHeight), .. DrawPages(next)];
+
+        return [DrawOnePage(report)];
+    }
+
+    /// <summary>
+    /// Draws the form on half a sheet (in its half-page variant, where it has one) and keeps that when everything on it stays above
+    /// <see cref="HalfPageContentLimit"/>; otherwise draws it again on a whole sheet. So a short result goes on half a sheet and the same form
+    /// with long Remarks goes on a whole one, with nothing cut off.
+    /// </summary>
+    private static Canvas DrawOnePage(PrintableReport report)
+    {
+        var half = DrawPage(report, HalfPageHeight);
+        return ContentBottom(half) <= HalfPageContentLimit ? half : DrawPage(report, PageHeight);
+    }
+
+    private static Canvas DrawPage(PrintableReport report, double height)
+    {
+        var canvas = new Canvas { Width = PageWidth, Height = height, Background = Brushes.White };
+        var isHalf = height == HalfPageHeight;
 
         switch (report.Layout)
         {
@@ -66,7 +102,7 @@ public static class ReportDocumentBuilder
                 HematologyLayout.Draw(canvas, report);
                 break;
             case ReportLayout.TestResult:
-                TestResultLayout.Draw(canvas, report);
+                TestResultLayout.Draw(canvas, report, isHalf);
                 break;
             case ReportLayout.ClinicalChemistry:
                 ClinicalChemistryLayout.Draw(canvas, report);
@@ -97,6 +133,14 @@ public static class ReportDocumentBuilder
 
         return canvas;
     }
+
+    /// <summary>The lowest point anything on the page reaches.</summary>
+    internal static double ContentBottom(Canvas canvas) =>
+        canvas.Children.OfType<FrameworkElement>()
+            .Select(e => Canvas.GetTop(e) + (double.IsNaN(e.Height) ? e.DesiredSize.Height : e.Height))
+            .Where(y => !double.IsNaN(y))
+            .DefaultIfEmpty(0)
+            .Max();
 }
 
 /// <summary>How big a page design sets its text and how heavy its lines are (the forms were printed from different report designs).</summary>
@@ -133,12 +177,31 @@ internal static class PageDrawing
         return block;
     }
 
+    /// <summary>
+    /// How far below its top the FIRST line of <paramref name="block"/> sits. A wrapped (or multi-line) text block reports the baseline of its
+    /// last line, so placing it by that pushes the extra lines up over what is above it and its box never grows; placing it by this keeps
+    /// the first line where the form puts it and lets the rest run on downward.
+    /// </summary>
+    internal static double FirstBaseline(TextBlock block)
+    {
+        var oneLine = new TextBlock
+        {
+            Text = "Ag",
+            FontFamily = block.FontFamily,
+            FontSize = block.FontSize,
+            FontWeight = block.FontWeight,
+            FontStyle = block.FontStyle,
+        };
+        oneLine.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return oneLine.BaselineOffset;
+    }
+
     /// <summary>Places text so its first baseline sits on <paramref name="baseline"/>.</summary>
     public static TextBlock PutText(Canvas canvas, string? value, double x, double baseline, double size, bool bold, double? width = null, TextAlignment alignment = TextAlignment.Left)
     {
         var block = Text(value, size, bold, width, alignment);
         Canvas.SetLeft(block, x);
-        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        Canvas.SetTop(block, baseline - PageDrawing.FirstBaseline(block));
         canvas.Children.Add(block);
         return block;
     }
@@ -175,7 +238,10 @@ internal static class PageDrawing
     public static string Line(PrintableReport report, string label) =>
         report.PatientLines.FirstOrDefault(l => l.Label == label)?.Value ?? string.Empty;
 
-    /// <summary>The company block (logo, name, branch, address, contacts, e-mail) and the photo box, identical on every form.</summary>
+    /// <summary>
+    /// The company block (logo, name, branch, address, contacts, e-mail), identical on every form. The old forms had an empty photo box at the
+    /// top right; the client does not use it, so it is not printed.
+    /// </summary>
     public static void PutHeader(Canvas canvas, ReportLetterhead letterhead, PageStyle? style = null)
     {
         var s = style ?? PageStyle.Standard;
@@ -192,17 +258,47 @@ internal static class PageDrawing
         PutText(canvas, letterhead.Address, 150.6, 86.0, s.Body, bold: false);
         PutText(canvas, letterhead.ContactNumbers, 150.6, 103.6, s.Body, bold: false);
         PutText(canvas, letterhead.Email, 150.6, 121.2, s.Body, bold: false);
-
-        // The box at the top right is for a photo; it is printed empty, as on the old forms.
-        PutRect(canvas, 640.7, 30, 112.6, 109.7, null, Brushes.Black, s.Line);
     }
 
     /// <summary>The yellow title bar with the form's name centred in it.</summary>
-    public static void PutTitleBar(Canvas canvas, string title, PageStyle? style = null)
+    public static void PutTitleBar(Canvas canvas, string title, PageStyle? style = null, double top = 214.9, double height = 21.4)
     {
         var s = style ?? PageStyle.Standard;
-        PutRect(canvas, 50.3, 214.9, 712.4, 21.4, new SolidColorBrush(Color.FromRgb(225, 225, 0)), Brushes.Black, 1.4);
-        PutText(canvas, title, 50.3, 230.0, s.Body, bold: true, width: 712.4, alignment: TextAlignment.Center);
+        PutRect(canvas, 50.3, top, 712.4, height, new SolidColorBrush(Color.FromRgb(225, 225, 0)), Brushes.Black, 1.4);
+        PutText(canvas, title, 50.3, top + (height / 2) + 4.4, s.Body, bold: true, width: 712.4, alignment: TextAlignment.Center);
+    }
+
+    // ---- the half-page design (the Urinalysis and Fecalysis, printed on half a Letter sheet) -------------------------------------
+    // The same pieces as the full page (logo and letterhead, patient block, yellow title bar), set closer together and a little smaller.
+
+    /// <summary>Where the body of a half-page form starts, under the title bar.</summary>
+    public const double HalfTop = 190.0;
+
+    /// <summary>The company block of a half-page form (no photo box, as on the full page).</summary>
+    public static void PutHalfHeader(Canvas canvas, ReportLetterhead letterhead)
+    {
+        if (ImageLoader.FromBytes(letterhead.Logo) is { } logo)
+        {
+            var image = new Image { Source = logo, Width = 70, Height = 76, Stretch = Stretch.Uniform };
+            Canvas.SetLeft(image, 52.7);
+            Canvas.SetTop(image, 24);
+            canvas.Children.Add(image);
+        }
+
+        // The company lines may use the whole width to the right edge of the page's boxes.
+        const double x = 132.0, width = 763.3 - 132.0, size = 12.0;
+        PutFit(canvas, letterhead.CompanyName, x, 38.0, width, 16.0, bold: true);
+        PutFit(canvas, letterhead.SubCompanyName, x, 54.0, width, size);
+        PutFit(canvas, letterhead.Address, x, 68.5, width, size);
+        PutFit(canvas, letterhead.ContactNumbers, x, 83.0, width, size);
+        PutFit(canvas, letterhead.Email, x, 97.5, width, size);
+    }
+
+    /// <summary>The patient block of a half-page form (the same three rows, 17 pixels apart), and the title bar under it.</summary>
+    public static void PutHalfPatientBlock(Canvas canvas, PrintableReport report, PatientValues values, string title)
+    {
+        PutPatientRows(canvas, report, values, PageDrawing.Body, [121.0, 138.0, 155.0], [120.7, 137.7, 154.7]);
+        PutTitleBar(canvas, title, top: 163.0, height: 20.0);
     }
 
     /// <summary>Where the values of the patient block start. The labels are the same on every form; the printed forms each start the values a few pixels apart.</summary>
@@ -216,35 +312,46 @@ internal static class PageDrawing
     {
         var v = values ?? PatientValues.Standard;
         var size = (style ?? PageStyle.Standard).Body;
-        PutLabel(canvas, "Patient Code", 52.7, 161.7, size);
-        PutText(canvas, Line(report, "Patient Code"), v.Left, 161.3, size, bold: false);
-        PutLabel(canvas, "Patient Name", 52.7, 182.3, size);
-        PutText(canvas, Line(report, "Patient Name"), v.Left, 182.0, size, bold: false);
-        PutLabel(canvas, "Company/Physician", 52.7, 204.3, size);
-        PutText(canvas, Line(report, "Company/Physician"), v.Left, 204.0, size, bold: false);
-
-        PutLabel(canvas, "Age", 453.3, 161.7, size);
-        PutText(canvas, Line(report, "Age"), v.Age, 161.3, size, bold: false);
-        PutLabel(canvas, "Sex", 629.3, 161.7, size);
-        PutText(canvas, Line(report, "Sex"), v.Sex, 161.3, size, bold: false);
-        PutLabel(canvas, "Date Requested", 453.3, 182.3, size);
-        PutText(canvas, Line(report, "Date Requested"), v.Date, 182.0, size, bold: false);
+        PutPatientRows(canvas, report, v, size, [161.7, 182.3, 204.3], [161.3, 182.0, 204.0]);
     }
 
-    /// <summary>The "computer generated" note and the two signatories, laid out below <paramref name="top"/> (the bottom of the last box).</summary>
-    public static void PutFooter(Canvas canvas, PrintableReport report, double top, PageStyle? style = null)
+    private static void PutPatientRows(Canvas canvas, PrintableReport report, PatientValues v, double size, double[] labels, double[] values)
+    {
+        // Each value stays in its column: a long one is set smaller and then cut off, so it never runs into the label beside it.
+        const double right = 763.0, gap = 6.0;
+        PutLabel(canvas, "Patient Code", 52.7, labels[0], size);
+        PutFit(canvas, Line(report, "Patient Code"), v.Left, values[0], 453.3 - gap - v.Left, size);
+        PutLabel(canvas, "Patient Name", 52.7, labels[1], size);
+        PutFit(canvas, Line(report, "Patient Name"), v.Left, values[1], 453.3 - gap - v.Left, size);
+        PutLabel(canvas, "Company/Physician", 52.7, labels[2], size);
+        PutFit(canvas, Line(report, "Company/Physician"), v.Left, values[2], right - v.Left, size);
+
+        PutLabel(canvas, "Age", 453.3, labels[0], size);
+        PutFit(canvas, Line(report, "Age"), v.Age, values[0], 629.3 - gap - v.Age, size);
+        PutLabel(canvas, "Sex", 629.3, labels[0], size);
+        PutFit(canvas, Line(report, "Sex"), v.Sex, values[0], right - v.Sex, size);
+        PutLabel(canvas, "Date Requested", 453.3, labels[1], size);
+        PutFit(canvas, Line(report, "Date Requested"), v.Date, values[1], right - v.Date, size);
+    }
+
+    /// <summary>
+    /// The "computer generated" note and the two signatories, laid out below <paramref name="top"/> (the bottom of the last box).
+    /// On a half page they sit closer under the box, with room left above the names for a signature.
+    /// </summary>
+    public static void PutFooter(Canvas canvas, PrintableReport report, double top, PageStyle? style = null, bool half = false)
     {
         var s = style ?? PageStyle.Standard;
-        var note = top + 21.0;
+        var note = top + (half ? 16.0 : 21.0);
         PutText(canvas, report.FooterNote, 50.3, note, s.Body, bold: false, width: 712.4, alignment: TextAlignment.Center);
 
+        var (name, rule, role) = half ? (30.0, 35.7, 49.0) : (27.7, 33.4, 47.9);
         double[] left = [89.0, 448.7];
         for (var i = 0; i < report.Signatories.Count && i < left.Length; i++)
         {
             const double width = 284.9;
-            PutText(canvas, report.Signatories[i].Name, left[i], note + 27.7, s.Body, bold: true, width: width, alignment: TextAlignment.Center);
-            PutRule(canvas, left[i], note + 33.4, width, s.Line);
-            PutText(canvas, report.Signatories[i].Role, left[i], note + 47.9, s.Body, bold: false, width: width, alignment: TextAlignment.Center);
+            PutText(canvas, report.Signatories[i].Name, left[i], note + name, s.Body, bold: true, width: width, alignment: TextAlignment.Center);
+            PutRule(canvas, left[i], note + rule, width, s.Line);
+            PutText(canvas, report.Signatories[i].Role, left[i], note + role, s.Body, bold: false, width: width, alignment: TextAlignment.Center);
         }
     }
 
@@ -266,97 +373,170 @@ internal static class PageDrawing
         return block;
     }
 
-    /// <summary>A value that has to stay on its line: it is set smaller (down to 9 px) until it fits, and only wraps when even that is too wide.</summary>
+    /// <summary>
+    /// A value that has to stay on its line: it is set smaller (down to 9 px) until it fits; when even that is too wide it stays one line
+    /// and what does not fit is cut off.
+    /// </summary>
     internal static void PutFit(Canvas canvas, string? text, double x, double baseline, double width, double size = Body, bool bold = false, bool center = false)
     {
         while (size > 9.0 && PageDrawing.Text(text, size, bold).DesiredSize.Width > width)
             size -= 0.5;
 
-        PutFlow(canvas, text, x, baseline, width, size, bold, center);
+        var block = PageDrawing.Text(text, size, bold, width, center ? TextAlignment.Center : TextAlignment.Left);
+        PutClipped(canvas, block, x, baseline, maxLines: 1);
+    }
+
+    /// <summary>
+    /// Text in a box of fixed size: no box grows with its text. The first line sits on <paramref name="firstBaseline"/>, the text wraps, and the lines
+    /// that would reach below <paramref name="bottom"/> (or past <paramref name="maxLines"/>) are cut off, at a whole line.
+    /// </summary>
+    internal static TextBlock PutClipped(Canvas canvas, TextBlock block, double x, double firstBaseline, double? bottom = null, int? maxLines = null)
+    {
+        var top = firstBaseline - FirstBaseline(block);
+        var lineHeight = LineHeight(block);
+        var lines = maxLines ?? int.MaxValue;
+        if (bottom is { } b)
+            lines = Math.Min(lines, Math.Max(1, (int)Math.Floor((b - top + 0.5) / lineHeight)));
+
+        if (block.DesiredSize.Height > (lines * lineHeight) + 0.5)
+        {
+            block.Height = lines * lineHeight;
+            block.ClipToBounds = true;
+            block.Measure(new Size(double.IsNaN(block.Width) ? double.PositiveInfinity : block.Width, block.Height));
+        }
+
+        Canvas.SetLeft(block, x);
+        Canvas.SetTop(block, top);
+        canvas.Children.Add(block);
+        return block;
+    }
+
+    /// <inheritdoc cref="PutClipped(Canvas, TextBlock, double, double, double?, int?)"/>
+    internal static TextBlock PutClipped(Canvas canvas, string? text, double x, double firstBaseline, double width, double bottom, double size, bool bold = false) =>
+        PutClipped(canvas, PageDrawing.Text(text, size, bold, width), x, firstBaseline, bottom);
+
+    /// <summary>The height of one line of <paramref name="block"/>'s font (the step between its wrapped lines).</summary>
+    private static double LineHeight(TextBlock block)
+    {
+        var oneLine = new TextBlock { Text = "Ag", FontFamily = block.FontFamily, FontSize = block.FontSize, FontWeight = block.FontWeight, FontStyle = block.FontStyle };
+        oneLine.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return oneLine.DesiredSize.Height;
+    }
+
+    /// <summary>How far below the last box each line of the three-signatory block sits.</summary>
+    private readonly record struct SignatoryRows(double Name, double Rule, double Role, double License, double Note, double NoteAfterLicense, double NoteStep)
+    {
+        public static readonly SignatoryRows Standard = new(48.7, 54.4, 68.9, 83.9, 91.0, 106.0, 17.0);
+
+        /// <summary>A half page: closer under the box and tighter between the lines, still with room above the names for a signature.</summary>
+        public static readonly SignatoryRows Half = new(34.0, 39.7, 53.0, 66.0, 72.0, 84.0, 14.0);
     }
 
     /// <summary>Three signatories in equal columns under <paramref name="top"/>, then the two lines of the electronic-document note under them.</summary>
-    internal static void PutThreeSignatories(Canvas canvas, PrintableReport report, double top)
+    internal static void PutThreeSignatories(Canvas canvas, PrintableReport report, double top, bool half = false)
     {
+        var rows = half ? SignatoryRows.Half : SignatoryRows.Standard;
         const double gap = 10.0;
         const double width = ((ThreeRight - ThreeLeft) - (2 * gap)) / 3;
         const double size = 11.7;
         for (var i = 0; i < report.Signatories.Count && i < 3; i++)
         {
             var x = ThreeLeft + (i * (width + gap));
-            PutFit(canvas, report.Signatories[i].Name, x, top + 48.7, width, size, bold: true, center: true);
-            PageDrawing.PutRule(canvas, x, top + 54.4, width);
-            PageDrawing.PutText(canvas, report.Signatories[i].Role.ToUpperInvariant(), x, top + 68.9, size, bold: false, width: width, alignment: TextAlignment.Center);
+            PutFit(canvas, report.Signatories[i].Name, x, top + rows.Name, width, size, bold: true, center: true);
+            PageDrawing.PutRule(canvas, x, top + rows.Rule, width);
+            PageDrawing.PutText(canvas, report.Signatories[i].Role.ToUpperInvariant(), x, top + rows.Role, size, bold: false, width: width, alignment: TextAlignment.Center);
             if (!string.IsNullOrWhiteSpace(report.Signatories[i].LicenseNo))
-                PutFit(canvas, $"LICENSE NO: {report.Signatories[i].LicenseNo}", x, top + 83.9, width, size, bold: false, center: true);
+                PutFit(canvas, $"LICENSE NO: {report.Signatories[i].LicenseNo}", x, top + rows.License, width, size, bold: false, center: true);
         }
 
         // The note moves down only when a licence line was printed under the names.
-        var y = top + (report.Signatories.Any(s => !string.IsNullOrWhiteSpace(s.LicenseNo)) ? 106.0 : 91.0);
+        var y = top + (report.Signatories.Any(s => !string.IsNullOrWhiteSpace(s.LicenseNo)) ? rows.NoteAfterLicense : rows.Note);
         foreach (var line in report.FooterNote.Split('\n'))
         {
             PageDrawing.PutText(canvas, line, 50.3, y, ThreeSize, bold: false, width: 712.4, alignment: TextAlignment.Center);
-            y += 17.0;
+            y += rows.NoteStep;
         }
+    }
+
+    /// <summary>
+    /// The Remarks label and its box under <paramref name="top"/> (the bottom of the box above), on a half page: two lines tall; longer remarks
+    /// are cut off. Returns the bottom of the box.
+    /// </summary>
+    internal static double PutHalfRemarks(Canvas canvas, PrintableReport report, double top)
+    {
+        PutLabel(canvas, "Remarks", 52.0, top + 14.0);
+        var boxTop = top + 19.0;
+        var bottom = boxTop + 36.0;
+        PutRemarksText(canvas, report, 54.7, boxTop + 4.0, bottom - 1.0, Body);
+        PageDrawing.PutRect(canvas, 51.7, boxTop, 712.0, bottom - boxTop, null, Brushes.Black, 1.4);
+        return bottom;
+    }
+
+    /// <summary>
+    /// The Remarks label and its box of the full-page forms, under <paramref name="top"/> (the bottom of the table above): the box is 42 pixels tall,
+    /// room for two lines; longer remarks are cut off. Returns the bottom of the box.
+    /// </summary>
+    internal static double PutRemarks(Canvas canvas, PrintableReport report, double top)
+    {
+        PutLabel(canvas, "Remarks", 52.0, top + 24.2);
+        var bottom = top + 71.8;
+        PutRemarksText(canvas, report, 54.7, top + 32.7, bottom - 1.0, Body);
+        PageDrawing.PutRect(canvas, 51.7, top + 29.7, 712.0, bottom - (top + 29.7), null, Brushes.Black, 1.4);
+        return bottom;
+    }
+
+    /// <summary>The Remarks text with its top at <paramref name="textTop"/>, cut off above <paramref name="bottom"/>.</summary>
+    internal static void PutRemarksText(Canvas canvas, PrintableReport report, double x, double textTop, double bottom, double size)
+    {
+        var block = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, size, bold: false, width: 700);
+        PutClipped(canvas, block, x, textTop + FirstBaseline(block), bottom);
     }
 }
 
 /// <summary>
 /// Fecalysis. The header, title bar, patient block and Remarks box are the same as on the other forms; the findings box follows the client's
 /// hand-drawn form (macroscopic findings on the left, microscopic findings on the right). Three people sign, side by side, and the note
-/// that the report is validated and electronically signed goes under them.
+/// that the report is validated and electronically signed goes under them. It is printed on half a Letter sheet, in the compact half-page design.
 /// </summary>
 internal static class StoolFecalysisLayout
 {
     private const double Left = 51.3;
     private const double Right = 763.3;
     private const double Divider = 407.3;
-    private const double Top = 246.5;
+    private const double Top = PageDrawing.HalfTop;
     private const double Size = PageDrawing.Body;
 
     public static void Draw(Canvas canvas, PrintableReport report)
     {
-        PageDrawing.PutHeader(canvas, report.Letterhead);
-        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
-        PageDrawing.PutPatientBlock(canvas, report);
+        PageDrawing.PutHalfHeader(canvas, report.Letterhead);
+        PageDrawing.PutHalfPatientBlock(canvas, report, PageDrawing.PatientValues.Standard, report.Title.ToUpperInvariant());
 
-        PageDrawing.PutText(canvas, "MACROSCOPIC FINDINGS", Left, 261.5, Size, bold: true, width: Divider - Left, alignment: TextAlignment.Center);
-        PageDrawing.PutText(canvas, "MICROSCOPIC FINDINGS", Divider, 261.5, Size, bold: true, width: Right - Divider, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "MACROSCOPIC FINDINGS", Left, Top + 14.5, Size, bold: true, width: Divider - Left, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "MICROSCOPIC FINDINGS", Divider, Top + 14.5, Size, bold: true, width: Right - Divider, alignment: TextAlignment.Center);
 
-        // Six rows, 22 px apart; the last row of each half (Others, Ova/Parasite) holds text that may run on to more lines.
-        static double Row(int i) => 290.0 + (22.0 * i);
-        var bottom = Row(5) + 12.0;
+        // Six rows, 19 px apart; the last row of each half is Others and Ova/Parasite. Every value is one line; longer text is cut off.
+        static double Row(int i) => Top + 36.0 + (19.0 * i);
+        var bottom = Row(5) + 10.0;
 
         Field(canvas, report, "Color", 56.0, 150.0, Row(0), 245);
         Field(canvas, report, "Consistency", 56.0, 150.0, Row(1), 245);
         PageDrawing.PutLabel(canvas, "Others", 56.0, Row(5));
-        var others = report.ResultTexts.FirstOrDefault(t => t.Label == "Others")?.Text;
-        bottom = Math.Max(bottom, Below(canvas, others, 110.0, Row(5), 285));
+        PageDrawing.PutClipped(canvas, report.ResultTexts.FirstOrDefault(t => t.Label == "Others")?.Text, 110.0, Row(5), 285, bottom - 2.0, Size);
 
         Field(canvas, report, "WBC", 420.0, 528.0, Row(0), 90, "/hpf");
         Field(canvas, report, "RBC", 420.0, 528.0, Row(1), 90, "/hpf");
         Field(canvas, report, "Bacteria", 420.0, 528.0, Row(2), 228);
         Field(canvas, report, "Yeast Cells", 420.0, 528.0, Row(3), 228);
         Field(canvas, report, "Fat Globules", 420.0, 528.0, Row(4), 228);
-        PageDrawing.PutLabel(canvas, "Ova/Parasite", 420.0, Row(5));
-        var ova = report.ResultLines.FirstOrDefault(l => l.Label == "Ova/Parasite")?.Value;
-        bottom = Math.Max(bottom, Below(canvas, ova, 528.0, Row(5), 228));
+        Field(canvas, report, "Ova/Parasite", 420.0, 528.0, Row(5), 228);
 
         PageDrawing.PutRect(canvas, Left, Top, Right - Left, bottom - Top, null, Brushes.Black, 1.33);
-        PageDrawing.PutRule(canvas, Left, 268.5, Right - Left);
+        PageDrawing.PutRule(canvas, Left, Top + 20.0, Right - Left);
         PageDrawing.PutVerticalRule(canvas, Divider, Top, bottom - Top);
 
-        // Remarks, as on the other forms: a box under the findings that grows with its text.
-        PageDrawing.PutLabel(canvas, "Remarks", 52.0, bottom + 24.2);
-        var remarks = report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text;
-        var remarksText = PageDrawing.Text(remarks, Size, bold: false, width: 700);
-        Canvas.SetLeft(remarksText, 54.7);
-        Canvas.SetTop(remarksText, bottom + 32.7);
-        canvas.Children.Add(remarksText);
-        var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
-        PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
-
-        PageDrawing.PutThreeSignatories(canvas, report, remarksBottom);
+        // Remarks, as on the other forms: a box of fixed size under the findings.
+        var remarksBottom = PageDrawing.PutHalfRemarks(canvas, report, bottom);
+        PageDrawing.PutThreeSignatories(canvas, report, remarksBottom, half: true);
     }
 
     /// <summary>A label, its value on the same line and an optional unit printed after the value ("WBC: 2-4 /hpf").</summary>
@@ -368,87 +548,61 @@ internal static class StoolFecalysisLayout
         if (unit is not null)
             PageDrawing.PutText(canvas, unit, valueX + width + 8.0, baseline, Size, bold: false);
     }
-
-    /// <summary>Text that starts on <paramref name="baseline"/> and may run on below it; returns the page y a box around it must reach.</summary>
-    private static double Below(Canvas canvas, string? text, double x, double baseline, double width)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return 0;
-
-        var block = PageDrawing.PutFlow(canvas, text, x, baseline, width, Size);
-        return Canvas.GetTop(block) + block.DesiredSize.Height + 8.0;
-    }
 }
 
 /// <summary>
 /// Urinalysis. The header, patient block, title bar and footer are the same as on every form; the body is a table of eight rows in
-/// two columns (the right column has six), then an "Others" box and the Remarks box. Positions are measured from the client's printed form.
+/// two columns (the right column has six), then an "Others" row and the Remarks box. It is printed on half a Letter sheet, in the compact
+/// half-page design: the columns of the client's printed form, with evenly spaced rows.
 /// </summary>
 internal static class UrinalysisLayout
 {
     private const double Left = 51.3;
     private const double Right = 763.3;
-    private const double Top = 246.5;
+    private const double Top = PageDrawing.HalfTop;
+    private const double RowHeight = 19.0;
 
     private static readonly string[] LeftLabels = ["Color", "Appearance", "Reaction (PH)", "SP. Gravity", "Protein", "Glucose", "Pus Cells", "Red Cells"];
     private static readonly string[] RightLabels = ["Mucus Threads", "Epithelial Cells", "Amorphous Urates / PO4", "Bacteria", "Casts", "Crystals"];
-
-    // The rows of the printed form are not evenly spaced, so each rule and baseline is placed as measured.
-    private static readonly double[] Rules = [264.9, 286.0, 306.0, 326.0, 345.0, 364.7, 383.3, 403.3];
-    private static readonly double[] LabelBaselines = [260.3, 281.0, 301.7, 321.0, 341.0, 360.3, 379.7, 399.0];
-    private static readonly double[] LeftValueBaselines = [260.6, 280.5, 301.2, 320.5, 340.5, 359.8, 379.2, 398.5];
-    private static readonly double[] RightValueBaselines = [260.0, 280.6, 301.3, 320.6, 340.6, 360.0];
-    private const double TableBottom = 404.0;
+    private const double TableBottom = Top + (8 * RowHeight);
 
     private static readonly PageDrawing.PatientValues PatientValues = new(188.7, 516.7, 694.0, 564.7);
 
     public static void Draw(Canvas canvas, PrintableReport report)
     {
-        PageDrawing.PutHeader(canvas, report.Letterhead);
-        PageDrawing.PutTitleBar(canvas, report.Title.ToUpperInvariant());
-        PageDrawing.PutPatientBlock(canvas, report, PatientValues);
+        PageDrawing.PutHalfHeader(canvas, report.Letterhead);
+        PageDrawing.PutHalfPatientBlock(canvas, report, PatientValues, report.Title.ToUpperInvariant());
 
         string? ValueOf(string label) => report.ResultLines.FirstOrDefault(l => l.Label == label)?.Value;
 
         for (var row = 0; row < LeftLabels.Length; row++)
         {
-            PageDrawing.PutLabel(canvas, LeftLabels[row], 54.7, LabelBaselines[row]);
-            PageDrawing.PutText(canvas, ValueOf(LeftLabels[row]), 220.0, LeftValueBaselines[row], PageDrawing.Body, bold: false, width: 185);
+            var baseline = Top + (row * RowHeight) + 14.0;
+            PageDrawing.PutLabel(canvas, LeftLabels[row], 54.7, baseline);
+            PageDrawing.PutFit(canvas, ValueOf(LeftLabels[row]), 220.0, baseline, 185);
 
             if (row < RightLabels.Length)
             {
-                PageDrawing.PutLabel(canvas, RightLabels[row], 412.0, LabelBaselines[row]);
-                PageDrawing.PutText(canvas, ValueOf(RightLabels[row]), 603.3, RightValueBaselines[row], PageDrawing.Body, bold: false, width: 158);
+                PageDrawing.PutLabel(canvas, RightLabels[row], 412.0, baseline);
+                PageDrawing.PutFit(canvas, ValueOf(RightLabels[row]), 603.3, baseline, 158);
             }
         }
 
-        // "Others": the label and its text share the first line, as on the old form; a long text grows the box.
-        PageDrawing.PutLabel(canvas, "Others", 54.7, 419.3);
-        var others = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Others")?.Text, PageDrawing.Body, bold: false, width: 578);
-        var othersTop = 419.0 - others.BaselineOffset;
-        Canvas.SetLeft(others, 183.0);
-        Canvas.SetTop(others, othersTop);
-        canvas.Children.Add(others);
-        var othersBottom = Math.Max(452.3, othersTop + others.DesiredSize.Height + 6);
+        // "Others": the label and its text share one line, as on the old form; longer text is cut off.
+        var othersBaseline = TableBottom + 15.0;
+        var othersBottom = TableBottom + 22.0;
+        PageDrawing.PutLabel(canvas, "Others", 54.7, othersBaseline);
+        PageDrawing.PutClipped(canvas, report.ResultTexts.FirstOrDefault(t => t.Label == "Others")?.Text, 183.0, othersBaseline, 578, othersBottom - 2.0, PageDrawing.Body);
 
         PageDrawing.PutRect(canvas, Left, Top, Right - Left, othersBottom - Top, null, Brushes.Black, 1.33);
-        foreach (var y in Rules)
-            PageDrawing.PutRule(canvas, 51.7, y, 711.0);
+        for (var row = 1; row <= LeftLabels.Length; row++)
+            PageDrawing.PutRule(canvas, 51.7, Top + (row * RowHeight), 711.0);
 
         foreach (var x in new[] { 214.5, 407.0, 598.5 })
             PageDrawing.PutVerticalRule(canvas, x, Top, TableBottom - Top);
 
-        // Remarks
-        PageDrawing.PutLabel(canvas, "Remarks", 52.0, othersBottom + 15.4);
-        var remarksTop = othersBottom + 20.9;
-        var remarks = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, PageDrawing.Body, bold: false, width: 700);
-        Canvas.SetLeft(remarks, 54.5);
-        Canvas.SetTop(remarks, remarksTop + 4.1);
-        canvas.Children.Add(remarks);
-        var remarksBottom = Math.Max(remarksTop + 42.1, remarksTop + 4.1 + remarks.DesiredSize.Height + 6);
-        PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, 1.33);
-
-        PageDrawing.PutFooter(canvas, report, remarksBottom);
+        var remarksBottom = PageDrawing.PutHalfRemarks(canvas, report, othersBottom);
+        PageDrawing.PutFooter(canvas, report, remarksBottom, half: true);
     }
 }
 /// <summary>
@@ -460,7 +614,10 @@ internal static class TestResultLayout
     private static readonly PageStyle Style = PageStyle.Fine;
     private static readonly PageDrawing.PatientValues PatientValues = new(188.7, 516.0, 692.7, 566.0);
 
-    public static void Draw(Canvas canvas, PrintableReport report)
+    /// <summary>How much shorter the empty Result box is on half a sheet.</summary>
+    private const double HalfResultSaving = 50.0;
+
+    public static void Draw(Canvas canvas, PrintableReport report, bool half)
     {
         PageDrawing.PutHeader(canvas, report.Letterhead, Style);
         PageDrawing.PutTitleBar(canvas, report.Title, Style);
@@ -473,13 +630,9 @@ internal static class TestResultLayout
         // Without a test row (the pregnancy test) the Result starts in the first row and the box is one row shorter.
         var up = testLine is null ? 19.0 : 0.0;
 
-        // The Result text grows the box when it is long, and everything below it moves down.
-        var result = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Result")?.Text, size, bold: false, width: 700);
-        var resultTop = 299.9 - up - result.BaselineOffset;
-        Canvas.SetLeft(result, 54.7);
-        Canvas.SetTop(result, resultTop);
-        canvas.Children.Add(result);
-        var boxBottom = Math.Max(371.5 - up, resultTop + result.DesiredSize.Height + 6);
+        // The Result box has a fixed size; text that does not fit is cut off. On half a sheet it is 50 pixels shorter (two lines of result).
+        var boxBottom = 371.5 - up - (half ? HalfResultSaving : 0);
+        PageDrawing.PutClipped(canvas, report.ResultTexts.FirstOrDefault(t => t.Label == "Result")?.Text, 54.7, 299.9 - up, 700, boxBottom - 2.0, size);
 
         PageDrawing.PutRect(canvas, 51.3, 246.5, 712.0, boxBottom - 246.5, null, Brushes.Black, Style.Line);
         if (testLine is not null)
@@ -493,12 +646,8 @@ internal static class TestResultLayout
         var shift = boxBottom - 371.5;
         PageDrawing.PutLabel(canvas, "Remarks", 52.0, 395.7 + shift, size);
         var remarksTop = 401.2 + shift;
-        var remarks = PageDrawing.Text(report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, size, bold: false, width: 700);
-        var remarksTextTop = remarksTop + 15.4 - remarks.BaselineOffset;
-        Canvas.SetLeft(remarks, 55.3);
-        Canvas.SetTop(remarks, remarksTextTop);
-        canvas.Children.Add(remarks);
-        var remarksBottom = Math.Max(remarksTop + 42.1, remarksTextTop + remarks.DesiredSize.Height + 6);
+        var remarksBottom = remarksTop + 42.1;
+        PageDrawing.PutClipped(canvas, report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text, 55.3, remarksTop + 15.4, 700, remarksBottom - 1.0, size);
         PageDrawing.PutRect(canvas, 51.7, remarksTop, 712.0, remarksBottom - remarksTop, null, Brushes.Black, Style.Line);
 
         PageDrawing.PutFooter(canvas, report, remarksBottom, Style);
@@ -564,15 +713,8 @@ internal static class ClinicalChemistryLayout
             }
         }
 
-        // Remarks, as on the other forms: a box under the table that grows with its text.
-        PageDrawing.PutLabel(canvas, "Remarks", 52.0, bottom + 24.2);
-        var remarks = report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text;
-        var remarksText = PageDrawing.Text(remarks, PageDrawing.Body, bold: false, width: 700);
-        Canvas.SetLeft(remarksText, 54.7);
-        Canvas.SetTop(remarksText, bottom + 32.7);
-        canvas.Children.Add(remarksText);
-        var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
-        PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
+        // Remarks, as on the other forms: a box of fixed size under the table.
+        var remarksBottom = PageDrawing.PutRemarks(canvas, report, bottom);
 
         PageDrawing.PutThreeSignatories(canvas, report, remarksBottom);
     }
@@ -643,7 +785,7 @@ internal static class ClinicalChemistry2Layout
 /// The Medical Examination Report, printed as Page 2 of the Annual Physical Exam. Like the first APE page it has a centred letterhead and its own
 /// person box, and no "computer generated" line; the laboratory/X-ray table and the classification sit side by side, then three text boxes
 /// and the physician's signature block. Every position is measured from the client's printed form (one Letter page, Crystal Reports).
-/// A long text grows its box and moves everything below it down.
+/// Every box has a fixed size: text that does not fit is cut off.
 /// </summary>
 internal static class MedicalExaminationLayout
 {
@@ -744,7 +886,7 @@ internal static class MedicalExaminationLayout
                 Text(canvas, line2, indent, baseline + 16.2, 12);
         }
 
-        // ---- the three text boxes (each grows with its text) -------------------------------------------------
+        // ---- the three text boxes (fixed size; text that does not fit is cut off) ------------------------------
         var shift = 0.0;
         shift += TextBox(canvas, "Medical/Surgical History:", report, "Medical/Surgical History", 430.2, 488.9, 39.2, shift);
         shift += TextBox(canvas, "Assessment:", report, "Assessment", 511.3, 627.3, 38.7, shift);
@@ -766,8 +908,8 @@ internal static class MedicalExaminationLayout
     private static string? Value(string name) => _v.TryGetValue(name, out var value) ? value : null;
 
     /// <summary>
-    /// One of the text boxes: the label above it and the box with its text. The box is where it is measured, moved down by what the boxes
-    /// above it have grown; it grows when its text is long. Returns by how much it grew.
+    /// One of the text boxes: the label above it and the box with its text, where it is measured; text that does not fit is cut off.
+    /// Returns by how much it grew, which is always 0 (the boxes have a fixed size).
     /// </summary>
     private static double TextBox(Canvas canvas, string label, PrintableReport report, string key, double top, double bottom, double textX, double shift)
     {
@@ -776,15 +918,10 @@ internal static class MedicalExaminationLayout
 
         var text = report.ResultTexts.FirstOrDefault(t => t.Label == key)?.Text;
         var block = Block(text, 11.9, Arial, bold: false, italic: false, width: 728);
-        var textTop = y + 16.7 - block.BaselineOffset;
-        Canvas.SetLeft(block, textX);
-        Canvas.SetTop(block, textTop);
-        canvas.Children.Add(block);
-
-        var measured = bottom + shift;
-        var end = Math.Max(measured, textTop + block.DesiredSize.Height + 8);
+        var end = bottom + shift;
+        PageDrawing.PutClipped(canvas, block, textX, y + 16.7, end - 2.0);
         Box(canvas, 33.7, y, 774.7, end);
-        return end - measured;
+        return 0;
     }
     private static TextBlock Block(string? value, double size, FontFamily family, bool bold, bool italic, double? width)
     {
@@ -812,7 +949,7 @@ internal static class MedicalExaminationLayout
 
         var block = Block(value, size, family ?? Calibri, bold: false, italic: false, width);
         Canvas.SetLeft(block, x);
-        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        Canvas.SetTop(block, baseline - PageDrawing.FirstBaseline(block));
         canvas.Children.Add(block);
     }
 
@@ -824,7 +961,7 @@ internal static class MedicalExaminationLayout
         var block = Block(value, 10.9, Calibri, bold: false, italic: false, width: width);
         block.TextAlignment = TextAlignment.Center;
         Canvas.SetLeft(block, left);
-        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        Canvas.SetTop(block, baseline - PageDrawing.FirstBaseline(block));
         canvas.Children.Add(block);
     }
 
@@ -836,7 +973,7 @@ internal static class MedicalExaminationLayout
         var block = Block(value, size, family, bold, italic: false, width: 560);
         block.TextAlignment = TextAlignment.Center;
         Canvas.SetLeft(block, Center - 280);
-        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        Canvas.SetTop(block, baseline - PageDrawing.FirstBaseline(block));
         canvas.Children.Add(block);
     }
 
@@ -926,15 +1063,8 @@ internal static class HematologyLayout
             PageDrawing.PutFit(canvas, reference, referenceX + 3.0, baseline, Right - referenceX - 6.0, Size, center: true);
         }
 
-        // Remarks, as on the other forms: a box under the table that grows with its text.
-        PageDrawing.PutLabel(canvas, "Remarks", 52.0, bottom + 24.2);
-        var remarks = report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text;
-        var remarksText = PageDrawing.Text(remarks, PageDrawing.Body, bold: false, width: 700);
-        Canvas.SetLeft(remarksText, 54.7);
-        Canvas.SetTop(remarksText, bottom + 32.7);
-        canvas.Children.Add(remarksText);
-        var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
-        PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
+        // Remarks, as on the other forms: a box of fixed size under the table.
+        var remarksBottom = PageDrawing.PutRemarks(canvas, report, bottom);
 
         PageDrawing.PutThreeSignatories(canvas, report, remarksBottom);
     }
@@ -943,7 +1073,7 @@ internal static class HematologyLayout
 /// <summary>
 /// The annual physical exam ("Medical Examination Report"). Unlike the other forms it has a centred letterhead, no photo box or title bar,
 /// and is built from boxed sections in Calibri. Every position, line and size is measured from the client's printed form (one Letter page).
-/// A long text grows its box and moves everything below it down.
+/// Every box has a fixed size: text that does not fit is cut off.
 /// </summary>
 internal static class AnnualPhysicalExamLayout
 {
@@ -993,9 +1123,9 @@ internal static class AnnualPhysicalExamLayout
         foreach (var x in new[] { 213.3, 408.0, 596.7 })
             Fill(canvas, x, 238.7, x + 1.4, 348.7);
 
-        // Others (a text that can grow the box)
+        // Others (fixed size: text that does not fit is cut off)
         Text(canvas, "OTHERS", 33.5, 363.1);
-        var others = Wrapped(canvas, Value("OthersPast"), 79.3, 362.8, 700, Size);
+        var others = Wrapped(canvas, Value("OthersPast"), 79.3, 362.8, 700, Size, 384.2 - 3);
         var s1 = Math.Max(0, others - 384.2 + 3);
         Fill(canvas, 30.2, 237.9, 31.5, 385.2 + s1);
         Fill(canvas, 781.5, 237.2, 782.9, 384.5 + s1);
@@ -1006,8 +1136,8 @@ internal static class AnnualPhysicalExamLayout
         Fill(canvas, 30.3, top2, 782.3, top2 + 1.3);
         Text(canvas, "MEDICATIONS", 33.5, 402.2 + s1);
         Text(canvas, "ALLERGIES", 411.5, 402.2 + s1);
-        var meds = Wrapped(canvas, Value("Medications"), 33.5, 418.4 + s1, 368, Size);
-        var allergies = Wrapped(canvas, Value("Allergies"), 411.5, 418.4 + s1, 366, Size);
+        var meds = Wrapped(canvas, Value("Medications"), 33.5, 418.4 + s1, 368, Size, 421.4 + s1 - 3);
+        var allergies = Wrapped(canvas, Value("Allergies"), 411.5, 418.4 + s1, 366, Size, 421.4 + s1 - 3);
         var s2 = Math.Max(0, Math.Max(meds, allergies) - (421.4 + s1) + 3);
 
         var mid = 421.4 + s1 + s2;
@@ -1015,7 +1145,7 @@ internal static class AnnualPhysicalExamLayout
         Fill(canvas, 408.0, top2 + 0.4, 409.3, mid + 0.1);
 
         Text(canvas, "REVIEW OF SYSTEMS", 33.5, 437.3 + s1 + s2);
-        var ros = Wrapped(canvas, Value("ReviewOfSystems"), 149.3, 437.0 + s1 + s2, 630, Size);
+        var ros = Wrapped(canvas, Value("ReviewOfSystems"), 149.3, 437.0 + s1 + s2, 630, Size, 461.7 + s1 + s2 - 3);
         var s3 = Math.Max(0, ros - (461.7 + s1 + s2) + 3);
 
         var bottom2 = 461.7 + s1 + s2 + s3;
@@ -1169,9 +1299,9 @@ internal static class AnnualPhysicalExamLayout
             }
         }
 
-        // ---- findings (a text that can grow the box) -------------------------------------------------------
+        // ---- findings (fixed size: text that does not fit is cut off) ---------------------------------------
         Text(canvas, "Findings:", 33.3, 801.9 + S);
-        var findings = Wrapped(canvas, Value("Findings"), 86.5, 801.6 + S, 690, Size);
+        var findings = Wrapped(canvas, Value("Findings"), 86.5, 801.6 + S, 690, Size, 827.9 + S - 6);
         var s4 = Math.Max(0, findings - (827.9 + S) + 6);
         PageDrawing.PutRect(canvas, 30.2, 787.2 + S, 752.7, 41.4 + s4, null, Brushes.Black, 1.33);
         var T = S + s4;
@@ -1269,7 +1399,7 @@ internal static class AnnualPhysicalExamLayout
     private static TextBlock Place(Canvas canvas, TextBlock block, double x, double baseline)
     {
         Canvas.SetLeft(block, x);
-        Canvas.SetTop(block, baseline - block.BaselineOffset);
+        Canvas.SetTop(block, baseline - PageDrawing.FirstBaseline(block));
         canvas.Children.Add(block);
         return block;
     }
@@ -1291,14 +1421,17 @@ internal static class AnnualPhysicalExamLayout
             Place(canvas, Block(value, size, family, bold, italic: false, width: ReportDocumentBuilder.PageWidth, alignment: TextAlignment.Center), 0, baseline);
     }
 
-    /// <summary>Wrapped text whose first line sits on <paramref name="firstBaseline"/>; returns where its last line ends.</summary>
-    private static double Wrapped(Canvas canvas, string? value, double x, double firstBaseline, double width, double size)
+    /// <summary>
+    /// Wrapped text whose first line sits on <paramref name="firstBaseline"/>, cut off at a whole line above <paramref name="bottom"/> (the boxes of the
+    /// form have a fixed size); returns where its last line ends.
+    /// </summary>
+    private static double Wrapped(Canvas canvas, string? value, double x, double firstBaseline, double width, double size, double bottom)
     {
         if (string.IsNullOrWhiteSpace(value))
             return 0;
 
-        var block = Place(canvas, Block(value, size, Calibri, bold: false, italic: false, width: width), x, firstBaseline);
-        return Canvas.GetTop(block) + block.DesiredSize.Height;
+        var block = PageDrawing.PutClipped(canvas, Block(value, size, Calibri, bold: false, italic: false, width: width), x, firstBaseline, bottom);
+        return Canvas.GetTop(block) + (double.IsNaN(block.Height) ? block.DesiredSize.Height : block.Height);
     }
 
     private static void Mark(Canvas canvas, double x, double baseline) =>
@@ -1361,10 +1494,10 @@ internal static class PhysicalExaminationLayout
         DrawUrinalysis(canvas, F, line);
         DrawFecalysis(canvas, F, line);
 
-        // Others: a box across the page; a long text grows it (nothing is placed below except the signatures)
+        // Others: a box of fixed size across the page; text that does not fit is cut off
         PageDrawing.PutRect(canvas, Left, 776.0, Right - Left, 62.0, null, Brushes.Black, line);
         PageDrawing.PutText(canvas, "OTHERS:", Left + 4.0, 791.0, Size, bold: true);
-        PageDrawing.PutFlow(canvas, F("Others"), Left + 70.0, 791.0, Right - Left - 78.0, Size);
+        PageDrawing.PutClipped(canvas, F("Others"), Left + 70.0, 791.0, Right - Left - 78.0, 776.0 + 62.0 - 3.0, Size);
 
         PutSignatories(canvas, report, line);
     }
@@ -1606,15 +1739,8 @@ internal static class ClinicalMicroscopyLayout
                 PageDrawing.PutRule(canvas, Left, y, Right - Left, line);
         }
 
-        // Remarks, as on the other forms: a box under the table that grows with its text.
-        PageDrawing.PutLabel(canvas, "Remarks", 52.0, bottom + 24.2);
-        var remarks = report.ResultTexts.FirstOrDefault(t => t.Label == "Remarks")?.Text;
-        var remarksText = PageDrawing.Text(remarks, PageDrawing.Body, bold: false, width: 700);
-        Canvas.SetLeft(remarksText, 54.7);
-        Canvas.SetTop(remarksText, bottom + 32.7);
-        canvas.Children.Add(remarksText);
-        var remarksBottom = Math.Max(bottom + 71.8, Canvas.GetTop(remarksText) + remarksText.DesiredSize.Height + 6);
-        PageDrawing.PutRect(canvas, 51.7, bottom + 29.7, 712.0, remarksBottom - (bottom + 29.7), null, Brushes.Black, 1.4);
+        // Remarks, as on the other forms: a box of fixed size under the table.
+        var remarksBottom = PageDrawing.PutRemarks(canvas, report, bottom);
 
         PageDrawing.PutThreeSignatories(canvas, report, remarksBottom);
     }

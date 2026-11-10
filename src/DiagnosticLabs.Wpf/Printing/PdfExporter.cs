@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 namespace DiagnosticLabs.Wpf.Printing;
 
 /// <summary>
-/// Saves a printed document as a PDF. Each page is drawn as a picture (200 dpi) on a Letter-sized PDF page, so the file looks exactly like the
+/// Saves a printed document as a PDF. Each page is drawn as a picture (200 dpi) on a PDF page of its own size (Letter, or half Letter), so the file looks exactly like the
 /// preview and needs no PDF library or printer driver; the text in it cannot be selected.
 /// </summary>
 public static class PdfExporter

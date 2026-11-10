@@ -8,15 +8,14 @@ namespace DiagnosticLabs.Wpf.Printing;
 
 /// <summary>
 /// The page of a form made in the Custom Lab Form designer: the usual letterhead and yellow title bar, the header grid (3 columns, 2 rows) the designer chose, the groups (Test Name,
-/// Result Value and, unless hidden, Reference/Normal Values) side by side, the text boxes and Remarks box that grow down with their text, and the signatories the
-/// design has. The spacing comes from <see cref="CustomFormPage"/>, which is also what the designer's one-page warning is worked out from: a row is one line high
-/// unless a value has to wrap, so the warning is a lower bound. <see cref="Draw"/> returns where the last line ended.
+/// Result Value and, unless hidden, Reference/Normal Values) side by side, the text boxes and Remarks box (fixed size: text that does not fit is cut off), and the signatories the
+/// design has. The spacing comes from <see cref="CustomFormPage"/>, which is also what the designer's one-page warning is worked out from: every row is one line
+/// and every box has a fixed size, so the page is exactly as long as the warning says. <see cref="Draw"/> returns where the last line ended.
 /// </summary>
 public static class CustomFormLayout
 {
     private const double Size = 12.0;
     private const double CaptionSize = 11.0;
-    private const double RowPadding = 5.0;
 
     private static readonly double[] CellLeft = [52.7, 290.2, 527.7];
     private static readonly double[] CellBaseline = [161.7, 182.3];
@@ -75,28 +74,6 @@ public static class CustomFormLayout
             ? (width * 0.46, width * 0.30, width - (width * 0.46) - (width * 0.30))
             : (width * 0.55, width - (width * 0.55), 0);
 
-    /// <summary>How tall a text is where it sits in its cell: shrunk (down to 9 px) first and wrapped only when even that is too wide, as PutFit draws it.</summary>
-    private static double TextHeight(string? text, double width, bool bold)
-    {
-        var size = Size;
-        while (size > 9.0 && PageDrawing.Text(text, size, bold).DesiredSize.Width > width)
-            size -= 0.5;
-
-        return PageDrawing.Text(text, size, bold, width).DesiredSize.Height;
-    }
-
-    /// <summary>The height of a row: one line (<see cref="CustomFormPage.RowHeight"/>), or taller when a name, result or reference value has to wrap.</summary>
-    private static double RowHeight(CustomFormPrintRow row, bool showReference, double width)
-    {
-        var (test, result, reference) = Columns(showReference, width);
-        var tallest = row.IsSection
-            ? TextHeight(row.Name, width - 8.0, bold: true)
-            : Math.Max(
-                TextHeight(row.Name, test - 12.0, bold: false),
-                Math.Max(TextHeight(row.Result, result - 6.0, bold: false), showReference ? TextHeight(row.Reference, reference - 6.0, bold: false) : 0));
-        return Math.Max(CustomFormPage.RowHeight, tallest + RowPadding);
-    }
-
     /// <summary>Draws the groups side by side from <see cref="CustomFormPage.Top"/>; returns the height of the table (0 when there is no group).</summary>
     private static double DrawGroups(Canvas canvas, IReadOnlyList<CustomFormPrintGroup> groups)
     {
@@ -107,9 +84,9 @@ public static class CustomFormLayout
         var total = CustomFormPage.Right - CustomFormPage.Left;
         var width = groups.Count >= 2 ? (total - CustomFormPage.GroupGap) / 2 : total;
 
-        // Every group is drawn as tall as the tallest one.
+        // Every group is drawn as tall as the tallest one. Every row is one line: a value too long for its cell is set smaller and then cut off.
         var fixedPart = CustomFormPage.TableHeight(groups.Count, anyTitle, 0);
-        var height = fixedPart + groups.Max(g => g.Rows.Sum(r => RowHeight(r, g.ShowReference, width)));
+        var height = fixedPart + (groups.Max(g => g.Rows.Count) * CustomFormPage.RowHeight);
 
         for (var i = 0; i < groups.Count; i++)
             DrawGroup(canvas, groups[i], CustomFormPage.Left + (i * (width + CustomFormPage.GroupGap)), width, anyTitle, groups.Count, height);
@@ -157,7 +134,7 @@ public static class CustomFormLayout
         foreach (var row in group.Rows)
         {
             var baseline = y + 14.0;
-            var rowHeight = RowHeight(row, group.ShowReference, width);
+            const double rowHeight = CustomFormPage.RowHeight;
             if (row.IsSection)
             {
                 DrawColumnLines(canvas, resultX, referenceX, group.ShowReference, runTop, y - runTop, line);
@@ -193,16 +170,13 @@ public static class CustomFormLayout
 
     // ---------------------------------------------------------------- text boxes
 
-    /// <summary>A label and a box under it that grows with its text (the same as the Remarks box of the other forms); returns the bottom of the box.</summary>
+    /// <summary>A label and a box of fixed size under it (the same as the Remarks box of the other forms); text that does not fit is cut off. Returns the bottom of the box.</summary>
     private static double DrawTextBlock(Canvas canvas, string label, string? text, double top)
     {
         PageDrawing.PutLabel(canvas, label, 52.0, top + 24.2);
+        var bottom = top + CustomFormPage.TextBlockHeight;
         var block = PageDrawing.Text(text, PageDrawing.Body, bold: false, width: 700);
-        Canvas.SetLeft(block, 54.7);
-        Canvas.SetTop(block, top + 32.7);
-        canvas.Children.Add(block);
-
-        var bottom = Math.Max(top + CustomFormPage.TextBlockHeight, Canvas.GetTop(block) + block.DesiredSize.Height + 6);
+        PageDrawing.PutClipped(canvas, block, 54.7, top + 32.7 + PageDrawing.FirstBaseline(block), bottom - 1.0);
         PageDrawing.PutRect(canvas, 51.7, top + 29.7, 712.0, bottom - (top + 29.7), null, Brushes.Black, 1.4);
         return bottom;
     }

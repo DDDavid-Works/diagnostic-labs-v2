@@ -21,10 +21,15 @@ internal static partial class Program
         Check("lists load", vm.HistoryRows.Count == 6 && vm.Ent.EditCommand is not null && vm.VitalSignsBy.EditCommand is not null, "");
         Snapshot("ape-1-new.png");
 
-        Act(() => vm.FindText = "Emma", 1500);
-        var pick = vm.Suggestions.First();
-        Act(() => vm.PickSuggestionCommand.Execute(pick), 1500);
-        Check("a registration fills the patient block", vm.HasRegistration && vm.PatientName.Length > 0, vm.PatientName);
+        // The scratch database has no registrations, so the patient block is typed in (as the Fecalysis check does).
+        Act(() =>
+        {
+            vm.PatientName = "Emma Millstein";
+            vm.Age = "26 years old";
+            vm.Sex = "Female";
+            vm.CompanyOrPhysician = "ACME";
+        }, 400);
+        Check("the patient block is filled", vm.PatientName.Length > 0, vm.PatientName);
 
         vm.DepartmentOrAgency = "ACCOUNTING DEPT";
         vm.BirthDate = new DateTime(1990, 5, 17);

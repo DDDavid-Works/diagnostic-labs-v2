@@ -1,13 +1,15 @@
+using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using DiagnosticLabs.Application.LabResults;
 using DiagnosticLabs.Wpf.Printing;
 using Microsoft.Win32;
 
 namespace DiagnosticLabs.Wpf.Services;
 
-/// <summary>Shows a report on a Letter page. The viewer has the printer picker and zoom; the button above it saves the report as a PDF.</summary>
+/// <summary>Shows a report on a Letter page (half a Letter sheet for the Urinalysis and Fecalysis). The viewer has the printer picker and zoom; the button above it saves the report as a PDF.</summary>
 public interface IReportPreviewDialog
 {
     void Show(PrintableReport report);
@@ -48,7 +50,29 @@ public sealed class ReportPreviewDialog : IReportPreviewDialog
         layout.Children.Add(viewer);
         window.Content = layout;
 
+        // A form printed on half a Letter sheet: the viewer's Print asks the printer for Statement paper (5.5 x 8.5 in) turned on its side,
+        // so the page comes out on half a sheet. The window sees the command before the viewer does.
+        if (ReportDocumentBuilder.IsHalfLetter(document))
+        {
+            var print = new CommandBinding(ApplicationCommands.Print);
+            print.PreviewExecuted += (_, e) =>
+            {
+                e.Handled = true;
+                PrintHalfLetter(document, title);
+            };
+            window.CommandBindings.Add(print);
+        }
+
         window.ShowDialog();
+    }
+
+    private static void PrintHalfLetter(FixedDocument document, string title)
+    {
+        var dialog = new PrintDialog();
+        dialog.PrintTicket.PageMediaSize = new PageMediaSize(PageMediaSizeName.NorthAmericaStatement, ReportDocumentBuilder.HalfPageHeight, ReportDocumentBuilder.PageWidth);
+        dialog.PrintTicket.PageOrientation = PageOrientation.Landscape;
+        if (dialog.ShowDialog() == true)
+            dialog.PrintDocument(document.DocumentPaginator, title);
     }
 
     private static void ExportPdf(Window owner, FixedDocument document, string name)

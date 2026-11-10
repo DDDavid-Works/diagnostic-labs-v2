@@ -25,7 +25,7 @@ public static class CustomFormPage
     /// <summary>The column captions (Test Name, Result Value, Reference/Normal Values): one line when a group has the page to itself, two when two groups share it.</summary>
     public static double CaptionHeight(int groups) => groups >= 2 ? 34.0 : 21.0;
 
-    /// <summary>From the bottom of what is above to the bottom of an empty text box or Remarks box (the label and the box); a box with text grows past it.</summary>
+    /// <summary>From the bottom of what is above to the bottom of a text box or Remarks box (the label and the box); the box has this size whatever its text.</summary>
     public const double TextBlockHeight = 71.8;
 
     public const double NoteLineHeight = 17.0;
@@ -49,7 +49,7 @@ public static class CustomFormPage
     public static double NoteOffset(int signatories, bool showLicenseNumber) =>
         signatories == 0 ? NoteOffsetWithoutSignatories : showLicenseNumber ? NoteOffsetWithLicenses : NoteOffsetWithSignatories;
 
-    /// <summary>Where the note ends when every row is one line and every text box is empty (text that wraps makes the page longer than this).</summary>
+    /// <summary>Where the note ends: every row is one line and every box has a fixed size, so this is where the printed page ends.</summary>
     public static double EstimateBottom(FormDefinition design)
     {
         var y = Top + TableHeight(design.Body);

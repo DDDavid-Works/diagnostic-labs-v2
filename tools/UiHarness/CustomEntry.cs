@@ -158,7 +158,7 @@ internal static partial class Program
         {
             var design2 = scope2.ServiceProvider.GetRequiredService<IFormDesignerService>().GetAsync(form.Id).GetAwaiter().GetResult().Value.Definition;
             var drawn = CustomFormLayout.Draw(new Canvas(), CapturePreview.Last!);
-            Check("long texts grow the page below the one-line estimate", drawn > CustomFormPage.EstimateBottom(design2) + 20, $"drawn {drawn:N1}, estimated {CustomFormPage.EstimateBottom(design2):N1}, limit {CustomFormPage.BottomLimit:N0}");
+            Check("long texts are cut off: the page still ends where the estimate says", Math.Abs(drawn - CustomFormPage.EstimateBottom(design2)) < 0.01,$"drawn {drawn:N1}, estimated {CustomFormPage.EstimateBottom(design2):N1}, limit {CustomFormPage.BottomLimit:N0}");
         }
     }
 }
