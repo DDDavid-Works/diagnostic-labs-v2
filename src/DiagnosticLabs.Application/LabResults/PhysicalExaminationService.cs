@@ -1,10 +1,13 @@
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.Entries;
+using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Domain.Lab;
 using DiagnosticLabs.Domain.Lab.Reports;
+using Microsoft.EntityFrameworkCore;
 
 namespace DiagnosticLabs.Application.LabResults;
 
@@ -62,6 +65,44 @@ public static class PhysicalExaminationFields
             .Concat(Choices.Select(c => (c.Name, c.Label, ChoiceMaxLength)))
             .Concat(Texts.Select(t => (t.Name, t.Label, TextMaxLength)));
 
+    /// <summary>
+    /// The fields of each section that charges as a service of its own (Complete Blood Count, Urinalysis, Stool/Fecalysis). A section counts as
+    /// entered when one of them has a value; the normal values and the dates do not count (the normal values come from the saved defaults).
+    /// Declared after the lists it is built from.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<FormSection, string[]> SectionFields = new Dictionary<FormSection, string[]>
+    {
+        [FormSection.Cbc] = [.. CbcTests.Select(t => t.Name + "Result")],
+        [FormSection.Urinalysis] = [.. Choices.Where(c => c.Name.StartsWith("Urine", StringComparison.Ordinal)).Select(c => c.Name), "UrineOthers"],
+        [FormSection.Fecalysis] = [.. Choices.Where(c => c.Name.StartsWith("Fecalysis", StringComparison.Ordinal)).Select(c => c.Name), "FecalysisResult"],
+    };
+
+    /// <summary>What a section is called in messages.</summary>
+    public static string SectionName(FormSection section) => section switch
+    {
+        FormSection.Cbc => "Complete Blood Count",
+        FormSection.Urinalysis => "Urinalysis",
+        _ => "Fecalysis",
+    };
+
+    /// <summary>True when a section of the given values has something entered.</summary>
+    public static bool IsFilled(FormSection section, Func<string, string?> value) =>
+        SectionFields[section].Any(n => !string.IsNullOrWhiteSpace(value(n)));
+
+    /// <summary>The same test as a query: a sheet whose section has something entered.</summary>
+    public static Expression<Func<PhysicalExaminationReport, bool>> Filled(FormSection section)
+    {
+        var e = Expression.Parameter(typeof(PhysicalExaminationReport), "e");
+        var body = SectionFields[section]
+            .Select(n => (Expression)Expression.NotEqual(Expression.Property(e, n), Expression.Constant(null, typeof(string))))
+            .Aggregate(Expression.OrElse);
+        return Expression.Lambda<Func<PhysicalExaminationReport, bool>>(body, e);
+    }
+
+    /// <summary><see cref="IsFilled"/> for a saved sheet.</summary>
+    public static bool IsFilled(FormSection section, PhysicalExaminationReport sheet) =>
+        IsFilled(section, n => (string?)typeof(PhysicalExaminationReport).GetProperty(n)!.GetValue(sheet));
+
     private static (string, string, EntryField) Choice(string name, string label, string list) =>
         (name, label, new EntryField(list, EntryKind.SingleLine, ModuleIds.PhysicalExamination));
 
@@ -105,6 +146,15 @@ public sealed class PhysicalExaminationService(IAppDbContext db, ICurrentUser cu
     protected override ReportLayout Layout => ReportLayout.PhysicalExamination;
 
     protected override LabResultHeader HeaderOf(PhysicalExaminationInput input) => input.Header;
+
+    // A section entered on this sheet now (it was empty before) whose service already has a result on its own form: ask first.
+    protected override async Task<string?> EnteredElsewhereAsync(PhysicalExaminationInput input, long registrationId, CancellationToken cancellationToken)
+    {
+        var saved = input.Id == 0 ? null : await Db.Set<PhysicalExaminationReport>().AsNoTracking().FirstOrDefaultAsync(d => d.LabReportId == input.Id, cancellationToken);
+        var newlyEntered = PhysicalExaminationFields.SectionFields.Keys
+            .Where(s => PhysicalExaminationFields.IsFilled(s, input.Data.Value) && (saved is null || !PhysicalExaminationFields.IsFilled(s, saved)));
+        return await Board.ResultFormLinks.EnteredInOwnFormAsync(Db, registrationId, newlyEntered, cancellationToken);
+    }
 
     protected override IEnumerable<string> ValidateDetail(PhysicalExaminationInput input)
     {

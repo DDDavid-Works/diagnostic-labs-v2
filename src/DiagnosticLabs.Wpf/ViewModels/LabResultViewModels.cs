@@ -268,6 +268,14 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     {
     }
 
+    /// <summary>Called when a registration fills a new result in, so a screen can adjust what the defaults put in (the sections a registration does not have).</summary>
+    protected virtual void OnRegistrationPickedForNew(ResultRegistration registration)
+    {
+    }
+
+    /// <summary>The saved default of one field of this screen (null when it has none).</summary>
+    protected string? DefaultOf(string name) => _defaults.TryGetValue(name, out var value) ? value : null;
+
     /// <summary>The list-picked fields of this screen. They load their lists, reset, take defaults and get their "Edit entries..." command from here.</summary>
     protected virtual IEnumerable<ChoiceField> ChoiceFields => [];
 
@@ -567,6 +575,8 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
                 if (!string.IsNullOrWhiteSpace(r.CompanyName))
                     CompanyOrPhysician = r.CompanyName;
                 OnPersonPicked(r.DateOfBirth, r.CivilStatus, r.ContactNumbers);
+                if (IsNew)
+                    OnRegistrationPickedForNew(r);
             }
         }
         finally

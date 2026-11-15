@@ -1,7 +1,10 @@
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
+using DiagnosticLabs.Application.LabResults;
 using DiagnosticLabs.Domain.Billing;
+using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Domain.Lab;
+using DiagnosticLabs.Domain.Lab.Reports;
 using Microsoft.EntityFrameworkCore;
 
 namespace DiagnosticLabs.Application.Board;
@@ -37,11 +40,30 @@ public sealed record BoardSearch(
 
 public sealed record BoardPayment(PaymentState State, decimal Paid, decimal Due);
 
+/// <summary>A form the user can choose to enter a service's result in (<see cref="Section"/> set for a section of the Physical Examination sheet).</summary>
+public sealed record BoardFormChoice(int ModuleId, string FormName, FormSection? Section, long? SheetId);
+
 /// <summary>
-/// One service of a registration. <see cref="ModuleId"/> is the result form that service calls for (null when it has none);
-/// <see cref="CanOpen"/> is false while that form is not built yet. <see cref="ResultCount"/> is how many results exist for it.
+/// One service of a registration. <see cref="ModuleId"/> is the result form that service's chip opens (null when it has none, or while the
+/// user must still choose among <see cref="Choices"/>); <see cref="CanOpen"/> is false while that form is not built yet. <see cref="ResultCount"/>
+/// is how many results exist for it and <see cref="LatestResultId"/> the latest. <see cref="Section"/> is set when the result goes in a section of
+/// the Physical Examination sheet, and <see cref="OpenResultId"/> is the result to open (the latest result, or the registration's sheet that does
+/// not have this section yet). <see cref="RegistrationServiceId"/> is the registration line, where a choice is kept.
 /// </summary>
-public sealed record BoardService(long ServiceId, string Name, int? ModuleId, bool CanOpen, int ResultCount, long? LatestResultId);
+public sealed record BoardService(
+    long ServiceId,
+    string Name,
+    int? ModuleId,
+    bool CanOpen,
+    int ResultCount,
+    long? LatestResultId,
+    long RegistrationServiceId = 0,
+    FormSection? Section = null,
+    long? OpenResultId = null,
+    IReadOnlyList<BoardFormChoice>? Choices = null)
+{
+    public bool NeedsChoice => Choices is { Count: > 0 };
+}
 
 public sealed record BoardItem(
     long RegistrationId,
@@ -83,6 +105,9 @@ public static class LabResultModules
 public interface IRegistrationBoardService
 {
     Task<Result<PagedResult<BoardItem>>> SearchAsync(BoardSearch search, CancellationToken cancellationToken = default);
+
+    /// <summary>Keeps where a registration line's result is entered, for a service that can go in more than one form.</summary>
+    Task<Result> ChooseFormAsync(long registrationServiceId, int moduleId, CancellationToken cancellationToken = default);
 }
 
 public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser currentUser) : IRegistrationBoardService
@@ -99,11 +124,8 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
 
         var (page, pageSize) = Paging.Normalize(search.Page, search.PageSize);
 
-        // Which services call for which result form (the old app linked a module to its service).
-        var links = await db.Modules.AsNoTracking().Where(m => m.ServiceId != null)
-            .Select(m => new { ModuleId = m.Id, ServiceId = m.ServiceId!.Value })
-            .ToListAsync(cancellationToken);
-        var moduleOfService = links.GroupBy(l => l.ServiceId).ToDictionary(g => g.Key, g => g.Min(l => l.ModuleId));
+        // Which services call for which result forms (a module linked to its service, and the sections of the Physical Examination sheet).
+        var formsOfService = await ResultFormLinks.LoadAsync(db, activeOnly: false, cancellationToken);
 
         var query = db.PatientRegistrations.AsNoTracking().Where(r => r.RegistrationCode != DefaultRegistrationCode);
 
@@ -128,18 +150,22 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
         }
         else if (search.Status == BoardStatus.ResultsPending)
         {
+            // A service is pending while none of its forms has its result (Urinalysis counts whether it went on its own form or on the sheet).
             IQueryable<long>? pending = null;
-            foreach (var (serviceId, moduleId) in moduleOfService)
+            foreach (var (serviceId, forms) in formsOfService)
             {
-                var custom = LabResultModules.IsCustomForm(moduleId);
-                if ((custom ? LabReportType.CustomForm : LabResultModules.ReportTypeOf(moduleId)) is not { } type)
+                var done = forms.Select(f => ResultFormLinks.Done(db, f)).OfType<IQueryable<long?>>().ToList();
+                if (done.Count == 0)
                     continue;
 
                 var sid = serviceId;
-                var mid = moduleId;
-                var ids = db.PatientRegistrationServices.Where(s => s.ServiceId == sid).Select(s => s.PatientRegistrationId)
-                    .Where(id => !db.LabReports.Any(l => l.PatientRegistrationId == id && l.ReportType == type
-                        && (!custom || db.CustomFormReports.Any(c => c.LabReportId == l.Id && c.CustomFormVersion.CustomForm.ModuleId == mid))));
+                var ids = db.PatientRegistrationServices.Where(s => s.ServiceId == sid).Select(s => s.PatientRegistrationId);
+                foreach (var made in done)
+                {
+                    var registrationsWithIt = made;
+                    ids = ids.Where(id => !registrationsWithIt.Contains(id));
+                }
+
                 pending = pending is null ? ids : pending.Union(ids);
             }
 
@@ -165,7 +191,7 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
                 r.DiscountTotal,
                 Paid = r.Payments.Where(p => p.Type == PaymentType.Payment).Sum(p => (decimal?)p.PaymentAmount) ?? 0m,
                 Charged = r.Payments.Any(p => p.Type == PaymentType.Charge),
-                Services = r.Services.OrderBy(s => s.Id).Select(s => new { s.ServiceId, s.Service.ServiceName }).ToList(),
+                Services = r.Services.OrderBy(s => s.Id).Select(s => new { s.Id, s.ServiceId, s.Service.ServiceName, s.ResultModuleId }).ToList(),
             })
             .ToListAsync(cancellationToken);
 
@@ -183,6 +209,15 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
             })
             .ToListAsync(cancellationToken);
 
+        // The Physical Examination sheets of these registrations, to tell which of their sections are entered.
+        var sheets = formsOfService.Values.Any(forms => forms.Any(f => f.Section is not null))
+            ? await db.Set<PhysicalExaminationReport>().AsNoTracking()
+                .Where(d => registrationIds.Contains(d.LabReport.PatientRegistrationId))
+                .Select(d => new { RegistrationId = d.LabReport.PatientRegistrationId!.Value, Sheet = d })
+                .ToListAsync(cancellationToken)
+            : [];
+        var formNames = await db.Modules.AsNoTracking().ToDictionaryAsync(m => m.Id, m => m.ModuleName, cancellationToken);
+
         var items = rows.Select(r =>
         {
             var due = Math.Max(r.AmountDue - r.DiscountTotal, 0m);
@@ -191,14 +226,56 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
                 : r.Paid > 0m ? PaymentState.Partial
                 : PaymentState.Unpaid;
 
+            var ownSheets = sheets.Where(x => x.RegistrationId == r.Id).OrderBy(x => x.Sheet.LabReportId).ToList();
+            long? sheetId = ownSheets.Count > 0 ? ownSheets[^1].Sheet.LabReportId : null;
+
+            // The results of one form for this registration, oldest first.
+            List<long> Made(ServiceForm form)
+            {
+                if (form.Section is { } section)
+                    return [.. ownSheets.Where(x => PhysicalExaminationFields.IsFilled(section, x.Sheet)).Select(x => x.Sheet.LabReportId)];
+
+                if (ResultFormLinks.TypeOf(form.ModuleId) is not { } type)
+                    return [];
+
+                var custom = LabResultModules.IsCustomForm(form.ModuleId);
+                return [.. results.Where(x => x.RegistrationId == r.Id && x.ReportType == type && (!custom || x.CustomModuleId == form.ModuleId)).OrderBy(x => x.Id).Select(x => x.Id)];
+            }
+
             var services = r.Services.Select(s =>
             {
-                int? moduleId = moduleOfService.TryGetValue(s.ServiceId, out var m) ? m : null;
-                var type = moduleId is { } id ? (LabResultModules.IsCustomForm(id) ? LabReportType.CustomForm : LabResultModules.ReportTypeOf(id)) : null;
-                var made = type is null
-                    ? []
-                    : results.Where(x => x.RegistrationId == r.Id && x.ReportType == type && (!LabResultModules.IsCustomForm(moduleId!.Value) || x.CustomModuleId == moduleId)).OrderBy(x => x.Id).ToList();
-                return new BoardService(s.ServiceId, s.ServiceName, moduleId, type is not null, made.Count, made.Count > 0 ? made[^1].Id : null);
+                var forms = formsOfService.TryGetValue(s.ServiceId, out var f) ? f : [];
+                if (forms.Count == 0)
+                    return new BoardService(s.ServiceId, s.ServiceName, null, false, 0, null, s.Id);
+
+                var made = forms.Select(form => (Form: form, Ids: Made(form))).ToList();
+
+                // Made somewhere: the chip opens the latest result, wherever it was entered.
+                var withResult = made.Where(m => m.Ids.Count > 0).OrderBy(m => m.Ids[^1]).ToList();
+                if (withResult.Count > 0)
+                {
+                    var (form, ids) = withResult[^1];
+                    return new BoardService(s.ServiceId, s.ServiceName, form.ModuleId, true, ids.Count, ids[^1], s.Id, form.Section, ids[^1]);
+                }
+
+                // Not made yet: the only form, or the one chosen for this registration; otherwise the user chooses.
+                var chosen = forms.Count == 1 ? forms[0] : forms.FirstOrDefault(x => x.ModuleId == s.ResultModuleId);
+                if (chosen is not null)
+                {
+                    var built = chosen.Section is not null || ResultFormLinks.TypeOf(chosen.ModuleId) is not null;
+                    return new BoardService(s.ServiceId, s.ServiceName, chosen.ModuleId, built, 0, null, s.Id, chosen.Section, chosen.Section is null ? null : sheetId);
+                }
+
+                IReadOnlyList<BoardFormChoice> choices =
+                [
+                    .. forms.Where(x => x.Section is not null || ResultFormLinks.TypeOf(x.ModuleId) is not null)
+                        .Select(x => new BoardFormChoice(
+                            x.ModuleId,
+                            x.Section is null ? formNames.GetValueOrDefault(x.ModuleId, s.ServiceName) : formNames.GetValueOrDefault(x.ModuleId, "Physical Examination") + " sheet",
+                            x.Section,
+                            x.Section is null ? null : sheetId)),
+                ];
+                return new BoardService(s.ServiceId, s.ServiceName, null, choices.Count > 0, 0, null, s.Id, Choices: choices);
             }).ToList();
 
             return new BoardItem(
@@ -207,5 +284,23 @@ public sealed class RegistrationBoardService(IAppDbContext db, ICurrentUser curr
         }).ToList();
 
         return Result<PagedResult<BoardItem>>.Success(new PagedResult<BoardItem>(items, total, page, pageSize));
+    }
+
+    public async Task<Result> ChooseFormAsync(long registrationServiceId, int moduleId, CancellationToken cancellationToken = default)
+    {
+        if (!currentUser.Can(moduleId, ModuleAction.Create))
+            return Result.Failure(Errors.Forbidden);
+
+        var line = await db.PatientRegistrationServices.FirstOrDefaultAsync(s => s.Id == registrationServiceId, cancellationToken);
+        if (line is null)
+            return Result.Failure(Errors.NotFound("Registration service"));
+
+        var forms = await ResultFormLinks.LoadAsync(db, activeOnly: false, cancellationToken);
+        if (!forms.TryGetValue(line.ServiceId, out var list) || list.All(f => f.ModuleId != moduleId))
+            return Result.Failure(Errors.Invalid(["That form is not one this service's result can be entered in."]));
+
+        line.ResultModuleId = moduleId;
+        await db.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 }

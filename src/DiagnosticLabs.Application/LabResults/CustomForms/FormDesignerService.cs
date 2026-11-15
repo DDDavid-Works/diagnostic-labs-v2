@@ -89,7 +89,9 @@ public sealed class FormDesignerService(IAppDbContext db, ICurrentUser currentUs
             ? await db.CustomForms.Where(f => f.Id == id).Select(f => f.Module.ServiceId).FirstOrDefaultAsync(cancellationToken)
             : null;
 
-        var taken = db.Modules.Where(m => m.ServiceId != null).Select(m => m.ServiceId!.Value);
+        // A service already has a form when a module points at it or a section of the Physical Examination sheet takes it (Complete Blood Count).
+        var taken = db.Modules.Where(m => m.ServiceId != null).Select(m => m.ServiceId!.Value)
+            .Concat(db.ServiceFormSections.Select(s => s.ServiceId));
         IReadOnlyList<ServiceChoice> choices =
         [
             .. (await db.Services.AsNoTracking()
@@ -215,8 +217,9 @@ public sealed class FormDesignerService(IAppDbContext db, ICurrentUser currentUs
         return Result<FormDetails>.Success(await ToDetailsAsync(form, cancellationToken));
     }
 
-    private Task<bool> ServiceIsTakenAsync(long serviceId, int? ownModuleId, CancellationToken cancellationToken) =>
-        db.Modules.AnyAsync(m => m.ServiceId == serviceId && m.Id != ownModuleId, cancellationToken);
+    private async Task<bool> ServiceIsTakenAsync(long serviceId, int? ownModuleId, CancellationToken cancellationToken) =>
+        await db.Modules.AnyAsync(m => m.ServiceId == serviceId && m.Id != ownModuleId, cancellationToken)
+        || await db.ServiceFormSections.AnyAsync(s => s.ServiceId == serviceId && s.ModuleId != ownModuleId, cancellationToken);
 
     /// <summary>A new form is a module of its own (so it gets a menu entry and permissions), copied from a built-in result module.</summary>
     private async Task<Result<CustomForm>> CreateAsync(string name, long serviceId, CancellationToken cancellationToken)

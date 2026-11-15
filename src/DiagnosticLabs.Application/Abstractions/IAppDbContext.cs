@@ -45,6 +45,8 @@ public interface IAppDbContext
 
     DbSet<PackageService> PackageServices { get; }
 
+    DbSet<ServiceFormSection> ServiceFormSections { get; }
+
     DbSet<Discount> Discounts { get; }
 
     DbSet<DiscountDetail> DiscountDetails { get; }

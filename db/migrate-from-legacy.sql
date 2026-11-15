@@ -1140,6 +1140,24 @@ BEGIN
         DELETE FROM Services WHERE Id = @page2Service;
 END;
 
+-- Complete Blood Count is entered in the CBC section of the Physical Examination sheet; Urinalysis and Stool/Fecalysis can be entered there too;
+-- the sheet's own service is switched off (the ServiceFormSections migration, on the imported rows)
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 29)
+BEGIN
+    DECLARE @cbcService bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Complete Blood Count' ORDER BY Id);
+    IF @cbcService IS NULL
+    BEGIN
+        INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Complete Blood Count', N'Complete Blood Count', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+        SET @cbcService = SCOPE_IDENTITY();
+    END;
+    DECLARE @urineService bigint = (SELECT ServiceId FROM Modules WHERE Id = 6);
+    DECLARE @stoolService bigint = (SELECT ServiceId FROM Modules WHERE Id = 5);
+    INSERT INTO ServiceFormSections (ServiceId, ModuleId, Section)
+    SELECT x.ServiceId, 29, x.Section FROM (VALUES (@cbcService, N'Cbc'), (@urineService, N'Urinalysis'), (@stoolService, N'Fecalysis')) x(ServiceId, Section)
+    WHERE x.ServiceId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ServiceFormSections s WHERE s.ServiceId = x.ServiceId AND s.ModuleId = 29);
+    UPDATE Services SET IsActive = 0, UpdatedAtUtc = SYSUTCDATETIME() WHERE Id = (SELECT ServiceId FROM Modules WHERE Id = 29);
+END;
+
 -- Administrators get full access to every module, including those the legacy build did not have
 INSERT INTO UserPermissions (UserId, ModuleId, AllowCreate, AllowEdit, AllowDelete, AllowPrint, CreatedAtUtc, UpdatedAtUtc)
 SELECT u.Id, m.Id, 1, 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME() FROM Users u CROSS JOIN Modules m

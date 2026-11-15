@@ -3208,3 +3208,78 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115025018_ServiceFormSections'
+)
+BEGIN
+    ALTER TABLE [PatientRegistrationServices] ADD [ResultModuleId] int NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115025018_ServiceFormSections'
+)
+BEGIN
+    CREATE TABLE [ServiceFormSections] (
+        [Id] int NOT NULL IDENTITY,
+        [ServiceId] bigint NOT NULL,
+        [ModuleId] int NOT NULL,
+        [Section] nvarchar(30) NOT NULL,
+        CONSTRAINT [PK_ServiceFormSections] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_ServiceFormSections_Modules_ModuleId] FOREIGN KEY ([ModuleId]) REFERENCES [Modules] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_ServiceFormSections_Services_ServiceId] FOREIGN KEY ([ServiceId]) REFERENCES [Services] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115025018_ServiceFormSections'
+)
+BEGIN
+    CREATE INDEX [IX_ServiceFormSections_ModuleId] ON [ServiceFormSections] ([ModuleId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115025018_ServiceFormSections'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_ServiceFormSections_ServiceId_ModuleId] ON [ServiceFormSections] ([ServiceId], [ModuleId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115025018_ServiceFormSections'
+)
+BEGIN
+    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 29)
+    BEGIN
+        DECLARE @cbcService bigint = (SELECT TOP 1 Id FROM Services WHERE ServiceName = N'Complete Blood Count' ORDER BY Id);
+        IF @cbcService IS NULL
+        BEGIN
+            INSERT INTO Services (ServiceName, ServiceDescription, Price, CreatedAtUtc, UpdatedAtUtc, IsActive) VALUES (N'Complete Blood Count', N'Complete Blood Count', 0, SYSUTCDATETIME(), SYSUTCDATETIME(), 1);
+            SET @cbcService = SCOPE_IDENTITY();
+        END;
+        DECLARE @urineService bigint = (SELECT ServiceId FROM Modules WHERE Id = 6);
+        DECLARE @stoolService bigint = (SELECT ServiceId FROM Modules WHERE Id = 5);
+        INSERT INTO ServiceFormSections (ServiceId, ModuleId, Section)
+        SELECT x.ServiceId, 29, x.Section FROM (VALUES (@cbcService, N'Cbc'), (@urineService, N'Urinalysis'), (@stoolService, N'Fecalysis')) x(ServiceId, Section)
+        WHERE x.ServiceId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ServiceFormSections s WHERE s.ServiceId = x.ServiceId AND s.ModuleId = 29);
+        UPDATE Services SET IsActive = 0, UpdatedAtUtc = SYSUTCDATETIME() WHERE Id = (SELECT ServiceId FROM Modules WHERE Id = 29);
+    END;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115025018_ServiceFormSections'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261115025018_ServiceFormSections', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

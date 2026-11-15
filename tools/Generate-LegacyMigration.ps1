@@ -519,6 +519,17 @@ if (-not $mergeMatch.Success) { throw 'MergeSql not found in the MergeAnnualPhys
 Emit '-- Annual Physical Exam Page 2 (17) is the second tab of the Annual Physical Exam (16): the MergeAnnualPhysicalExamPage2 migration, on the imported rows'
 foreach ($line in ($mergeMatch.Groups[1].Value -split '\r?\n')) { Emit ($line -replace '^ {12}', '') }
 Emit ''
+
+# Complete Blood Count, Urinalysis and Stool/Fecalysis as sections of the Physical Examination sheet: the ServiceFormSections migration's SQL, read
+# from the migration itself (it ran on the empty database and found no services, so it runs again here on the imported rows).
+$sectionsMigration = Get-ChildItem (Join-Path $root 'src\DiagnosticLabs.Infrastructure\Persistence\Migrations') -Filter '*_ServiceFormSections.cs' |
+    Where-Object { $_.Name -notlike '*.Designer.cs' } | Select-Object -First 1
+$sectionsMatch = [regex]::Match((Get-Content $sectionsMigration.FullName -Raw), '(?s)SectionsSql = """\r?\n(.*?)\r?\n\s*""";')
+if (-not $sectionsMatch.Success) { throw 'SectionsSql not found in the ServiceFormSections migration.' }
+Emit '-- Complete Blood Count is entered in the CBC section of the Physical Examination sheet; Urinalysis and Stool/Fecalysis can be entered there too;'
+Emit '-- the sheet''s own service is switched off (the ServiceFormSections migration, on the imported rows)'
+foreach ($line in ($sectionsMatch.Groups[1].Value -split '\r?\n')) { Emit ($line -replace '^ {12}', '') }
+Emit ''
 Emit '-- Administrators get full access to every module, including those the legacy build did not have'
 Emit 'INSERT INTO UserPermissions (UserId, ModuleId, AllowCreate, AllowEdit, AllowDelete, AllowPrint, CreatedAtUtc, UpdatedAtUtc)'
 Emit 'SELECT u.Id, m.Id, 1, 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME() FROM Users u CROSS JOIN Modules m'

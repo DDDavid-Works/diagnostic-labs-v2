@@ -5,13 +5,17 @@ using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Board;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.Lookups;
+using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Wpf.Services;
 using Microsoft.Extensions.Logging;
 
 namespace DiagnosticLabs.Wpf.ViewModels;
 
-/// <summary>One result form of a registration on the home screen: whether its result has been made, and a click that opens it.</summary>
-public sealed class HomeChip(BoardService service, long registrationId, bool canUse)
+/// <summary>
+/// One result form of a registration on the home screen: whether its result has been made, and a click that opens it. A service whose result
+/// can go in more than one form (Urinalysis on its own form or on the Physical Examination sheet) asks which, the first time.
+/// </summary>
+public sealed class HomeChip(BoardService service, long registrationId, bool canUse, IReadOnlyList<BoardFormChoice> choices)
 {
     public string Name { get; } = service.Name;
 
@@ -23,17 +27,31 @@ public sealed class HomeChip(BoardService service, long registrationId, bool can
 
     public long RegistrationId { get; } = registrationId;
 
+    public long RegistrationServiceId { get; } = service.RegistrationServiceId;
+
     public long? LatestResultId { get; } = service.LatestResultId;
+
+    /// <summary>The result the chip opens: the latest result, or the registration's sheet when this section is not on it yet (null: a new result).</summary>
+    public long? OpenResultId { get; } = service.OpenResultId ?? service.LatestResultId;
+
+    /// <summary>Set when the result goes in a section of the Physical Examination sheet.</summary>
+    public FormSection? Section { get; } = service.Section;
+
+    /// <summary>The forms this user can choose from (empty when there is no choice to make).</summary>
+    public IReadOnlyList<BoardFormChoice> Choices { get; } = choices;
 
     /// <summary>A form that is not built yet, or one the user may not use, is shown but cannot be opened.</summary>
     public bool CanOpen { get; } = canUse && service.CanOpen;
 
     public string Caption => Count > 1 ? $"{Name}  x{Count}" : Name;
 
+    private string Where => Section is null ? string.Empty : " on the Physical Examination sheet";
+
     public string ToolTip => !service.CanOpen
         ? (service.ModuleId is null ? "No result form for this service" : "This form is not available in the new app yet")
         : !CanOpen ? "You do not have access to this form"
-        : IsMade ? "Open the result" + (Count > 1 ? " (the latest of " + Count + ")" : string.Empty) : "Make the result";
+        : Choices.Count > 1 ? "Choose where to enter the result: " + string.Join(" or ", Choices.Select(c => c.FormName))
+        : IsMade ? "Open the result" + Where + (Count > 1 ? " (the latest of " + Count + ")" : string.Empty) : "Make the result" + Where;
 }
 
 /// <summary>One registration on the home screen.</summary>
@@ -72,6 +90,7 @@ public partial class HomeViewModel(
     IServiceRunner runner,
     ICurrentUser user,
     INavigationService navigation,
+    IDialogService dialogs,
     ILogger<HomeViewModel> logger) : ViewModelBase(logger)
 {
     private static readonly LookupOption AnyCompany = new(0, "(all companies)");
@@ -256,11 +275,53 @@ public partial class HomeViewModel(
     }
 
     [RelayCommand]
-    private void OpenChip(HomeChip? chip)
+    private Task OpenChipAsync(HomeChip? chip)
     {
-        if (chip is { CanOpen: true, ModuleId: { } moduleId })
-            navigation.OpenResult(moduleId, chip.RegistrationId, chip.IsMade ? chip.LatestResultId : null);
+        if (chip is not { CanOpen: true })
+            return Task.CompletedTask;
+
+        if (chip.ModuleId is { } moduleId)
+        {
+            navigation.OpenResult(moduleId, chip.RegistrationId, chip.OpenResultId, chip.Section);
+            return Task.CompletedTask;
+        }
+
+        return chip.Choices.Count > 0 ? ChooseAndOpenAsync(chip) : Task.CompletedTask;
     }
+
+    // The first time a Urinalysis or Fecalysis result is entered: on its own form or on the Physical Examination sheet. The choice is kept on the
+    // registration, so the chip opens the same form next time (and the sheet knows which sections are its own).
+    private Task ChooseAndOpenAsync(HomeChip chip) => RunAsync(async () =>
+    {
+        var choices = chip.Choices;
+        var choice = choices[0];
+        if (choices.Count > 1)
+        {
+            var row = Rows.FirstOrDefault(r => r.RegistrationId == chip.RegistrationId);
+            var sheetInUse = choices.Any(c => c.SheetId is not null)
+                || (row?.Chips.Any(c => c.Section is not null && c.ModuleId is not null) ?? false);
+            var suggested = sheetInUse ? Math.Max(0, choices.ToList().FindIndex(c => c.Section is not null)) : 0;
+
+            var picked = dialogs.Choose(
+                $"Where do you want to enter the {chip.Name} result?",
+                chip.Name,
+                [.. choices.Select(c => c.FormName)],
+                suggested);
+            if (picked is not { } index)
+                return;
+
+            choice = choices[index];
+        }
+
+        var kept = await runner.RunAsync<IRegistrationBoardService, Result>(s => s.ChooseFormAsync(chip.RegistrationServiceId, choice.ModuleId));
+        if (kept.IsFailure)
+        {
+            ShowError(kept.Error.Message);
+            return;
+        }
+
+        navigation.OpenResult(choice.ModuleId, chip.RegistrationId, choice.SheetId, choice.Section);
+    });
 
     [RelayCommand]
     private void Pay(HomeRow? row)
@@ -301,7 +362,11 @@ public partial class HomeViewModel(
         var canPay = user.Can(ModuleIds.Payments, ModuleAction.Create) || user.Can(ModuleIds.Payments, ModuleAction.Edit);
         foreach (var item in paged.Items)
         {
-            var chips = item.Services.Select(s => new HomeChip(s, item.RegistrationId, CanUse(s))).ToList();
+            var chips = item.Services.Select(s =>
+            {
+                var choices = (s.Choices ?? []).Where(c => CanStart(c.ModuleId, c.SheetId)).ToList();
+                return new HomeChip(s, item.RegistrationId, s.NeedsChoice ? choices.Count > 0 : CanUse(s), choices);
+            }).ToList();
             Rows.Add(new HomeRow(item, chips, canPay));
         }
 
@@ -311,9 +376,13 @@ public partial class HomeViewModel(
         OnPropertyChanged(nameof(EmptyText));
     }
 
-    // Starting a result needs "create" in that form; opening one that was made needs only access to it.
+    // Starting a result needs "create" in that form; opening one that was made needs only access to it, and entering a section on a sheet
+    // that exists needs "edit".
     private bool CanUse(BoardService service) =>
-        service.ModuleId is { } id && (service.ResultCount > 0 ? user.CanAccess(id) : user.Can(id, ModuleAction.Create));
+        service.ModuleId is { } id && (service.ResultCount > 0 ? user.CanAccess(id) : CanStart(id, service.OpenResultId));
+
+    private bool CanStart(int moduleId, long? existingSheetId) =>
+        user.Can(moduleId, existingSheetId is null ? ModuleAction.Create : ModuleAction.Edit);
 }
 
 public sealed record StatusChoice(BoardStatus Value, string Name);

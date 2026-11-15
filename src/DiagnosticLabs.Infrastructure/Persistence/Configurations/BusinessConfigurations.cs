@@ -344,6 +344,17 @@ internal sealed class LabReportPhotoConfiguration : IEntityTypeConfiguration<Lab
     }
 }
 
+internal sealed class ServiceFormSectionConfiguration : IEntityTypeConfiguration<ServiceFormSection>
+{
+    public void Configure(EntityTypeBuilder<ServiceFormSection> builder)
+    {
+        builder.Property(s => s.Section).HasConversion<string>().HasMaxLength(30);
+        builder.HasOne(s => s.Service).WithMany().HasForeignKey(s => s.ServiceId);
+        builder.HasOne<DiagnosticLabs.Domain.Identity.Module>().WithMany().HasForeignKey(s => s.ModuleId);
+        builder.HasIndex(s => new { s.ServiceId, s.ModuleId }).IsUnique();
+    }
+}
+
 internal sealed class StationVersionConfiguration : IEntityTypeConfiguration<StationVersion>
 {
     public void Configure(EntityTypeBuilder<StationVersion> builder)

@@ -18,6 +18,9 @@ public interface IDialogService
 
     /// <summary>"Save", "Don't save" or "Cancel" (stay where you are) for a form that has changes.</summary>
     SaveChoice AskToSave(string message, string title);
+
+    /// <summary>One button per option (the <paramref name="suggested"/> one is the primary button) and Cancel; the index chosen, or null on Cancel.</summary>
+    int? Choose(string message, string title, IReadOnlyList<string> options, int suggested);
 }
 
 public sealed class DialogService : IDialogService
@@ -35,4 +38,16 @@ public sealed class DialogService : IDialogService
             MessageBoxResult.No => SaveChoice.Discard,
             _ => SaveChoice.Cancel,
         };
+
+    public int? Choose(string message, string title, IReadOnlyList<string> options, int suggested)
+    {
+        var window = new Views.FormChoiceWindow(message, title, options, suggested)
+        {
+            Owner = System.Windows.Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+                    ?? System.Windows.Application.Current.MainWindow,
+        };
+
+        window.ShowDialog();
+        return window.Chosen;
+    }
 }

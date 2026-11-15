@@ -34,6 +34,17 @@ internal sealed class AutoConfirm : IDialogService
         return NextChoice;
     }
     public void Inform(string message, string title) { }
+
+    /// <summary>The option the harness picks when asked to choose (null: the suggested one).</summary>
+    public static int? NextOption { get; set; }
+
+    public static int Chosen { get; set; }
+
+    public int? Choose(string message, string title, IReadOnlyList<string> options, int suggested)
+    {
+        Chosen++;
+        return NextOption ?? suggested;
+    }
 }
 
 // Stands in for the modal dialog when a screen's "edit list" button is pressed: saves one extra entry, as a user would.
@@ -191,6 +202,7 @@ internal static partial class Program
         if (_out.EndsWith("pregnancy")) { PregnancyChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("pdebug")) { PatientsDirtyDebug(provider); _main.Close(); return _failures; }
         if (_out.EndsWith("dirty")) { DirtyChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); _main.Close(); return _failures; }
+        if (_out.EndsWith("sections")) { SectionChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("home")) { HomeChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("statement")) { StatementChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("batch")) { BatchPrintChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }

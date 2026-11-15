@@ -49,6 +49,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<PackageService> PackageServices => Set<PackageService>();
 
+    public DbSet<ServiceFormSection> ServiceFormSections => Set<ServiceFormSection>();
+
     public DbSet<Discount> Discounts => Set<Discount>();
 
     public DbSet<DiscountDetail> DiscountDetails => Set<DiscountDetail>();

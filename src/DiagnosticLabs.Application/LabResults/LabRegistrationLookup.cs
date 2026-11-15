@@ -1,5 +1,6 @@
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
+using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Domain.Patients;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +21,15 @@ public sealed record ResultRegistration(
     IReadOnlyList<string> Services,
     DateOnly? DateOfBirth = null,
     string? CivilStatus = null,
-    string? ContactNumbers = null);
+    string? ContactNumbers = null,
+    IReadOnlyList<FormSection>? Sections = null)
+{
+    /// <summary>
+    /// The sections of this form (the Physical Examination sheet) that the registration's services put on it: Complete Blood Count when it is
+    /// on the registration, Urinalysis and Fecalysis when they were chosen to be entered on the sheet. Empty for every other form.
+    /// </summary>
+    public IReadOnlyList<FormSection> SheetSections => Sections ?? [];
+}
 
 /// <summary>A patient as the top of a result form shows them once picked from the patient list.</summary>
 public sealed record ResultPatient(
@@ -81,6 +90,22 @@ public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser current
         if (r is null)
             return Result<ResultRegistration>.Failure(new Error("Registration.NotFound", "The registration no longer exists."));
 
+        // A section belongs on this form when its service is on the registration and either has no other form or was chosen to go here.
+        var lines = r.Services.Where(s => !s.IsDeleted).ToList();
+        var serviceIds = lines.Select(s => s.ServiceId).ToList();
+        var sectionLinks = await db.ServiceFormSections.AsNoTracking().Where(s => s.ModuleId == moduleId && serviceIds.Contains(s.ServiceId)).ToListAsync(cancellationToken);
+        var withOwnForm = await db.Modules.AsNoTracking().Where(m => m.ServiceId != null && serviceIds.Contains(m.ServiceId.Value))
+            .Select(m => m.ServiceId!.Value).ToListAsync(cancellationToken);
+        // A registration with the form's own service (an older one with "Physical Examination") has the whole sheet.
+        var hasWholeForm = await db.Modules.AsNoTracking().AnyAsync(m => m.Id == moduleId && m.ServiceId != null && serviceIds.Contains(m.ServiceId.Value), cancellationToken);
+        IReadOnlyList<FormSection> sections = hasWholeForm
+            ? await db.ServiceFormSections.AsNoTracking().Where(s => s.ModuleId == moduleId).Select(s => s.Section).Distinct().OrderBy(s => s).ToListAsync(cancellationToken)
+            :
+            [
+                .. sectionLinks.Where(l => lines.Any(s => s.ServiceId == l.ServiceId && (!withOwnForm.Contains(l.ServiceId) || s.ResultModuleId == moduleId)))
+                    .Select(l => l.Section).Distinct().Order(),
+            ];
+
         return Result<ResultRegistration>.Success(new ResultRegistration(
             r.Id,
             r.RegistrationCode,
@@ -95,7 +120,8 @@ public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser current
             [.. r.Services.Where(s => !s.IsDeleted).OrderBy(s => s.Id).Select(s => s.Service.ServiceName)],
             r.Patient.DateOfBirth,
             r.Patient.CivilStatus,
-            r.Patient.ContactNumbers));
+            r.Patient.ContactNumbers,
+            sections));
     }
 
     public async Task<Result<IReadOnlyList<ResultRegistrationMatch>>> SuggestAsync(int moduleId, string text, CancellationToken cancellationToken = default)

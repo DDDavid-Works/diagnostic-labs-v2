@@ -244,8 +244,25 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
             return Result<TDetails>.Failure(new Error(DuplicateCode, $"This registration already has a {ResultName} result. Save another one anyway?"));
         }
 
+        // The same result entered in its other place (Urinalysis on its own form and on the Physical Examination sheet) is allowed after a question too.
+        if (header is { RegistrationId: { } id, ConfirmedDuplicate: false }
+            && CurrentUser.Can(_module, input.Id == 0 ? ModuleAction.Create : ModuleAction.Edit)
+            && await EnteredElsewhereAsync(input, id, cancellationToken) is { } warning)
+        {
+            return Result<TDetails>.Failure(new Error(DuplicateCode, warning));
+        }
+
         return await base.SaveAsync(input, cancellationToken);
     }
+
+    /// <summary>
+    /// A question when this result is already entered in another form of the same service (null when it is not). By default: a new result of a
+    /// form whose service can also be entered on the Physical Examination sheet, when the registration's sheet has that section.
+    /// </summary>
+    protected virtual Task<string?> EnteredElsewhereAsync(TInput input, long registrationId, CancellationToken cancellationToken) =>
+        input.Id == 0
+            ? Board.ResultFormLinks.EnteredOnSheetAsync(Db, _module, registrationId, cancellationToken)
+            : Task.FromResult<string?>(null);
 
     // ---------------------------------------------------------------- saving
 

@@ -5,6 +5,7 @@ using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Board;
 using DiagnosticLabs.Application.Menu;
 using DiagnosticLabs.Application.Stations;
+using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Wpf.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -263,8 +264,11 @@ public partial class MainViewModel(
         return payments;
     });
 
-    /// <summary>Opens a result screen on a registration: the result that was made when there is one, otherwise a new result.</summary>
-    private void OpenResult(int moduleId, long registrationId, long? resultId)
+    /// <summary>
+    /// Opens a result screen on a registration: the result that was made when there is one, otherwise a new result. For a section of the
+    /// Physical Examination sheet the result is the registration's sheet, which may not have that section yet.
+    /// </summary>
+    private void OpenResult(int moduleId, long registrationId, long? resultId, FormSection? section)
     {
         if (!Pages.ContainsKey(moduleId) && !LabResultModules.IsCustomForm(moduleId))
             return;
@@ -275,9 +279,15 @@ public partial class MainViewModel(
             if (page is ILabResultScreen screen)
             {
                 if (resultId is { } id)
+                {
                     screen.RequestResult(id);
+                    if (section is { } s && page is PhysicalExaminationViewModel sheet)
+                        sheet.RequestSection(id, s);
+                }
                 else
+                {
                     screen.RequestRegistration(registrationId);
+                }
             }
 
             return page;

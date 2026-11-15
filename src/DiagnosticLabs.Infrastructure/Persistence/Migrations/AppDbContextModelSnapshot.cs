@@ -645,6 +645,35 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("DiagnosticLabs.Domain.Catalog.ServiceFormSection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ModuleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<long>("ServiceId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("ServiceId", "ModuleId")
+                        .IsUnique();
+
+                    b.ToTable("ServiceFormSections");
+                });
+
             modelBuilder.Entity("DiagnosticLabs.Domain.Identity.Module", b =>
                 {
                     b.Property<int>("Id")
@@ -3452,6 +3481,9 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<int?>("ResultModuleId")
+                        .HasColumnType("int");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -3909,6 +3941,23 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("UpdatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Catalog.ServiceFormSection", b =>
+                {
+                    b.HasOne("DiagnosticLabs.Domain.Identity.Module", null)
+                        .WithMany()
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DiagnosticLabs.Domain.Catalog.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Service");
                 });
 
             modelBuilder.Entity("DiagnosticLabs.Domain.Identity.Module", b =>

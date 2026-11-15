@@ -4,6 +4,7 @@ using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Application.LabResults;
+using DiagnosticLabs.Domain.Catalog;
 using DiagnosticLabs.Wpf.Services;
 using Microsoft.Extensions.Logging;
 
@@ -113,6 +114,7 @@ public partial class PhysicalExaminationViewModel(
             choice.Value = d.Data.Value(name);
 
         RowVersion = d.RowVersion;
+        ApplyRequestedSection(d.Id);
     }
 
     protected override void ResetDetail()
@@ -128,6 +130,52 @@ public partial class PhysicalExaminationViewModel(
     protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
         Cells.Values.Where(c => c.Name.EndsWith("NValue", StringComparison.Ordinal) || c.Name == "BloodTypingNotes")
             .Select(c => new DefaultField(c.Name, () => c.Value, v => c.Value = v));
+
+    // ----- the sections charged as services of their own (Complete Blood Count, Urinalysis, Fecalysis) -----
+
+    private (long ResultId, FormSection Section)? _requestedSection;
+
+    /// <summary>Opened from the home screen for one section of a sheet that exists: that section takes its defaults if it is still empty.</summary>
+    public void RequestSection(long resultId, FormSection section) => _requestedSection = (resultId, section);
+
+    private string? ValueOf(string name) =>
+        Cells.TryGetValue(name, out var cell) ? cell.Value : Choices.TryGetValue(name, out var choice) ? choice.Value : null;
+
+    private void SetValue(string name, string? value)
+    {
+        if (Cells.TryGetValue(name, out var cell))
+            cell.Value = value;
+        else if (Choices.TryGetValue(name, out var choice))
+            choice.Value = value;
+    }
+
+    // A new sheet for a registration: the sections it is not charged for (or that go on their own forms) print blank, so the defaults leave them.
+    // A value that is not the default was typed in and stays.
+    protected override void OnRegistrationPickedForNew(ResultRegistration registration)
+    {
+        foreach (var (section, fields) in PhysicalExaminationFields.SectionFields)
+        {
+            if (registration.SheetSections.Contains(section))
+                continue;
+
+            foreach (var name in fields.Where(n => ValueOf(n) is not null && ValueOf(n) == DefaultOf(n)))
+                SetValue(name, null);
+        }
+    }
+
+    private void ApplyRequestedSection(long id)
+    {
+        if (_requestedSection is not { } requested || requested.ResultId != id)
+            return;
+
+        _requestedSection = null;
+        var fields = PhysicalExaminationFields.SectionFields[requested.Section];
+        if (PhysicalExaminationFields.IsFilled(requested.Section, ValueOf))
+            return;
+
+        foreach (var name in fields)
+            SetValue(name, DefaultOf(name));
+    }
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IPhysicalExaminationService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));
