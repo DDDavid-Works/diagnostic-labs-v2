@@ -147,6 +147,7 @@ internal static partial class Program
         var rows = home.Rows.ToDictionary(r => r.PatientName, r => r.PaymentText);
         Check("Home shows the charged and the paid registrations", rows.GetValueOrDefault("Harness Packaged") == "Charged to company" && (rows.GetValueOrDefault("Harness Paidnow") ?? "").StartsWith("Partial"),
             string.Join("; ", rows.Select(r => $"{r.Key}: {r.Value}")));
+        Check("Home hides Pay on the charged registration only", home.Rows.Single(r => r.PatientName == "Harness Packaged") is { ShowPay: false, CanPay: false } && home.Rows.Single(r => r.PatientName == "Harness Paidnow").ShowPay, "");
         Snapshot("reg-5e-home.png");
         Open<RegistrationsViewModel>(ModuleIds.PatientRegistrations);
         vm = (RegistrationsViewModel)_mainVm.CurrentPage;

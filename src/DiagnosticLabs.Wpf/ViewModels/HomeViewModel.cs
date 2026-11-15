@@ -69,7 +69,10 @@ public sealed class HomeRow(BoardItem item, IReadOnlyList<HomeChip> chips, bool 
 
     public IReadOnlyList<HomeChip> Chips { get; } = chips;
 
-    public bool CanPay { get; } = canPay;
+    // A registration charged to its company has nothing to pay at the counter, so its Pay button is hidden.
+    public bool ShowPay { get; } = item.Payment.State != PaymentState.Charged;
+
+    public bool CanPay { get; } = canPay && item.Payment.State != PaymentState.Charged;
 
     public PaymentState PaymentState { get; } = item.Payment.State;
 

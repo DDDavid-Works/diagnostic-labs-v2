@@ -121,6 +121,7 @@
 
                   <StackPanel Grid.Column="1" Margin="0,0,14,0">
                     <Button icn:ButtonIcon.Data="{StaticResource Icon.Pay}" Content="Pay" HorizontalAlignment="Left" MinWidth="86" Padding="14,6" IsEnabled="{Binding CanPay}"
+                            Visibility="{Binding ShowPay, Converter={StaticResource BoolToVis}}"
                             CommandParameter="{Binding}"
                             Command="{Binding DataContext.PayCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Open the payment of this registration" />
                     <TextBlock Text="{Binding PaymentText}" Margin="0,5,0,0" FontSize="12" TextWrapping="Wrap">
