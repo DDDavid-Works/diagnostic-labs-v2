@@ -26,14 +26,23 @@ internal static partial class Program
 
         // as-you-type matching of existing patients
         Act(() => vm.PatientName = "Ars", 1500);
-        Check("matching existing patients are offered while typing", vm.Suggestions.Count > 0 && vm.HasSuggestions, $"{vm.Suggestions.Count}: {string.Join(", ", vm.Suggestions.Select(x => x.PatientName))}");
-        var pick = vm.Suggestions.First();
-        Act(() => vm.PickSuggestionCommand.Execute(pick), 1500);
-        Check("picking one fills in the patient", vm.PatientId == pick.Id && vm.PatientName == pick.PatientName && vm.IsExistingPatient && vm.CanChangePatient && !vm.HasSuggestions, $"{vm.PatientName} / {vm.PatientCode}");
-        Snapshot("reg-1b-existing-patient.png");
+        if (vm.Suggestions.Count == 0)
+        {
+            // A scratch database has no patients yet.
+            Console.WriteLine("  (no existing patients in the data; type-ahead skipped)");
+            Act(() => vm.PatientName = string.Empty, 300);
+        }
+        else
+        {
+            Check("matching existing patients are offered while typing", vm.HasSuggestions, $"{vm.Suggestions.Count}: {string.Join(", ", vm.Suggestions.Select(x => x.PatientName))}");
+            var pick = vm.Suggestions.First();
+            Act(() => vm.PickSuggestionCommand.Execute(pick), 1500);
+            Check("picking one fills in the patient", vm.PatientId == pick.Id && vm.PatientName == pick.PatientName && vm.IsExistingPatient && vm.CanChangePatient && !vm.HasSuggestions, $"{vm.PatientName} / {vm.PatientCode}");
+            Snapshot("reg-1b-existing-patient.png");
 
-        Act(() => vm.ChangePatientCommand.Execute(null), 1200);
-        Check("'different patient' lets go of them", vm.PatientId == 0 && vm.PatientName.Length == 0 && !vm.CanChangePatient, vm.PatientCode);
+            Act(() => vm.ChangePatientCommand.Execute(null), 1200);
+            Check("'different patient' lets go of them", vm.PatientId == 0 && vm.PatientName.Length == 0 && !vm.CanChangePatient, vm.PatientCode);
+        }
 
         vm.PatientName = "Harness Walkin";
         vm.DateOfBirth = new DateTime(1990, 5, 17);
@@ -48,6 +57,9 @@ internal static partial class Program
         Check("picked services appear and the price is their total", vm.Services.Count == 2 && vm.AmountDue == a.Price + b.Price, $"{vm.AmountDue}");
         vm.Services[0].Price = 10m;
         Check("a line price edit moves the total", vm.AmountDue == 10m + b.Price, $"{vm.AmountDue}");
+        Check("Paid / Charged is offered on a new registration, charging only with a company", vm.ShowSettleChoice && vm.SettleNone && !vm.CanChargeCompany && !vm.HasPaymentStatus, vm.SettleHint);
+        Act(() => vm.SettleCharged = true);
+        Check("Charged to company can not be chosen without a company", vm.SettleNone, vm.Settle.ToString());
         Snapshot("reg-2-filled-menu.png");
 
         Act(() => _mainVm.ToggleMenuCommand.Execute(null));
@@ -94,8 +106,13 @@ internal static partial class Program
             vm.PatientName = "Harness Packaged";
             vm.Age = "41";
             vm.BatchName = "Harness Batch";
+            Act(() => vm.SettleCharged = true, 300);
+            Check("with a company it can be charged", vm.SettleCharged && vm.SettleHint.Contains(company.Name), vm.SettleHint);
+            Snapshot("reg-5a-charge-chosen.png");
             Act(() => vm.SaveCommand.Execute(null), 3000);
             Check("package registration saved", vm.Id != 0 && !vm.IsError, vm.Message);
+            Check("saved as charged: the choice gives way to its state", vm.Message.Contains("Charged") && !vm.ShowSettleChoice && vm.HasPaymentStatus && vm.PaymentStatusText.StartsWith("Charged"), $"{vm.Message} / {vm.PaymentStatusText}");
+            Snapshot("reg-5b-charged.png");
             Check("typed age kept when no birth date", vm.Age == "41" && vm.DateOfBirth is null, vm.Age);
             Act(() => vm.CompanyChoiceId = 0, 1500);
             Check("removing the company resets the package", vm.PackageChoiceId == 0, "");
@@ -105,6 +122,36 @@ internal static partial class Program
         {
             Console.WriteLine("  (no company with packages in the data; package flow skipped)");
         }
+
+        // paid while registering, then the price raised: the payment stays and a balance is shown
+        Act(() => vm.NewRecordCommand.Execute(null), 1200);
+        vm.PatientName = "Harness Paidnow";
+        vm.Age = "30";
+        ScriptedPicker.Answer = (_, _) => [b.Id];
+        Act(() => vm.ChooseServicesCommand.Execute(null));
+        Act(() => vm.SettlePaid = true, 300);
+        Check("Paid says what will be recorded", vm.AmountDue > 0 && vm.SettleHint.Contains(vm.AmountDue.ToString("N2")), vm.SettleHint);
+        Snapshot("reg-5c-paid-chosen.png");
+        Act(() => vm.SaveCommand.Execute(null), 3000);
+        Check("saved as paid", !vm.IsError && vm.Message.Contains("Paid") && vm.HasPaymentStatus && vm.PaymentStatusText.StartsWith("Paid in full"), $"{vm.Message} / {vm.PaymentStatusText}");
+        var paidId = vm.Id;
+        Act(() => vm.AmountDue += 50m, 300);
+        Check("raising the price shows the balance to collect", vm.PaymentStatusText.Contains("Balance 50.00"), vm.PaymentStatusText);
+        Act(() => vm.SaveCommand.Execute(null), 3000);
+        Check("the raised price saves without a second payment", !vm.IsError && vm.PaymentStatus is { Count: 1 }, $"{vm.Message} / {vm.PaymentStatus}");
+        Snapshot("reg-5d-paid-then-raised.png");
+
+        // Home reads the same payments
+        Act(() => _mainVm.GoHomeCommand.Execute(null), 3000);
+        var home = (HomeViewModel)_mainVm.CurrentPage;
+        var rows = home.Rows.ToDictionary(r => r.PatientName, r => r.PaymentText);
+        Check("Home shows the charged and the paid registrations", rows.GetValueOrDefault("Harness Packaged") == "Charged to company" && (rows.GetValueOrDefault("Harness Paidnow") ?? "").StartsWith("Partial"),
+            string.Join("; ", rows.Select(r => $"{r.Key}: {r.Value}")));
+        Snapshot("reg-5e-home.png");
+        Open<RegistrationsViewModel>(ModuleIds.PatientRegistrations);
+        vm = (RegistrationsViewModel)_mainVm.CurrentPage;
+        Pump(1500);
+        _ = paidId;
 
         // list + filters
         Act(() => vm.ToggleSearchCommand.Execute(null));
@@ -147,6 +194,17 @@ internal static partial class Program
     // Registrations need a company that has a package and a general package to pick from.
     private static void SeedPackages()
     {
+        // A scratch database may hold only the few services the migrations seed; packages below pick four.
+        var services = Open<ServicesViewModel>(ModuleIds.Services);
+        for (var i = services.TotalCount; i < 4; i++)
+        {
+            Act(() => services.NewRecordCommand.Execute(null));
+            services.ServiceName = $"Harness Service {i + 1}";
+            services.ServiceDescription = "d";
+            services.Price = 100m * (i + 1);
+            Act(() => services.SaveCommand.Execute(null));
+        }
+
         var companies = Open<CompaniesViewModel>(ModuleIds.Companies);
         Act(() => companies.NewRecordCommand.Execute(null));
         companies.CompanyName = "Harness Corp";

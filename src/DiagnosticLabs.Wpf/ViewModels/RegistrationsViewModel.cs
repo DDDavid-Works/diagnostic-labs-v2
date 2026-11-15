@@ -60,6 +60,9 @@ public partial class RegistrationsViewModel(
     private int _listVersion;
     private byte[]? _patientRowVersion;
 
+    // The choice the form held when the details now shown came in; right after a save, that is what the save recorded.
+    private RegistrationSettlement _justSettled;
+
     // ----- registration -----
     [ObservableProperty]
     private string _registrationCode = NewCodeText;
@@ -79,6 +82,16 @@ public partial class RegistrationsViewModel(
 
     [ObservableProperty]
     private decimal _amountDue;
+
+    // ----- settling while registering -----
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SettleNone), nameof(SettlePaid), nameof(SettleCharged), nameof(SettleHint))]
+    private RegistrationSettlement _settle;
+
+    /// <summary>What is already recorded on Payments for the open registration (null for a new one).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowSettleChoice), nameof(HasPaymentStatus), nameof(PaymentStatusText))]
+    private RegistrationPaymentStatus? _paymentStatus;
 
     // ----- patient -----
     [ObservableProperty]
@@ -160,10 +173,74 @@ public partial class RegistrationsViewModel(
     /// <summary>"Pay now" is for saved registrations, and only for people who may record payments.</summary>
     public bool CanPayNow => !IsNew && CurrentUser.Can(ModuleIds.Payments, ModuleAction.Create);
 
+    /// <summary>
+    /// Paid / Charged to company is offered to people who may record payments, until the registration has a payment or a charge;
+    /// after that its state is shown instead and the Payments screen handles any change.
+    /// </summary>
+    public bool ShowSettleChoice => CurrentUser.Can(ModuleIds.Payments, ModuleAction.Create) && PaymentStatus is not { HasPayments: true };
+
+    public bool CanChargeCompany => CompanyChoiceId != 0;
+
+    public bool SettleNone
+    {
+        get => Settle == RegistrationSettlement.None;
+        set { if (value) Settle = RegistrationSettlement.None; }
+    }
+
+    public bool SettlePaid
+    {
+        get => Settle == RegistrationSettlement.Paid;
+        set { if (value) Settle = RegistrationSettlement.Paid; }
+    }
+
+    public bool SettleCharged
+    {
+        get => Settle == RegistrationSettlement.Charged;
+        set { if (value && CanChargeCompany) Settle = RegistrationSettlement.Charged; }
+    }
+
+    // A discount is given on the Payments screen, so a registration without payments normally has none; keep any left over.
+    private decimal SavedDiscount => PaymentStatus is { } p && Id != 0 ? Math.Max(0m, SavedAmountDue - p.AmountToPay) : 0m;
+
+    private decimal SavedAmountDue { get; set; }
+
+    private decimal AmountToPay => Math.Max(0m, AmountDue - SavedDiscount);
+
+    /// <summary>What saving will record, under the choice.</summary>
+    public string SettleHint => Settle switch
+    {
+        RegistrationSettlement.Paid => $"Saving records a payment of {AmountToPay:N2}.",
+        RegistrationSettlement.Charged => $"Saving records a charge to {Companies.FirstOrDefault(c => c.Id == CompanyChoiceId)?.Name ?? "the company"}.",
+        _ => "Leave it for the cashier (Payments screen).",
+    };
+
+    public bool HasPaymentStatus => PaymentStatus is { HasPayments: true };
+
+    /// <summary>The state of a registration that already has payments, worked out against the price as it is now in the form.</summary>
+    public string PaymentStatusText
+    {
+        get
+        {
+            if (PaymentStatus is not { HasPayments: true } p)
+                return string.Empty;
+            if (p.IsCharged)
+                return "Charged to company.";
+
+            var balance = Math.Round(AmountToPay - p.Paid, 2);
+            return balance switch
+            {
+                0m => $"Paid in full ({p.Paid:N2}).",
+                > 0m => $"Paid {p.Paid:N2}. Balance {balance:N2}: collect it with Pay now.",
+                _ => $"Paid {p.Paid:N2}, which is {-balance:N2} more than the price. Correct it on the Payments screen.",
+            };
+        }
+    }
+
     protected override void OnRecordChanged()
     {
         OnPropertyChanged(nameof(CanChangePatient));
         OnPropertyChanged(nameof(CanPayNow));
+        OnPropertyChanged(nameof(ShowSettleChoice));
     }
 
     // ------------------------------------------------------------------ reactions
@@ -191,6 +268,11 @@ public partial class RegistrationsViewModel(
 
     partial void OnCompanyChoiceIdChanged(long value)
     {
+        OnPropertyChanged(nameof(CanChargeCompany));
+        OnPropertyChanged(nameof(SettleHint));
+        if (value == 0 && Settle == RegistrationSettlement.Charged)
+            Settle = RegistrationSettlement.None;
+
         if (_loading)
             return;
 
@@ -216,6 +298,8 @@ public partial class RegistrationsViewModel(
 
     partial void OnAmountDueChanged(decimal value)
     {
+        OnPropertyChanged(nameof(SettleHint));
+        OnPropertyChanged(nameof(PaymentStatusText));
         if (!_settingPrice && !_loading)
             _priceEdited = true;
     }
@@ -263,7 +347,8 @@ public partial class RegistrationsViewModel(
         _patientRowVersion,
         AmountDue,
         [.. Services.Select(s => new RegistrationServiceLine(s.Id, s.ServiceId, s.Price))],
-        RowVersion);
+        RowVersion,
+        ShowSettleChoice ? Settle : RegistrationSettlement.None);
 
     protected override void ShowFields(RegistrationDetails d)
     {
@@ -293,6 +378,10 @@ public partial class RegistrationsViewModel(
                 ServiceName = s.ServiceName ?? $"Service {s.ServiceId}",
                 Price = s.Price,
             }));
+            _justSettled = Settle;
+            SavedAmountDue = d.AmountDue;
+            PaymentStatus = d.Payment;
+            Settle = RegistrationSettlement.None;
             AmountDue = d.AmountDue;
             _priceEdited = d.AmountDue != ServicesTotal;
             ClearSuggestions();
@@ -317,6 +406,9 @@ public partial class RegistrationsViewModel(
             PackageChoiceId = 0;
             ClearPatient();
             SetServices([]);
+            SavedAmountDue = 0;
+            PaymentStatus = null;
+            Settle = RegistrationSettlement.None;
             AmountDue = 0;
             _priceEdited = false;
             ClearSuggestions();
@@ -331,7 +423,15 @@ public partial class RegistrationsViewModel(
     }
 
     protected override string SavedMessage(RegistrationDetails saved, bool wasNew) =>
-        wasNew ? $"Saved. Registration code {saved.RegistrationCode}." : "Saved successfully.";
+        (wasNew ? $"Saved. Registration code {saved.RegistrationCode}." : "Saved successfully.") + SettledNote(saved);
+
+    // Only a save that settled the registration recorded its first payment or charge.
+    private string SettledNote(RegistrationDetails saved) => _justSettled switch
+    {
+        RegistrationSettlement.Paid when saved.Payment is { } p => $" Paid {p.Paid:N2}.",
+        RegistrationSettlement.Charged => " Charged to company.",
+        _ => string.Empty,
+    };
 
     protected override async Task OnInitializeAsync()
     {

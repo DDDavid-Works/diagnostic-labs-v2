@@ -303,6 +303,28 @@
                        FontSize="15" FontWeight="SemiBold" HorizontalContentAlignment="Right"
                        ToolTip="Follows the total of the services until you type a price" />
             </Grid>
+
+            <!-- Settle while registering: records the payment or the charge with the save (people who may record payments only). -->
+            <StackPanel Margin="0,12,0,0" Visibility="{Binding ShowSettleChoice, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="Payment" FontWeight="SemiBold" FontSize="15" />
+              <WrapPanel Margin="0,6,0,0">
+                <RadioButton Content="Not yet" GroupName="RegistrationSettle" Margin="0,0,16,4" VerticalContentAlignment="Center"
+                             IsChecked="{Binding SettleNone}" ToolTip="Nothing is recorded now; the cashier settles it on the Payments screen" />
+                <RadioButton Content="Paid" GroupName="RegistrationSettle" Margin="0,0,16,4" VerticalContentAlignment="Center"
+                             IsChecked="{Binding SettlePaid}" ToolTip="The whole amount is paid now; saving records the payment" />
+                <RadioButton Content="Charged to company" GroupName="RegistrationSettle" Margin="0,0,0,4" VerticalContentAlignment="Center"
+                             IsChecked="{Binding SettleCharged}" IsEnabled="{Binding CanChargeCompany}"
+                             ToolTip="Bill the registration to its company (pick the company first); saving records the charge"
+                             ToolTipService.ShowOnDisabled="True" />
+              </WrapPanel>
+              <TextBlock Text="{Binding SettleHint}" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
+            </StackPanel>
+
+            <!-- A registration that already has a payment or a charge shows its state; the Payments screen handles changes. -->
+            <StackPanel Margin="0,12,0,0" Visibility="{Binding HasPaymentStatus, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="Payment" FontWeight="SemiBold" FontSize="15" />
+              <TextBlock Text="{Binding PaymentStatusText}" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
           </StackPanel>
         </WrapPanel>
       </ctl:CrudLayout.FormContent>

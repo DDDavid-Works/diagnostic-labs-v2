@@ -3,6 +3,8 @@ using DiagnosticLabs.Application.Billing;
 using DiagnosticLabs.Application.Codes;
 using DiagnosticLabs.Application.Common;
 using DiagnosticLabs.Application.Patients;
+using DiagnosticLabs.Application.Payments;
+using DiagnosticLabs.Domain.Billing;
 using DiagnosticLabs.Domain.Patients;
 using DiagnosticLabs.Domain.Registrations;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +45,32 @@ public sealed record RegistrationDetails(
     byte[] PatientRowVersion,
     decimal AmountDue,
     IReadOnlyList<RegistrationServiceLine> Services,
-    byte[] RowVersion) : IHasId;
+    byte[] RowVersion,
+    RegistrationPaymentStatus? Payment = null) : IHasId;
+
+/// <summary>How a registration is being settled as it is saved, so the counter does not have to open Payments.</summary>
+public enum RegistrationSettlement
+{
+    /// <summary>Nothing is recorded now (paid later on the Payments screen, or never).</summary>
+    None = 0,
+
+    /// <summary>The whole amount due (price less any discount) is paid now: one payment is recorded.</summary>
+    Paid = 1,
+
+    /// <summary>The registration is billed to its company: a charge is recorded.</summary>
+    Charged = 2,
+}
+
+/// <summary>
+/// What has been recorded against a registration on the Payments side. <see cref="AmountToPay"/> is the price less the discount;
+/// <see cref="Balance"/> is what is still to pay (negative when more was paid than the price now asks, nothing once charged).
+/// </summary>
+public sealed record RegistrationPaymentStatus(int Count, decimal Paid, bool IsCharged, decimal AmountToPay)
+{
+    public bool HasPayments => Count > 0;
+
+    public decimal Balance => IsCharged ? 0m : BillingMath.Round(AmountToPay - Paid);
+}
 
 /// <summary>
 /// The registration form as a whole. <see cref="PatientId"/> 0 creates a new patient from the typed details;
@@ -66,7 +93,8 @@ public sealed record RegistrationInput(
     byte[]? PatientRowVersion,
     decimal AmountDue,
     IReadOnlyList<RegistrationServiceLine> Services,
-    byte[]? RowVersion) : ICrudInput;
+    byte[]? RowVersion,
+    RegistrationSettlement Settle = RegistrationSettlement.None) : ICrudInput;
 
 /// <summary>An existing patient matching what is being typed in the name box.</summary>
 public sealed record PatientSuggestion(long Id, string PatientCode, string PatientName, string? Age, string? Sex);
@@ -99,7 +127,7 @@ public sealed class RegistrationService(IAppDbContext db, ICurrentUser currentUs
         q.Include(r => r.Patient).Include(r => r.Company);
 
     protected override IQueryable<PatientRegistration> ForEditing(IQueryable<PatientRegistration> q) =>
-        q.Include(r => r.Patient).Include(r => r.DiscountSteps).Include(r => r.Services).ThenInclude(s => s.Service);
+        q.Include(r => r.Patient).Include(r => r.DiscountSteps).Include(r => r.Payments).Include(r => r.Services).ThenInclude(s => s.Service);
 
     protected override IQueryable<PatientRegistration> Matches(IQueryable<PatientRegistration> q, string word) =>
         q.Where(r => r.RegistrationCode.Contains(word) || r.Patient.PatientName.Contains(word) || r.Patient.PatientCode.Contains(word));
@@ -145,7 +173,19 @@ public sealed class RegistrationService(IAppDbContext db, ICurrentUser currentUs
             r.Patient.CivilStatus, r.Patient.Address, r.Patient.ContactNumbers, r.Patient.RowVersion, r.AmountDue,
             [.. r.Services.Where(s => !s.IsDeleted).OrderBy(s => s.Id)
                 .Select(s => new RegistrationServiceLine(s.Id, s.ServiceId, s.Price, s.Service?.ServiceName))],
-            r.RowVersion);
+            r.RowVersion,
+            PaymentStatusOf(r));
+
+    /// <summary>The payments and charges of a registration (soft-deleted ones are already left out of <c>Payments</c>).</summary>
+    private static RegistrationPaymentStatus PaymentStatusOf(PatientRegistration r)
+    {
+        var payments = r.Payments.Where(p => !p.IsDeleted).ToList();
+        return new RegistrationPaymentStatus(
+            payments.Count,
+            payments.Where(p => p.Type == PaymentType.Payment).Sum(p => p.PaymentAmount),
+            payments.Any(p => p.Type == PaymentType.Charge),
+            BillingMath.Round(r.AmountDue - r.DiscountTotal));
+    }
 
     // ---------------------------------------------------------------- validation
 
@@ -169,6 +209,12 @@ public sealed class RegistrationService(IAppDbContext db, ICurrentUser currentUs
             errors.Add("A service can only be listed once.");
         if (input.AmountDue < 0)
             errors.Add("Price must not be negative.");
+
+        // Settling while registering records a payment, so it needs the same right as the Payments screen.
+        if (input.Settle != RegistrationSettlement.None && !CurrentUser.Can(ModuleIds.Payments, ModuleAction.Create))
+            errors.Add("You are not allowed to record payments, so leave the registration unpaid and let the cashier settle it.");
+        if (input.Settle == RegistrationSettlement.Charged && input.CompanyId is null)
+            errors.Add("Pick the company to charge, or choose Paid.");
 
         return errors;
     }
@@ -202,7 +248,36 @@ public sealed class RegistrationService(IAppDbContext db, ICurrentUser currentUs
                 errors.Add("A registration can not be moved to a different patient.");
         }
 
+        if (input.Settle != RegistrationSettlement.None)
+            errors.AddRange(await ValidateSettlementAsync(input, cancellationToken));
+
         return errors;
+    }
+
+    /// <summary>
+    /// Settling records the first payment of a registration only: once anything is recorded, the Payments screen takes over
+    /// (it knows about balances, discounts and corrections), so a second payment is never made from here.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> ValidateSettlementAsync(RegistrationInput input, CancellationToken cancellationToken)
+    {
+        var discount = 0m;
+        if (input.Id != 0)
+        {
+            if (await Db.Payments.AnyAsync(p => p.PatientRegistrationId == input.Id, cancellationToken))
+                return ["This registration already has a payment or a charge. Change it on the Payments screen."];
+
+            // A discount can be left on a registration whose payment was removed; it still comes off the amount to pay.
+            var r = await Db.PatientRegistrations.AsNoTracking().Where(x => x.Id == input.Id)
+                .Select(x => new { x.DiscountAmount, x.DiscountPercentage, Steps = x.DiscountSteps.OrderBy(s => s.Sequence).Select(s => new DiscountStep(s.Amount, s.Percentage)).ToList() })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (r is not null)
+                discount = r.Steps.Count > 0 ? BillingMath.DiscountTotal(input.AmountDue, r.Steps) : BillingMath.DiscountTotal(input.AmountDue, r.DiscountAmount, r.DiscountPercentage);
+        }
+
+        if (input.Settle == RegistrationSettlement.Paid && BillingMath.Round(input.AmountDue - discount) <= 0)
+            return ["There is nothing to pay, so it can not be marked paid."];
+
+        return [];
     }
 
     // ---------------------------------------------------------------- deleting
@@ -278,6 +353,19 @@ public sealed class RegistrationService(IAppDbContext db, ICurrentUser currentUs
                 child.Price = line.Price;
             },
             child => Db.PatientRegistrationServices.Remove(child));
+
+        // Saved in the same transaction as the registration, so a registration is never left half settled.
+        if (input.Settle != RegistrationSettlement.None)
+        {
+            var payment = new Payment();
+            PaymentService.Fill(
+                payment,
+                Today,
+                input.Settle == RegistrationSettlement.Charged ? PaymentType.Charge : PaymentType.Payment,
+                registration.AmountDue - registration.DiscountTotal,
+                clock);
+            registration.Payments.Add(payment);
+        }
     }
 
     protected override async Task AfterSaveAsync(PatientRegistration registration, RegistrationInput input, CancellationToken cancellationToken)

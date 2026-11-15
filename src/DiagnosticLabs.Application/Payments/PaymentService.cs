@@ -247,14 +247,23 @@ public sealed class PaymentService(IAppDbContext db, ICurrentUser currentUser, I
     protected override async Task<Payment> CreateAsync(PaymentInput input, CancellationToken cancellationToken) =>
         new() { PatientRegistration = await Db.PatientRegistrations.Include(r => r.Patient).Include(r => r.DiscountSteps).FirstAsync(r => r.Id == input.RegistrationId, cancellationToken) };
 
+    /// <summary>
+    /// Fills a payment row the way the Payments screen does: the date (a new or moved payment gets "now" on that day, an unchanged one
+    /// keeps its time), the type, and the amount (rounded; a charge has none). The registration screen uses this when it settles a
+    /// registration as it is saved.
+    /// </summary>
+    public static void Fill(Payment payment, DateOnly date, PaymentType type, decimal amount, IClock clock)
+    {
+        if (payment.PaymentDate == default || LocalDate(payment.PaymentDate) != date)
+            payment.PaymentDate = ToUtc(date, clock.UtcNow.ToLocalTime().TimeOfDay);
+
+        payment.Type = type;
+        payment.PaymentAmount = type == PaymentType.Charge ? 0m : BillingMath.Round(amount);
+    }
+
     protected override void Apply(Payment payment, PaymentInput input)
     {
-        // Keep the time of day of a payment whose date was not changed; a new or moved one gets "now" on that date.
-        if (payment.PaymentDate == default || LocalDate(payment.PaymentDate) != input.Date)
-            payment.PaymentDate = ToUtc(input.Date, clock.UtcNow.ToLocalTime().TimeOfDay);
-
-        payment.Type = input.Type;
-        payment.PaymentAmount = input.Type == PaymentType.Charge ? 0m : BillingMath.Round(input.Amount);
+        Fill(payment, input.Date, input.Type, input.Amount, clock);
 
         // The discount belongs to the registration (as in the old app), so it is saved in the same transaction.
         var registration = payment.PatientRegistration;
