@@ -173,6 +173,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     private readonly Dictionary<string, string?> _technologistLicenses = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string?> _pathologistLicenses = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string?> _physicianLicenses = new(StringComparer.OrdinalIgnoreCase);
 
     [ObservableProperty]
     private ImageSource? _photo;
@@ -203,6 +204,17 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     public ObservableCollection<string> Technologists { get; } = [];
 
     public ObservableCollection<string> Pathologists { get; } = [];
+
+    /// <summary>The shared Physician list (the Annual PE's Page 2 and the Medical Examination Report pick the physician from it).</summary>
+    public ObservableCollection<string> Physicians { get; } = [];
+
+    /// <summary>
+    /// True on a form whose header Pathologist is the physician who signs it (the Medical Examination Report): the name is picked from the
+    /// Physician list and the licence comes from there.
+    /// </summary>
+    protected virtual bool PathologistIsPhysician => false;
+
+    private Dictionary<string, string?> HeaderSignerLicenses => PathologistIsPhysician ? _physicianLicenses : _pathologistLicenses;
 
     public ObservableCollection<string> CompanyNames { get; } = [];
 
@@ -330,7 +342,7 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
     partial void OnPathologistChanged(string? value)
     {
         if (!_loading)
-            PathologistLicense = LicenseOf(_pathologistLicenses, value);
+            PathologistLicense = LicenseOf(HeaderSignerLicenses, value);
     }
 
     /// <summary>The licence number of a medical technologist picked from the list; none for a name that is not in it.</summary>
@@ -338,6 +350,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     /// <summary>The licence number of a pathologist / physician picked from the list; none for a name that is not in it.</summary>
     protected string? PathologistLicenseOf(string? name) => LicenseOf(_pathologistLicenses, name);
+
+    /// <summary>The licence number of a physician picked from the Physician list; none for a name that is not in it.</summary>
+    protected string? PhysicianLicenseOf(string? name) => LicenseOf(_physicianLicenses, name);
 
     private static string? LicenseOf(Dictionary<string, string?> licenses, string? name) =>
         name is not null && licenses.TryGetValue(name.Trim(), out var license) ? license : null;
@@ -729,20 +744,23 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
         var civilStatuses = await Call<IEntryService, IReadOnlyList<string>>(s => s.GetChoicesAsync(EntryFields.CivilStatus));
         var technologists = await Call<IEntryService, IReadOnlyList<SingleLineEntry>>(s => s.GetEntriesAsync(EntryFields.MedicalTechnologist));
         var pathologists = await Call<IEntryService, IReadOnlyList<SingleLineEntry>>(s => s.GetEntriesAsync(EntryFields.Pathologist));
+        var physicians = await Call<IEntryService, IReadOnlyList<SingleLineEntry>>(s => s.GetEntriesAsync(EntryFields.Physician));
         var companies = await Call<IReferenceLookups, IReadOnlyList<LookupOption>>(s => s.GetCompaniesAsync());
 
         Replace(Genders, genders);
         Replace(CivilStatuses, civilStatuses);
         Replace(Technologists, technologists.Select(t => t.Value));
         Replace(Pathologists, pathologists.Select(p => p.Value));
+        Replace(Physicians, physicians.Select(p => p.Value));
         Fill(_technologistLicenses, technologists);
         Fill(_pathologistLicenses, pathologists);
+        Fill(_physicianLicenses, physicians);
 
         // A licence added in the entry builder for the person already picked shows up without picking them again.
         if (string.IsNullOrEmpty(MedicalTechnologistLicense))
             MedicalTechnologistLicense = TechnologistLicenseOf(MedicalTechnologist);
         if (string.IsNullOrEmpty(PathologistLicense))
-            PathologistLicense = LicenseOf(_pathologistLicenses, Pathologist);
+            PathologistLicense = LicenseOf(HeaderSignerLicenses, Pathologist);
         if (string.IsNullOrEmpty(MedicalTechnologist2License))
             MedicalTechnologist2License = TechnologistLicenseOf(MedicalTechnologist2);
         Replace(CompanyNames, companies.Select(c => c.Name));
@@ -806,6 +824,9 @@ public abstract partial class LabResultViewModel<TService, TDetails, TInput>(
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
     private Task EditPathologistListAsync() => EditSingleLineAsync(EntryFields.Pathologist);
+
+    [RelayCommand(CanExecute = nameof(CanEditLists))]
+    private Task EditPhysicianListAsync() => EditSingleLineAsync(EntryFields.Physician);
 
     [RelayCommand(CanExecute = nameof(CanEditLists))]
     private Task EditRemarksTemplatesAsync() => EditMultiLineAsync(RemarksField);

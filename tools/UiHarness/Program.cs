@@ -40,7 +40,7 @@ internal sealed class AutoConfirm : IDialogService
 
     public static int Chosen { get; set; }
 
-    public int? Choose(string message, string title, IReadOnlyList<string> options, int suggested)
+    public int? Choose(string message, string title, IReadOnlyList<DiagnosticLabs.Wpf.Services.ChoiceOption> options, int suggested)
     {
         Chosen++;
         return NextOption ?? suggested;
@@ -82,10 +82,42 @@ internal sealed class FakeFiles : IFileDialogService
 {
     public static bool ChooseNotAnImage { get; set; }
 
+    /// <summary>When set, the picker "chooses" a phone-photo-like scan of this person's signature (a JPEG on greyish paper with a margin).</summary>
+    public static string? SignatureOf { get; set; }
+
+    public static byte[] ScannedSignature(string name)
+    {
+        var drawing = new System.Windows.Media.DrawingVisual();
+        using (var dc = drawing.RenderOpen())
+        {
+            // Off-white paper with a faint shadow at one edge, like a photo of a sheet; the signature sits off-centre with a wide margin.
+            dc.DrawRectangle(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(226, 224, 218)), null, new Rect(0, 0, 1400, 700));
+            dc.DrawRectangle(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(205, 203, 198)), null, new Rect(1340, 0, 60, 700));
+            var ink = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(20, 35, 120));
+            var text = new System.Windows.Media.FormattedText(
+                name, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                new System.Windows.Media.Typeface(new System.Windows.Media.FontFamily("Segoe Script"), FontStyles.Italic, FontWeights.Bold, FontStretches.Normal), 110, ink, 1.0);
+            dc.DrawText(text, new Point(240, 240));
+            var flourish = System.Windows.Media.Geometry.Parse("M 230,420 C 520,330 800,520 1150,360");
+            dc.DrawGeometry(null, new System.Windows.Media.Pen(ink, 7), flourish);
+        }
+
+        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(1400, 700, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+        bitmap.Render(drawing);
+        var encoder = new System.Windows.Media.Imaging.JpegBitmapEncoder { QualityLevel = 80 };
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        using var stream = new MemoryStream();
+        encoder.Save(stream);
+        return stream.ToArray();
+    }
+
     public PickedFile? PickImage()
     {
         if (ChooseNotAnImage)
             return new PickedFile("notes.png", "this is not an image at all"u8.ToArray());
+
+        if (SignatureOf is { } name)
+            return new PickedFile("signature.jpg", ScannedSignature(name));
 
         var drawing = new System.Windows.Media.DrawingVisual();
         using (var dc = drawing.RenderOpen())
@@ -160,7 +192,7 @@ internal static partial class Program
                  {
                      typeof(PatientsViewModel), typeof(RegistrationsViewModel), typeof(PaymentsViewModel), typeof(StoolFecalysisViewModel), typeof(UrinalysisViewModel), typeof(HematologyViewModel), typeof(PhysicalExaminationViewModel), typeof(ClinicalMicroscopyViewModel), typeof(MedicalExamReportViewModel), typeof(SerologyViewModel), typeof(ImmunologyViewModel), typeof(PregnancyTestViewModel), typeof(ClinicalChemistryViewModel), typeof(ClinicalChemistry1ViewModel), typeof(ClinicalChemistry2ViewModel), typeof(HomeViewModel), typeof(AnnualPhysicalExamViewModel), typeof(CompaniesViewModel), typeof(DepartmentsViewModel), typeof(ServicesViewModel),
                      typeof(PackagesViewModel), typeof(ItemsViewModel), typeof(ItemLocationsViewModel), typeof(DiscountsViewModel),
-                     typeof(StationsViewModel), typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(StatementOfAccountViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(FormDesignerViewModel), typeof(LoginViewModel),
+                     typeof(StationsViewModel), typeof(SignaturesViewModel), typeof(SalesReportViewModel), typeof(BatchPrintViewModel), typeof(StatementOfAccountViewModel), typeof(MainViewModel), typeof(UsersViewModel), typeof(CompanySetupViewModel), typeof(FormDesignerViewModel), typeof(LoginViewModel),
                  })
             services.AddTransient(vm);
         var provider = services.BuildServiceProvider();
@@ -207,6 +239,7 @@ internal static partial class Program
         if (_out.EndsWith("statement")) { StatementChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("batch")) { BatchPrintChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("stations")) { StationsChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); if (_main.IsLoaded) _main.Close(); return _failures; }
+        if (_out.EndsWith("signatures")) { SignatureChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("sales")) { SalesChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("mer")) { MedicalExaminationChecks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }
         if (_out.EndsWith("chemistry2")) { Chemistry2Checks(provider); Console.WriteLine($"binding errors: {bindingErrors.Count}"); foreach (var e in bindingErrors.Take(8)) Console.WriteLine("  " + e); _main.Close(); return _failures; }

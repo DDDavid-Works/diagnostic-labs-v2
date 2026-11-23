@@ -197,6 +197,7 @@ public static class CustomFormLayout
         {
             var signatory = report.Signatories[i];
             var x = start + (i * (ColumnWidth + ColumnGap));
+            PageDrawing.PutSignature(canvas, signatory, x, ColumnWidth, top + 48.7 - PageDrawing.SignatureAboveName, 40.0);
             PageDrawing.PutFit(canvas, signatory.Name, x, top + 48.7, ColumnWidth, size, bold: true, center: true);
             PageDrawing.PutRule(canvas, x, top + 54.4, ColumnWidth);
             PageDrawing.PutText(canvas, signatory.Role.ToUpperInvariant(), x, top + 68.9, size, bold: false, width: ColumnWidth, alignment: TextAlignment.Center);

@@ -19,7 +19,7 @@ public enum EntryDetail
 {
     None,
 
-    /// <summary>A person who signs results (medical technologist, pathologist...): each entry also has a licence number.</summary>
+    /// <summary>A person who signs results (medical technologist, pathologist, physician): each entry also has a licence number and may have a signature.</summary>
     Signatory,
 }
 
@@ -36,6 +36,12 @@ public static class EntryFields
     public static readonly EntryField CivilStatus = new("Civil Status", EntryKind.SingleLine);
     public static readonly EntryField MedicalTechnologist = new("Medical Technologist", EntryKind.SingleLine, Detail: EntryDetail.Signatory);
     public static readonly EntryField Pathologist = new("Pathologist", EntryKind.SingleLine, Detail: EntryDetail.Signatory);
+
+    /// <summary>The physicians who sign the Annual Physical Exam (Page 2) and the Medical Examination Report; filled from the Pathologist list when it was added.</summary>
+    public static readonly EntryField Physician = new("Physician", EntryKind.SingleLine, Detail: EntryDetail.Signatory);
+
+    /// <summary>The lists whose entries sign results, in the order the Signatures screen shows them.</summary>
+    public static readonly IReadOnlyList<EntryField> Signatories = [MedicalTechnologist, Pathologist, Physician];
 
     // Lists that belong to one result screen (the legacy screens kept them per module as well).
     public static readonly EntryField StoolColor = new("Color", EntryKind.SingleLine, ModuleIds.StoolFecalysis);
@@ -79,7 +85,8 @@ public static class EntryFields
     public static readonly EntryField ClinicalChemistry1Result = new("Result", EntryKind.MultiLine, ModuleIds.ClinicalChemistry1);
     public static readonly EntryField ClinicalChemistry1Remarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalChemistry1);
     public static readonly EntryField ClinicalChemistry2Remarks = new("Remarks", EntryKind.MultiLine, ModuleIds.ClinicalChemistry2);
-    // Annual Physical Exam Page 2 (the Medical Examination Report)
+    // Annual Physical Exam Page 2 (the Medical Examination Report). Physician Name and Physician License only key the saved defaults: the physician
+    // is picked from the shared Physician list, which carries the licence.
     public static readonly EntryField MerAssessmentDoneBy = new("Assessment Done By", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
     public static readonly EntryField MerPhysicianName = new("Physician Name", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);
     public static readonly EntryField MerPhysicianLicense = new("Physician License", EntryKind.SingleLine, ModuleIds.AnnualPhysicalExam);

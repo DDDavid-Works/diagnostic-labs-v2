@@ -1158,6 +1158,31 @@ BEGIN
     UPDATE Services SET IsActive = 0, UpdatedAtUtc = SYSUTCDATETIME() WHERE Id = (SELECT ServiceId FROM Modules WHERE Id = 29);
 END;
 
+-- The Signatures screen (35) and the shared Physician list, filled from the Pathologist list and the Annual PE's Physician Name list (the Signatures migration, on the imported rows)
+IF EXISTS (SELECT 1 FROM Modules WHERE Id = 34) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 35)
+    INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+    SELECT 35, ModuleTypeId, N'Signatures', 1, 0, 1, 0, 0, 0, 0, 0, N'signature', SortOrder + 1, 1, NULL FROM Modules WHERE Id = 34;
+IF NOT EXISTS (SELECT 1 FROM LookupValues WHERE ModuleId IS NULL AND Kind = 2 AND FieldName = N'Physician')
+BEGIN
+    INSERT INTO LookupValues (ModuleId, Kind, FieldName, Title, Value, LicenseNo, CreatedAtUtc, UpdatedAtUtc, IsActive)
+    SELECT NULL, 2, N'Physician', NULL, p.Value, p.LicenseNo, SYSUTCDATETIME(), SYSUTCDATETIME(), 1
+    FROM LookupValues p
+    WHERE p.ModuleId IS NULL AND p.Kind = 2 AND p.FieldName = N'Pathologist' AND p.IsActive = 1
+    ORDER BY p.Id;
+    INSERT INTO LookupValues (ModuleId, Kind, FieldName, Title, Value, LicenseNo, CreatedAtUtc, UpdatedAtUtc, IsActive)
+    SELECT NULL, 2, N'Physician', NULL, LTRIM(RTRIM(n.Value)),
+           (SELECT TOP 1 p.LicenseNo FROM LookupValues p
+            WHERE p.ModuleId IS NULL AND p.Kind = 2 AND p.FieldName = N'Pathologist' AND p.IsActive = 1 AND LTRIM(RTRIM(p.Value)) = LTRIM(RTRIM(n.Value))
+            ORDER BY p.Id),
+           SYSUTCDATETIME(), SYSUTCDATETIME(), 1
+    FROM LookupValues n
+    WHERE n.ModuleId = 16 AND n.Kind = 2 AND n.FieldName = N'Physician Name' AND n.IsActive = 1 AND LTRIM(RTRIM(n.Value)) <> N''
+      AND NOT EXISTS (SELECT 1 FROM LookupValues x
+                      WHERE x.ModuleId IS NULL AND x.Kind = 2 AND x.FieldName = N'Physician' AND LTRIM(RTRIM(x.Value)) = LTRIM(RTRIM(n.Value)))
+    GROUP BY LTRIM(RTRIM(n.Value))
+    ORDER BY MIN(n.Id);
+END
+
 -- Administrators get full access to every module, including those the legacy build did not have
 INSERT INTO UserPermissions (UserId, ModuleId, AllowCreate, AllowEdit, AllowDelete, AllowPrint, CreatedAtUtc, UpdatedAtUtc)
 SELECT u.Id, m.Id, 1, 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME() FROM Users u CROSS JOIN Modules m

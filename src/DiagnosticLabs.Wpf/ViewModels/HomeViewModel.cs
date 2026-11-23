@@ -13,7 +13,7 @@ namespace DiagnosticLabs.Wpf.ViewModels;
 
 /// <summary>
 /// One result form of a registration on the home screen: whether its result has been made, and a click that opens it. A service whose result
-/// can go in more than one form (Urinalysis on its own form or on the Physical Examination sheet) asks which, the first time.
+/// can go in more than one form (Urinalysis on its own form or on the Physical Examination sheet) always asks which, so a record can be made in both.
 /// </summary>
 public sealed class HomeChip(BoardService service, long registrationId, bool canUse, IReadOnlyList<BoardFormChoice> choices)
 {
@@ -50,7 +50,7 @@ public sealed class HomeChip(BoardService service, long registrationId, bool can
     public string ToolTip => !service.CanOpen
         ? (service.ModuleId is null ? "No result form for this service" : "This form is not available in the new app yet")
         : !CanOpen ? "You do not have access to this form"
-        : Choices.Count > 1 ? "Choose where to enter the result: " + string.Join(" or ", Choices.Select(c => c.FormName))
+        : Choices.Count > 1 ? (IsMade ? "Open the saved result or enter one in the other form: " : "Choose where to enter the result: ") + string.Join(" or ", Choices.Select(c => c.FormName))
         : IsMade ? "Open the result" + Where + (Count > 1 ? " (the latest of " + Count + ")" : string.Empty) : "Make the result" + Where;
 }
 
@@ -65,7 +65,13 @@ public sealed class HomeRow(BoardItem item, IReadOnlyList<HomeChip> chips, bool 
 
     public string DateText { get; } = item.Date.ToString("dd MMM yyyy");
 
-    public string Details { get; } = string.Join("  -  ", new[] { item.CompanyName, string.IsNullOrWhiteSpace(item.BatchName) ? null : item.BatchName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+    public string CompanyName { get; } = item.CompanyName ?? string.Empty;
+
+    /// <summary>"(Batch: name)", shown after the company in a lighter text; empty without a batch.</summary>
+    public string BatchText { get; } = string.IsNullOrWhiteSpace(item.BatchName) ? string.Empty : $"(Batch: {item.BatchName.Trim()})";
+
+    /// <summary>The company and batch on one line (the tooltip of a line too long for the row).</summary>
+    public string Details => string.Join(" ", new[] { CompanyName, BatchText }.Where(s => s.Length > 0));
 
     public IReadOnlyList<HomeChip> Chips { get; } = chips;
 
@@ -278,37 +284,45 @@ public partial class HomeViewModel(
     }
 
     [RelayCommand]
-    private Task OpenChipAsync(HomeChip? chip)
+    private void OpenChip(HomeChip? chip)
     {
         if (chip is not { CanOpen: true })
-            return Task.CompletedTask;
+            return;
 
-        if (chip.ModuleId is { } moduleId)
-        {
+        if (chip.Choices.Count > 0)
+            ChooseAndOpen(chip);
+        else if (chip.ModuleId is { } moduleId)
             navigation.OpenResult(moduleId, chip.RegistrationId, chip.OpenResultId, chip.Section);
-            return Task.CompletedTask;
-        }
-
-        return chip.Choices.Count > 0 ? ChooseAndOpenAsync(chip) : Task.CompletedTask;
     }
 
-    // The first time a Urinalysis or Fecalysis result is entered: on its own form or on the Physical Examination sheet. The choice is kept on the
-    // registration, so the chip opens the same form next time (and the sheet knows which sections are its own).
-    private Task ChooseAndOpenAsync(HomeChip chip) => RunAsync(async () =>
+    // Urinalysis and Fecalysis go on their own form or on the Physical Examination sheet, and a record may be wanted in both, so the chip always
+    // asks: each answer opens the result saved in that form, or starts one there. Nothing is kept about the choice.
+    private void ChooseAndOpen(HomeChip chip)
     {
         var choices = chip.Choices;
         var choice = choices[0];
         if (choices.Count > 1)
         {
-            var row = Rows.FirstOrDefault(r => r.RegistrationId == chip.RegistrationId);
-            var sheetInUse = choices.Any(c => c.SheetId is not null)
-                || (row?.Chips.Any(c => c.Section is not null && c.ModuleId is not null) ?? false);
-            var suggested = sheetInUse ? Math.Max(0, choices.ToList().FindIndex(c => c.Section is not null)) : 0;
+            int suggested;
+            if (choices.Any(c => c.ResultId is not null))
+            {
+                // the form with the latest saved result: opening it is the usual reason to click
+                suggested = choices.ToList().FindIndex(c => c.ResultId == choices.Max(x => x.ResultId));
+            }
+            else
+            {
+                var row = Rows.FirstOrDefault(r => r.RegistrationId == chip.RegistrationId);
+                var sheetInUse = choices.Any(c => c.SheetId is not null)
+                    || (row?.Chips.Any(c => c.Section is not null && c.ModuleId is not null && c.Choices.Count == 0) ?? false);
+                suggested = sheetInUse ? Math.Max(0, choices.ToList().FindIndex(c => c.Section is not null)) : 0;
+            }
 
             var picked = dialogs.Choose(
-                $"Where do you want to enter the {chip.Name} result?",
+                chip.IsMade
+                    ? $"The {chip.Name} result is saved. Open it, or enter one in the other form as well?"
+                    : $"Where do you want to enter the {chip.Name} result?",
                 chip.Name,
-                [.. choices.Select(c => c.FormName)],
+                [.. choices.Select(c => new ChoiceOption(c.FormName, c.ResultId is not null, c.ResultId is not null ? "Open the saved result" : "Enter a result here"))],
                 suggested);
             if (picked is not { } index)
                 return;
@@ -316,15 +330,8 @@ public partial class HomeViewModel(
             choice = choices[index];
         }
 
-        var kept = await runner.RunAsync<IRegistrationBoardService, Result>(s => s.ChooseFormAsync(chip.RegistrationServiceId, choice.ModuleId));
-        if (kept.IsFailure)
-        {
-            ShowError(kept.Error.Message);
-            return;
-        }
-
-        navigation.OpenResult(choice.ModuleId, chip.RegistrationId, choice.SheetId, choice.Section);
-    });
+        navigation.OpenResult(choice.ModuleId, chip.RegistrationId, choice.OpenResultId, choice.Section);
+    }
 
     [RelayCommand]
     private void Pay(HomeRow? row)
@@ -367,7 +374,8 @@ public partial class HomeViewModel(
         {
             var chips = item.Services.Select(s =>
             {
-                var choices = (s.Choices ?? []).Where(c => CanStart(c.ModuleId, c.SheetId)).ToList();
+                // opening a saved result needs access to its form; starting one needs "create" (or "edit" to add a section to a sheet that exists)
+                var choices = (s.Choices ?? []).Where(c => c.ResultId is not null ? user.CanAccess(c.ModuleId) : CanStart(c.ModuleId, c.SheetId)).ToList();
                 return new HomeChip(s, item.RegistrationId, s.NeedsChoice ? choices.Count > 0 : CanUse(s), choices);
             }).ToList();
             Rows.Add(new HomeRow(item, chips, canPay));

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- One-window setup tool for IT: prepares a lab station (share login, launcher, shortcuts, first copy)
+       and, on the server, manages the station password. Self-contained single file: see Properties\PublishProfiles. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>DiagnosticLabs.StationSetup</RootNamespace>
+    <AssemblyName>StationSetup</AssemblyName>
+    <ApplicationIcon>..\..\src\DiagnosticLabs.Wpf\Assets\app.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <!-- The launcher ships inside the exe so IT carries one file; tools\deploy stays the single source. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\deploy\Start-DiagnosticLabs.cmd" LogicalName="Launcher.Start-DiagnosticLabs.cmd" />
+    <EmbeddedResource Include="..\deploy\Start-DiagnosticLabs.ps1" LogicalName="Launcher.Start-DiagnosticLabs.ps1" />
+    <EmbeddedResource Include="..\..\src\DiagnosticLabs.Wpf\Assets\app.ico" LogicalName="Launcher.app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="StationSetup.Tests" />
+  </ItemGroup>
+
+</Project>

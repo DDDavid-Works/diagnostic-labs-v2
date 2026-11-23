@@ -296,7 +296,7 @@ public partial class AnnualPhysicalExamViewModel(
     public TemplateOptions AssessmentTemplates { get; } = new();
 
     // ----- who did the assessment and the physician (Page 2's own signatories) -----
-    // They only hold the values: the names are picked from the shared Medical Technologist / Pathologist lists (with their licence numbers).
+    // They only hold the values: the names are picked from the shared Medical Technologist / Physician lists (with their licence numbers).
     public ChoiceField AssessmentDoneBy { get; } = new("AssessmentDoneBy", "Assessment Done By", EntryFields.MerAssessmentDoneBy);
 
     public ChoiceField PhysicianName { get; } = new("PhysicianName", "Physician Name", EntryFields.MerPhysicianName);
@@ -323,11 +323,11 @@ public partial class AnnualPhysicalExamViewModel(
         {
             _wired = true;
 
-            // Picking a physician fills in the licence number from the Pathologist list (a saved form keeps the one it was saved with).
+            // Picking a physician fills in the licence number from the Physician list (a saved form keeps the one it was saved with).
             PhysicianName.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(ChoiceField.Value) && !_showingSaved)
-                    PhysicianLicense.Value = PathologistLicenseOf(PhysicianName.Value);
+                    PhysicianLicense.Value = PhysicianLicenseOf(PhysicianName.Value);
             };
         }
 

@@ -1,0 +1,114 @@
+<UserControl x:Class="DiagnosticLabs.Wpf.Views.SignaturesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls"
+             x:Name="Root"
+             Loaded="OnLoaded">
+  <Grid Margin="24,16,24,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="Signatures" Style="{StaticResource PageTitle}" Margin="0,0,0,8" />
+    <TextBlock Grid.Row="1" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,10"
+               Text="A signature is printed above the person's name on the results (the print preview can leave the signatures off). Upload a scan or photo of the signature on white paper: the paper is made transparent and the picture is trimmed to the ink. Names and licence numbers are kept in the lists (Edit list...)." />
+
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding Groups}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="0,0,0,16">
+              <DockPanel Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right" Content="Edit list..." Padding="12,4"
+                        Command="{Binding DataContext.EditListCommand, ElementName=Root}" CommandParameter="{Binding}"
+                        ToolTip="Add, rename or remove people of this list and their licence numbers" />
+                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </DockPanel>
+              <Border BorderBrush="{StaticResource GridLineBrush}" BorderThickness="1" Background="{StaticResource PanelBrush}">
+                <Grid>
+                  <TextBlock Text="Nobody is on this list yet. Use Edit list... to add people." Margin="10,8" Foreground="{StaticResource MutedTextBrush}">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding People.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                  <ItemsControl ItemsSource="{Binding People}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border BorderBrush="{StaticResource GridLineBrush}" BorderThickness="0,0,0,1" Padding="10,6">
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="236" />
+                              <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Text="{Binding License}" Foreground="{StaticResource MutedTextBrush}" />
+                            </StackPanel>
+                            <!-- The signature on white, about as it sits on the paper. -->
+                            <Border Grid.Column="1" Width="220" Height="64" Background="White" BorderBrush="{StaticResource StrongBorderBrush}" BorderThickness="1" Margin="8,0">
+                              <Grid>
+                                <Image Source="{Binding Signature}" Stretch="Uniform" Margin="4" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <TextBlock Text="No signature" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                  <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                      <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasSignature}" Value="True">
+                                          <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                      </Style.Triggers>
+                                    </Style>
+                                  </TextBlock.Style>
+                                </TextBlock>
+                              </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                              <Button Content="Upload..." Padding="12,4" Margin="0,0,6,0"
+                                      Command="{Binding DataContext.UploadCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                      ToolTip="Pick a scan or photo of this person's signature (it replaces the one on file)" />
+                              <Button Content="Remove" Padding="12,4" Style="{StaticResource DangerButton}"
+                                      IsEnabled="{Binding HasSignature}"
+                                      Command="{Binding DataContext.RemoveCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                      ToolTip="Print this person's name without a signature" />
+                            </StackPanel>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Grid>
+              </Border>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="3" Margin="0,10,0,0">
+      <TextBlock Text="{Binding Message}" Margin="0,0,0,8" TextWrapping="Wrap">
+        <TextBlock.Style>
+          <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding IsError}" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </TextBlock.Style>
+      </TextBlock>
+      <Button icn:ButtonIcon.Data="{StaticResource Icon.Refresh}" Content="Refresh" Padding="14,6" HorizontalAlignment="Left" Command="{Binding RefreshCommand}"
+              ToolTip="Read the lists again" />
+    </StackPanel>
+  </Grid>
+</UserControl>

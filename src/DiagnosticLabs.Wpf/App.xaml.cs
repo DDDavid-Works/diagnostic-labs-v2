@@ -138,6 +138,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<DiagnosticLabs.Application.Stations.IAppInfo, AppInfo>();
         builder.Services.AddSingleton<IUpdateChecker, UpdateChecker>();
         builder.Services.AddTransient<StationsViewModel>();
+        builder.Services.AddTransient<SignaturesViewModel>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<PatientsViewModel>();
         builder.Services.AddTransient<RegistrationsViewModel>();

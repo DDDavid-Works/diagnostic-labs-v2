@@ -260,8 +260,9 @@ public sealed class MedicalExamReportService(IAppDbContext db, ICurrentUser curr
 
     protected override IReadOnlyList<PrintSignatory> Signatories(LabReport report, MedicalExamReport e) =>
     [
-        .. MedicalExamFields.Signatories.Select(s => new PrintSignatory(s.Label, (string?)Columns[s.Name].GetValue(e), (string?)Columns[s.Name + "License"].GetValue(e))),
-        new PrintSignatory(PhysicianRole, report.Pathologist, report.PathologistLicense),
+        .. MedicalExamFields.Signatories.Select(s => new PrintSignatory(
+            s.Label, (string?)Columns[s.Name].GetValue(e), (string?)Columns[s.Name + "License"].GetValue(e), EntryFields.MedicalTechnologist)),
+        new PrintSignatory(PhysicianRole, report.Pathologist, report.PathologistLicense, EntryFields.Physician),
     ];
 
     protected override IReadOnlyDictionary<string, string?> PrintFields(LabReport report, MedicalExamReport e) =>

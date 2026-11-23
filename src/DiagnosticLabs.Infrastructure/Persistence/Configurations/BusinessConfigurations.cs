@@ -276,6 +276,17 @@ internal sealed class LookupValueConfiguration : IEntityTypeConfiguration<Lookup
     }
 }
 
+internal sealed class SignatoryImageConfiguration : IEntityTypeConfiguration<SignatoryImage>
+{
+    public void Configure(EntityTypeBuilder<SignatoryImage> builder)
+    {
+        builder.HasOne<LookupValue>().WithMany().HasForeignKey(s => s.LookupValueId);
+
+        // One signature per signatory entry.
+        builder.HasIndex(s => s.LookupValueId).IsUnique();
+    }
+}
+
 internal sealed class ModuleDefaultConfiguration : IEntityTypeConfiguration<ModuleDefault>
 {
     public void Configure(EntityTypeBuilder<ModuleDefault> builder)

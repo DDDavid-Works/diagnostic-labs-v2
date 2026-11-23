@@ -46,6 +46,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
 
           <TextBlock Grid.Row="0" Grid.ColumnSpan="5" Text="Parameters" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,12" />
@@ -68,6 +69,14 @@
           <TextBlock Grid.Row="4" Grid.Column="0" Text="Service *" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" />
           <ComboBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="4" ItemsSource="{Binding Services}" DisplayMemberPath="Name"
                     SelectedValuePath="ServiceId" SelectedValue="{Binding ServiceId}" ToolTip="The result form to print" />
+
+          <!-- only for a service whose results can be on two forms (Urinalysis: its own form or the Physical Examination sheet) -->
+          <TextBlock Grid.Row="5" Grid.Column="0" Text="Form" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,10,0,0"
+                     Visibility="{Binding HasFormChoice, Converter={StaticResource BoolToVis}}" />
+          <ComboBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="4" ItemsSource="{Binding Forms}" DisplayMemberPath="Name" Margin="0,10,0,0"
+                    SelectedValuePath="ModuleId" SelectedValue="{Binding FormModuleId}"
+                    Visibility="{Binding HasFormChoice, Converter={StaticResource BoolToVis}}"
+                    ToolTip="The latest result on either form, or only the results on one form (a patient may have a record on both)" />
         </Grid>
       </Border>
 
@@ -88,8 +97,9 @@
       <DataGrid Grid.Row="1" ItemsSource="{Binding Rows}" IsReadOnly="True" SelectionMode="Single">
         <DataGrid.Columns>
           <DataGridTextColumn Header="Patient Name" Binding="{Binding PatientName}" Width="*" />
-          <DataGridTextColumn Header="Results Inputted" Binding="{Binding ResultText}" Width="140" ElementStyle="{StaticResource ResultCell}" />
-          <DataGridTextColumn Header="Date Inputted" Binding="{Binding DateText}" Width="150" />
+          <DataGridTextColumn Header="Results Inputted" Binding="{Binding ResultText}" Width="120" ElementStyle="{StaticResource ResultCell}" />
+          <DataGridTextColumn Header="Date Inputted" Binding="{Binding DateText}" Width="110" />
+          <DataGridTextColumn Header="Form" Binding="{Binding FormText}" Width="190" />
         </DataGrid.Columns>
       </DataGrid>
     </Grid>

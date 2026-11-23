@@ -79,6 +79,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<LookupValue> LookupValues => Set<LookupValue>();
 
+    public DbSet<SignatoryImage> SignatoryImages => Set<SignatoryImage>();
+
     public DbSet<ModuleDefault> ModuleDefaults => Set<ModuleDefault>();
 
     public DbSet<CodeSequence> CodeSequences => Set<CodeSequence>();

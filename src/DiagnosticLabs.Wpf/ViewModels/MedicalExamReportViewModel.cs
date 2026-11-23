@@ -173,7 +173,7 @@ public sealed class MedicalExamForm
 /// <summary>
 /// The Medical Examination Report: the client's two-page form. The screen has three tabs (History, Physical Exam, and Page 2 with the laboratory results,
 /// classification, assessment and sign-off); the values are described once in <see cref="MedicalExamFields"/> and found by name through <see cref="Form"/>.
-/// The physician who signs is the header's Pathologist; the other people who sign are saved on the form.
+/// The physician who signs is the header's Pathologist (picked from the Physician list); the other people who sign are saved on the form.
 /// </summary>
 public partial class MedicalExamReportViewModel(
     IServiceRunner runner,
@@ -213,6 +213,9 @@ public partial class MedicalExamReportViewModel(
     public bool IsObGyneEnabled => !(Sex ?? string.Empty).Trim().StartsWith("M", StringComparison.OrdinalIgnoreCase);
 
     protected override EntryField RemarksField => EntryFields.MedicalExamReportRemarks;
+
+    // The header's Pathologist is the physician who signs the report: picked from the Physician list, with its licence.
+    protected override bool PathologistIsPhysician => true;
 
     protected override void OnPersonPicked(DateOnly? dateOfBirth, string? civilStatus, string? contactNumbers)
     {

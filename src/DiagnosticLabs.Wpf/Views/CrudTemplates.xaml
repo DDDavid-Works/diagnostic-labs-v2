@@ -1416,7 +1416,7 @@
                   </StackPanel>
                   <StackPanel Grid.Column="2">
                     <TextBlock Text="Physician" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
-                    <ctl:ChoiceBox ItemsSource="{Binding Pathologists}" Text="{Binding Pathologist}" EditCommand="{Binding EditPathologistListCommand}" />
+                    <ctl:ChoiceBox ItemsSource="{Binding Physicians}" Text="{Binding Pathologist}" EditCommand="{Binding EditPhysicianListCommand}" />
                     <DockPanel Margin="0,4,0,0">
                       <TextBlock DockPanel.Dock="Left" Text="License No:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
                       <TextBox Text="{Binding PathologistLicense, UpdateSourceTrigger=PropertyChanged}" />
@@ -2051,7 +2051,7 @@
                   </StackPanel>
                   <StackPanel Grid.Column="2">
                     <TextBlock Text="Physician Name" Style="{StaticResource PaperLabel}" Margin="0,0,0,3" />
-                    <ctl:ChoiceBox ItemsSource="{Binding Pathologists}" Text="{Binding PhysicianName.Value}" EditCommand="{Binding EditPathologistListCommand}" />
+                    <ctl:ChoiceBox ItemsSource="{Binding Physicians}" Text="{Binding PhysicianName.Value}" EditCommand="{Binding EditPhysicianListCommand}" />
                     <DockPanel Margin="0,6,0,0">
                       <TextBlock DockPanel.Dock="Left" Text="License No:" Style="{StaticResource PaperLabel}" VerticalAlignment="Center" Margin="0,0,6,0" />
                       <TextBox Text="{Binding PhysicianLicense.Value, UpdateSourceTrigger=PropertyChanged}" />

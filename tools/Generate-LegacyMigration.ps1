@@ -530,6 +530,16 @@ Emit '-- Complete Blood Count is entered in the CBC section of the Physical Exam
 Emit '-- the sheet''s own service is switched off (the ServiceFormSections migration, on the imported rows)'
 foreach ($line in ($sectionsMatch.Groups[1].Value -split '\r?\n')) { Emit ($line -replace '^ {12}', '') }
 Emit ''
+
+# The Signatures screen (35) and the shared Physician list: the Signatures migration's SQL, read from the migration itself (it ran on the empty
+# database and found no modules or lists, so it runs again here on the imported rows).
+$signaturesMigration = Get-ChildItem (Join-Path $root 'src\DiagnosticLabs.Infrastructure\Persistence\Migrations') -Filter '*_Signatures.cs' |
+    Where-Object { $_.Name -notlike '*.Designer.cs' } | Select-Object -First 1
+$signaturesMatch = [regex]::Match((Get-Content $signaturesMigration.FullName -Raw), '(?s)SignaturesSql = """\r?\n(.*?)\r?\n\s*""";')
+if (-not $signaturesMatch.Success) { throw 'SignaturesSql not found in the Signatures migration.' }
+Emit '-- The Signatures screen (35) and the shared Physician list, filled from the Pathologist list and the Annual PE''s Physician Name list (the Signatures migration, on the imported rows)'
+foreach ($line in ($signaturesMatch.Groups[1].Value -split '\r?\n')) { Emit ($line -replace '^ {12}', '') }
+Emit ''
 Emit '-- Administrators get full access to every module, including those the legacy build did not have'
 Emit 'INSERT INTO UserPermissions (UserId, ModuleId, AllowCreate, AllowEdit, AllowDelete, AllowPrint, CreatedAtUtc, UpdatedAtUtc)'
 Emit 'SELECT u.Id, m.Id, 1, 1, 1, 1, SYSUTCDATETIME(), SYSUTCDATETIME() FROM Users u CROSS JOIN Modules m'
@@ -583,6 +593,7 @@ foreach ($lab in $labs) {
 [void]$v.AppendLine("SELECT Item, LegacyValue, NewValue, CASE WHEN LegacyValue = NewValue THEN 'ok' ELSE 'DIFFERENT' END AS Status FROM #r ORDER BY Item;")
 [void]$v.AppendLine("-- Expected difference: Companies is equal (the WALK-IN row is kept); any DIFFERENT lab row count means rows were skipped (see the migration summary).")
 [void]$v.AppendLine("-- Services, PackageServices and ServiceItemQuantities may differ: the Annual Physical Exam Page 2 service is deleted (it is part of the Annual Physical Exam now).")
+[void]$v.AppendLine("-- LookupValues has more rows than the legacy lists: the Physician list is added (a copy of the Pathologist list plus the Annual PE's Physician Name list).")
 [IO.File]::WriteAllText((Join-Path $root 'db\verify-migration.sql'), $v.ToString(), (New-Object Text.UTF8Encoding($true)))
 
 "Wrote db\migrate-from-legacy.sql ($($sql.Length) chars) and db\verify-migration.sql"

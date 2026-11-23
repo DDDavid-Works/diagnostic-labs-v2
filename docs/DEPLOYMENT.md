@@ -161,7 +161,7 @@ All in `tools/deploy/`; the publish profile is `src/DiagnosticLabs.Wpf/Propertie
   - starts the installed copy if the server is unreachable;
   - asks the user to close the app first if an update is waiting while it is running.
 
-Station setup is then: copy the `tools/deploy` files (`.cmd`, `.ps1`, `launcher.json`) to a local folder, make a desktop shortcut to the `.cmd`. Put the SQL-login `appsettings.Local.json` in the share's `config` folder (not in the repo).
+Station setup is done with **`StationSetup.exe`** (project `tools/StationSetup`, a self-contained single-file WinForms tool; the lab's IT staff follow `docs/STATION-SETUP.md`). On a station, as the Windows user who will use the app, it checks Windows, the server name, ports 445 and 1433 (the database host is read from the share's config file), saves the `dlupdate` login in Credential Manager (what `cmdkey` did), writes the embedded launcher with its `launcher.json` to `%LOCALAPPDATA%\DiagnosticLabs\launcher`, makes desktop and Start menu shortcuts, and does the first copy of the app with a progress bar (same rules as the launcher). On the server its **Server** tab (as administrator) shows the name and IPs stations type in, checks the account, share, release and config, and sets a new random `dlupdate` password that never expires, keeping a copy readable by administrators only (`C:\ProgramData\DiagnosticLabs\station-password.dat`, DPAPI machine scope) so it can be shown again later. It is built by `Make-ServerKit.ps1` (into the kit) and by `Publish-Release.ps1 -Zip -IncludeStationSetup` (into `_server`, which `Update-Server.ps1` copies to the share's `setup` folder). The launcher files stay in `tools/deploy` as the single source; the exe embeds them at build time.
 
 ### Backup tools
 

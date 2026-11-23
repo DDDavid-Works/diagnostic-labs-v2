@@ -171,6 +171,13 @@ try {
     }
     Copy-Release $staging $current $newVersion
     Ok "current is now $newVersion"
+    # IT's station setup tool rides in _server when the release was built with -IncludeStationSetup.
+    $setupExe = Join-Path $staging '_server\StationSetup.exe'
+    if (Test-Path $setupExe) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $ShareRoot 'setup') | Out-Null
+        Copy-Item $setupExe -Destination (Join-Path $ShareRoot 'setup') -Force
+        Ok "StationSetup.exe is in $ShareRoot\setup (copy it to a USB stick for new stations)"
+    }
 
     # ---------- 5. verify and record ----------
     Step '5. Checking the result'

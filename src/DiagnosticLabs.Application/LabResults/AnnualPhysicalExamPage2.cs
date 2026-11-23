@@ -1,4 +1,5 @@
 using DiagnosticLabs.Application.Common;
+using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Domain.Lab;
 using DiagnosticLabs.Domain.Lab.Reports;
 
@@ -128,6 +129,9 @@ internal static class AnnualPhysicalExamPage2
         PhysicianLicense = e.PhysicianLicense,
     };
 
+    /// <summary>The role of the one signatory of page 2 (its name and licence are also in the fields, where the page design places them).</summary>
+    public const string PhysicianRole = "Physician in Charge";
+
     /// <summary>The printed page 2: its own person box (with the first page's contact number and civil status), the three text boxes and the physician.</summary>
     public static PrintableReport Printable(
         LabReport report, AnnualPhysicalExamReport page1, MedicalExaminationReport e, ReportLetterhead letterhead, IReadOnlyList<PrintLine> patient) => new(
@@ -137,7 +141,7 @@ internal static class AnnualPhysicalExamPage2
         patient,
         [],
         [new("Medical/Surgical History", e.MedicalSurgicalHistory), new("Assessment", e.Assessment), new("Remarks", report.Remarks)],
-        [],
+        [new PrintSignatory(PhysicianRole, e.PhysicianName, e.PhysicianLicense, EntryFields.Physician)],
         string.Empty,
         new Dictionary<string, string?>
         {

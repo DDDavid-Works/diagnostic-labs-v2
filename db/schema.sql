@@ -3283,3 +3283,102 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115031917_DropRegistrationResultModule'
+)
+BEGIN
+    DECLARE @var4 nvarchar(max);
+    SELECT @var4 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[PatientRegistrationServices]') AND [c].[name] = N'ResultModuleId');
+    IF @var4 IS NOT NULL EXEC(N'ALTER TABLE [PatientRegistrationServices] DROP CONSTRAINT ' + @var4 + ';');
+    ALTER TABLE [PatientRegistrationServices] DROP COLUMN [ResultModuleId];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115031917_DropRegistrationResultModule'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261115031917_DropRegistrationResultModule', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123075759_Signatures'
+)
+BEGIN
+    CREATE TABLE [SignatoryImages] (
+        [Id] bigint NOT NULL IDENTITY,
+        [LookupValueId] bigint NOT NULL,
+        [Image] varbinary(max) NOT NULL,
+        [CreatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [CreatedByUserId] bigint NULL,
+        [UpdatedAtUtc] datetime2(3) NOT NULL DEFAULT (SYSUTCDATETIME()),
+        [UpdatedByUserId] bigint NULL,
+        [RowVersion] rowversion NOT NULL,
+        CONSTRAINT [PK_SignatoryImages] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_SignatoryImages_LookupValues_LookupValueId] FOREIGN KEY ([LookupValueId]) REFERENCES [LookupValues] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_SignatoryImages_Users_CreatedByUserId] FOREIGN KEY ([CreatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_SignatoryImages_Users_UpdatedByUserId] FOREIGN KEY ([UpdatedByUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123075759_Signatures'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_SignatoryImages_LookupValueId] ON [SignatoryImages] ([LookupValueId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123075759_Signatures'
+)
+BEGIN
+    IF EXISTS (SELECT 1 FROM Modules WHERE Id = 34) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 35)
+        INSERT INTO Modules (Id, ModuleTypeId, ModuleName, HasView, HasCreate, HasEdit, HasDelete, HasSearch, HasPrint, HasShowList, HasSetDefaults, Icon, SortOrder, IsActive, ServiceId)
+        SELECT 35, ModuleTypeId, N'Signatures', 1, 0, 1, 0, 0, 0, 0, 0, N'signature', SortOrder + 1, 1, NULL FROM Modules WHERE Id = 34;
+    IF NOT EXISTS (SELECT 1 FROM LookupValues WHERE ModuleId IS NULL AND Kind = 2 AND FieldName = N'Physician')
+    BEGIN
+        INSERT INTO LookupValues (ModuleId, Kind, FieldName, Title, Value, LicenseNo, CreatedAtUtc, UpdatedAtUtc, IsActive)
+        SELECT NULL, 2, N'Physician', NULL, p.Value, p.LicenseNo, SYSUTCDATETIME(), SYSUTCDATETIME(), 1
+        FROM LookupValues p
+        WHERE p.ModuleId IS NULL AND p.Kind = 2 AND p.FieldName = N'Pathologist' AND p.IsActive = 1
+        ORDER BY p.Id;
+        INSERT INTO LookupValues (ModuleId, Kind, FieldName, Title, Value, LicenseNo, CreatedAtUtc, UpdatedAtUtc, IsActive)
+        SELECT NULL, 2, N'Physician', NULL, LTRIM(RTRIM(n.Value)),
+               (SELECT TOP 1 p.LicenseNo FROM LookupValues p
+                WHERE p.ModuleId IS NULL AND p.Kind = 2 AND p.FieldName = N'Pathologist' AND p.IsActive = 1 AND LTRIM(RTRIM(p.Value)) = LTRIM(RTRIM(n.Value))
+                ORDER BY p.Id),
+               SYSUTCDATETIME(), SYSUTCDATETIME(), 1
+        FROM LookupValues n
+        WHERE n.ModuleId = 16 AND n.Kind = 2 AND n.FieldName = N'Physician Name' AND n.IsActive = 1 AND LTRIM(RTRIM(n.Value)) <> N''
+          AND NOT EXISTS (SELECT 1 FROM LookupValues x
+                          WHERE x.ModuleId IS NULL AND x.Kind = 2 AND x.FieldName = N'Physician' AND LTRIM(RTRIM(x.Value)) = LTRIM(RTRIM(n.Value)))
+        GROUP BY LTRIM(RTRIM(n.Value))
+        ORDER BY MIN(n.Id);
+    END
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123075759_Signatures'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261123075759_Signatures', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using DiagnosticLabs.Application.LabResults;
 using DiagnosticLabs.Wpf.Services;
 
@@ -216,6 +217,29 @@ internal static class PageDrawing
     public static void PutRule(Canvas canvas, double x, double y, double width, double thickness = 1.33) =>
         PutRect(canvas, x, y, width, thickness, Brushes.Black, null, 0);
 
+    /// <summary>
+    /// The stored signature of <paramref name="person"/> (if any), signed over the printed name: scaled to fit a box of fixed size
+    /// (<paramref name="height"/> high, at most 80% of the column wide), centred on the column, its lowest stroke at <paramref name="foot"/>
+    /// (just above the baseline of the name, so the name stays readable). Drawn under the text placed after it. The box never grows
+    /// (the page keeps its fixed height); callers size it to the free space above the name.
+    /// </summary>
+    public static void PutSignature(Canvas canvas, PrintSignatory? person, double x, double width, double foot, double height)
+    {
+        if (ImageLoader.FromBytes(person?.Signature) is not BitmapSource image || image.PixelWidth == 0 || image.PixelHeight == 0)
+            return;
+
+        var scale = Math.Min(width * 0.8 / image.PixelWidth, height / image.PixelHeight);
+        double w = image.PixelWidth * scale, h = image.PixelHeight * scale;
+        var picture = new Image { Source = image, Width = w, Height = h, Stretch = Stretch.Fill };
+        RenderOptions.SetBitmapScalingMode(picture, BitmapScalingMode.HighQuality);
+        Canvas.SetLeft(picture, x + ((width - w) / 2));
+        Canvas.SetTop(picture, foot - h);
+        canvas.Children.Add(picture);
+    }
+
+    /// <summary>How far above the baseline of the printed name the foot of a signature sits.</summary>
+    public const double SignatureAboveName = 2.0;
+
     public static void PutVerticalRule(Canvas canvas, double x, double y, double height, double thickness = 1.33) =>
         PutRect(canvas, x, y, thickness, height, Brushes.Black, null, 0);
 
@@ -349,6 +373,8 @@ internal static class PageDrawing
         for (var i = 0; i < report.Signatories.Count && i < left.Length; i++)
         {
             const double width = 284.9;
+            // Between the note above and the name: the box starts a little under the note.
+            PutSignature(canvas, report.Signatories[i], left[i], width, note + name - SignatureAboveName, name - SignatureAboveName - 4.0);
             PutText(canvas, report.Signatories[i].Name, left[i], note + name, s.Body, bold: true, width: width, alignment: TextAlignment.Center);
             PutRule(canvas, left[i], note + rule, width, s.Line);
             PutText(canvas, report.Signatories[i].Role, left[i], note + role, s.Body, bold: false, width: width, alignment: TextAlignment.Center);
@@ -424,12 +450,12 @@ internal static class PageDrawing
     }
 
     /// <summary>How far below the last box each line of the three-signatory block sits.</summary>
-    private readonly record struct SignatoryRows(double Name, double Rule, double Role, double License, double Note, double NoteAfterLicense, double NoteStep)
+    private readonly record struct SignatoryRows(double Name, double Rule, double Role, double License, double Note, double NoteAfterLicense, double NoteStep, double Signature)
     {
-        public static readonly SignatoryRows Standard = new(48.7, 54.4, 68.9, 83.9, 91.0, 106.0, 17.0);
+        public static readonly SignatoryRows Standard = new(48.7, 54.4, 68.9, 83.9, 91.0, 106.0, 17.0, 40.0);
 
         /// <summary>A half page: closer under the box and tighter between the lines, still with room above the names for a signature.</summary>
-        public static readonly SignatoryRows Half = new(34.0, 39.7, 53.0, 66.0, 72.0, 84.0, 14.0);
+        public static readonly SignatoryRows Half = new(34.0, 39.7, 53.0, 66.0, 72.0, 84.0, 14.0, 28.0);
     }
 
     /// <summary>Three signatories in equal columns under <paramref name="top"/>, then the two lines of the electronic-document note under them.</summary>
@@ -442,6 +468,7 @@ internal static class PageDrawing
         for (var i = 0; i < report.Signatories.Count && i < 3; i++)
         {
             var x = ThreeLeft + (i * (width + gap));
+            PutSignature(canvas, report.Signatories[i], x, width, top + rows.Name - SignatureAboveName, rows.Signature);
             PutFit(canvas, report.Signatories[i].Name, x, top + rows.Name, width, size, bold: true, center: true);
             PageDrawing.PutRule(canvas, x, top + rows.Rule, width);
             PageDrawing.PutText(canvas, report.Signatories[i].Role.ToUpperInvariant(), x, top + rows.Role, size, bold: false, width: width, alignment: TextAlignment.Center);
@@ -899,6 +926,8 @@ internal static class MedicalExaminationLayout
         Text(canvas, "Noted By:", 511.2, foot);
 
         const double signLeft = 511.2, signWidth = 262.0;
+        // Between "Noted By:" and the physician's name (the licence and the line are under the name).
+        PageDrawing.PutSignature(canvas, report.Signatories.FirstOrDefault(s => s.List == Application.Entries.EntryFields.Physician), signLeft, signWidth, foot + 31.0, 27.0);
         TextCentered(canvas, Value("PhysicianName"), signLeft, signWidth, foot + 33.5);
         TextCentered(canvas, Value("PhysicianLicense"), signLeft, signWidth, foot + 52.0);
         Line(canvas, signLeft, foot + 58.2, signLeft + signWidth);
@@ -1669,6 +1698,7 @@ internal static class PhysicalExaminationLayout
         for (var i = 0; i < report.Signatories.Count && i < slots.Length; i++)
         {
             var (x, width) = slots[i];
+            PageDrawing.PutSignature(canvas, report.Signatories[i], x, width, 899.0 - PageDrawing.SignatureAboveName, 40.0);
             PageDrawing.PutFit(canvas, report.Signatories[i].Name, x, 899.0, width, Size, bold: true, center: true);
             PageDrawing.PutRule(canvas, x, 905.0, width, line);
             PageDrawing.PutText(canvas, report.Signatories[i].Role, x, 920.0, 12.0, bold: false, width: width, alignment: TextAlignment.Center);

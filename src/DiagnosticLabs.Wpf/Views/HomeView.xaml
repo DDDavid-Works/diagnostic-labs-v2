@@ -6,39 +6,9 @@
              Loaded="OnLoaded">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
-
-    <!-- A result form of a registration: ticked and tinted once its result has been made -->
-    <Style x:Key="ChipButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Margin" Value="0,0,8,6" />
-      <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Border x:Name="Bd" CornerRadius="13" Padding="10,4" Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="Mark" Text="&#x25CB;" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Caption}" VerticalAlignment="Center" />
-              </StackPanel>
-            </Border>
-            <ControlTemplate.Triggers>
-              <DataTrigger Binding="{Binding IsMade}" Value="True">
-                <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverTintBrush}" />
-                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource StrongBorderBrush}" />
-                <Setter TargetName="Mark" Property="Text" Value="&#x2714;" />
-                <Setter TargetName="Mark" Property="Foreground" Value="{StaticResource SuccessBrush}" />
-              </DataTrigger>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-              </Trigger>
-              <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Opacity" Value="0.5" />
-                <Setter Property="Cursor" Value="Arrow" />
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
+    <!-- lighter than MutedTextBrush: the batch name after the company -->
+    <SolidColorBrush x:Key="FaintTextBrush" Color="#8A988D" />
+    <!-- the result chips use ChipButton from Styles.xaml (shared with the form choice window) -->
   </UserControl.Resources>
 
   <Grid Margin="24,16,24,12">
@@ -115,12 +85,14 @@
                     <TextBlock Foreground="{StaticResource MutedTextBrush}" Margin="0,2,0,0">
                       <Run Text="{Binding Code, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding DateText, Mode=OneWay}" />
                     </TextBlock>
-                    <TextBlock Text="{Binding Details}" Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
-                               ToolTip="{Binding Details}" />
+                    <!-- the company, then the batch in parentheses and a lighter, smaller text -->
+                    <TextBlock Foreground="{StaticResource MutedTextBrush}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" ToolTip="{Binding Details}">
+                      <Run Text="{Binding CompanyName, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding BatchText, Mode=OneWay}" Foreground="{StaticResource FaintTextBrush}" FontSize="11.5" FontStyle="Italic" />
+                    </TextBlock>
                   </StackPanel>
 
                   <StackPanel Grid.Column="1" Margin="0,0,14,0">
-                    <Button icn:ButtonIcon.Data="{StaticResource Icon.Pay}" Content="Pay" HorizontalAlignment="Left" MinWidth="86" Padding="14,6" IsEnabled="{Binding CanPay}"
+                    <Button icn:ButtonIcon.Data="{StaticResource Icon.Pay}" Content="Payment" HorizontalAlignment="Left" MinWidth="86" Padding="14,6" IsEnabled="{Binding CanPay}"
                             Visibility="{Binding ShowPay, Converter={StaticResource BoolToVis}}"
                             CommandParameter="{Binding}"
                             Command="{Binding DataContext.PayCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Open the payment of this registration" />

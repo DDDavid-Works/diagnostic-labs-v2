@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<ICodeGenerator, CodeGenerator>();
         services.AddScoped<IEntryService, EntryService>();
+        services.AddScoped<ISignatureService, SignatureService>();
         services.AddScoped<IPatientService, PatientService>();
         services.AddScoped<IRegistrationService, RegistrationService>();
         services.AddScoped<IPaymentService, PaymentService>();

@@ -7,5 +7,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DiagnosticLabs.Application.Tests/DiagnosticLabs.Application.Tests.csproj" />
+    <Project Path="tests/StationSetup.Tests/StationSetup.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/StationSetup/StationSetup.csproj" />
   </Folder>
 </Solution>

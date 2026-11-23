@@ -26,7 +26,8 @@ public sealed record ResultRegistration(
 {
     /// <summary>
     /// The sections of this form (the Physical Examination sheet) that the registration's services put on it: Complete Blood Count when it is
-    /// on the registration, Urinalysis and Fecalysis when they were chosen to be entered on the sheet. Empty for every other form.
+    /// on the registration (it has no other form). Urinalysis and Fecalysis are not listed: they join the sheet only when the user picks the sheet
+    /// for them from the home screen (or types them in). Empty for every other form.
     /// </summary>
     public IReadOnlyList<FormSection> SheetSections => Sections ?? [];
 }
@@ -90,7 +91,7 @@ public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser current
         if (r is null)
             return Result<ResultRegistration>.Failure(new Error("Registration.NotFound", "The registration no longer exists."));
 
-        // A section belongs on this form when its service is on the registration and either has no other form or was chosen to go here.
+        // A section belongs on this form when its service is on the registration and has no other form.
         var lines = r.Services.Where(s => !s.IsDeleted).ToList();
         var serviceIds = lines.Select(s => s.ServiceId).ToList();
         var sectionLinks = await db.ServiceFormSections.AsNoTracking().Where(s => s.ModuleId == moduleId && serviceIds.Contains(s.ServiceId)).ToListAsync(cancellationToken);
@@ -102,7 +103,7 @@ public sealed class LabRegistrationLookup(IAppDbContext db, ICurrentUser current
             ? await db.ServiceFormSections.AsNoTracking().Where(s => s.ModuleId == moduleId).Select(s => s.Section).Distinct().OrderBy(s => s).ToListAsync(cancellationToken)
             :
             [
-                .. sectionLinks.Where(l => lines.Any(s => s.ServiceId == l.ServiceId && (!withOwnForm.Contains(l.ServiceId) || s.ResultModuleId == moduleId)))
+                .. sectionLinks.Where(l => lines.Any(s => s.ServiceId == l.ServiceId) && !withOwnForm.Contains(l.ServiceId))
                     .Select(l => l.Section).Distinct().Order(),
             ];
 

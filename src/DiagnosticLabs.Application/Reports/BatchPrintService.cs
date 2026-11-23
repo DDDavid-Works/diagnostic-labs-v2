@@ -8,18 +8,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DiagnosticLabs.Application.Reports;
 
-/// <summary>A service the batch can be printed for: one that has a result form the user may print (<see cref="ModuleId"/> is the first of them).</summary>
-public sealed record BatchPrintServiceOption(long ServiceId, string Name, int ModuleId);
+/// <summary>A form a service's results are printed with (Urinalysis: its own form or the Physical Examination sheet).</summary>
+public sealed record BatchPrintFormOption(int ModuleId, string Name);
+
+/// <summary>
+/// A service the batch can be printed for: one that has a result form the user may print (<see cref="ModuleId"/> is the first of them).
+/// <see cref="Forms"/> lists every form its results can be on that the user may print; more than one lets the search look in one of them only.
+/// </summary>
+public sealed record BatchPrintServiceOption(long ServiceId, string Name, int ModuleId, IReadOnlyList<BatchPrintFormOption>? Forms = null)
+{
+    public bool HasFormChoice => Forms is { Count: > 1 };
+}
 
 /// <summary>
 /// What to look for: the patients of a company, optionally of one batch of it, and their results of one service, optionally only the results made
-/// within a range of days (both included).
+/// within a range of days (both included), and for a service with more than one form optionally only the results on one form
+/// (<see cref="FormModuleId"/>; null: the latest result on any of them).
 /// </summary>
-public sealed record BatchPrintRequest(long CompanyId, long ServiceId, string? Batch = null, DateOnly? From = null, DateOnly? To = null);
+public sealed record BatchPrintRequest(long CompanyId, long ServiceId, string? Batch = null, DateOnly? From = null, DateOnly? To = null, int? FormModuleId = null);
 
-/// <summary>One patient of the batch: whether the result of the service has been inputted (<see cref="ResultId"/> is the latest one) and the day it was.</summary>
+/// <summary>
+/// One patient of the batch: whether the result of the service has been inputted (<see cref="ResultId"/> is the latest one), the day it was,
+/// and the form it is on.
+/// </summary>
 public sealed record BatchPrintRow(
-    long RegistrationId, string PatientName, string RegistrationCode, string BatchName, long? ResultId, DateOnly? ResultDate)
+    long RegistrationId, string PatientName, string RegistrationCode, string BatchName, long? ResultId, DateOnly? ResultDate, string? FormName = null)
 {
     public bool HasResult => ResultId is not null;
 }
@@ -54,15 +67,20 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
 
         var forms = await PrintableFormsAsync(cancellationToken);
         var names = await db.Services.AsNoTracking().Where(s => s.IsActive).ToDictionaryAsync(s => s.Id, s => s.ServiceName, cancellationToken);
+        var formNames = await db.Modules.AsNoTracking().ToDictionaryAsync(m => m.Id, m => m.ModuleName, cancellationToken);
 
         // Only services whose result form exists and that this user may print.
         return
         [
             .. forms.Where(f => names.ContainsKey(f.Key))
-                .Select(f => new BatchPrintServiceOption(f.Key, names[f.Key], f.Value[0].ModuleId))
+                .Select(f => new BatchPrintServiceOption(f.Key, names[f.Key], f.Value[0].ModuleId, [.. f.Value.Select(x => new BatchPrintFormOption(x.ModuleId, FormName(x, formNames)))]))
                 .OrderBy(o => o.ModuleId).ThenBy(o => o.Name, StringComparer.CurrentCultureIgnoreCase),
         ];
     }
+
+    // A section of the sheet is printed with the whole sheet, so it is named after the sheet.
+    private static string FormName(ServiceForm form, IReadOnlyDictionary<int, string> formNames) =>
+        formNames.GetValueOrDefault(form.ModuleId, "Result form") + (form.Section is null ? string.Empty : " sheet");
 
     // The built forms of each service that this user may print (services with none are left out).
     private async Task<Dictionary<long, List<ServiceForm>>> PrintableFormsAsync(CancellationToken cancellationToken)
@@ -93,6 +111,16 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
         if (service is null || !(await PrintableFormsAsync(cancellationToken)).TryGetValue(service.ServiceId, out var forms))
             return Result<BatchPrintSearchResult>.Failure(Errors.Forbidden);
 
+        // One form of the service only, when asked
+        if (request.FormModuleId is { } formModuleId)
+        {
+            forms = [.. forms.Where(x => x.ModuleId == formModuleId)];
+            if (forms.Count == 0)
+                return Result<BatchPrintSearchResult>.Failure(Errors.Invalid(["The results of this service are not printed with that form."]));
+        }
+
+        var formNames = (service.Forms ?? []).ToDictionary(x => x.ModuleId, x => x.Name);
+
         var companyName = await db.Companies.AsNoTracking().Where(c => c.Id == request.CompanyId).Select(c => c.CompanyName).FirstOrDefaultAsync(cancellationToken);
         if (companyName is null)
             return Result<BatchPrintSearchResult>.Failure(Errors.NotFound("Company"));
@@ -110,7 +138,7 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
             .ToListAsync(cancellationToken);
         var ids = expected.Select(r => (long?)r.Id).ToList();
 
-        var made = new List<(long Id, long RegistrationId, DateTime CreatedAtUtc)>();
+        var made = new List<(long Id, long RegistrationId, DateTime CreatedAtUtc, string FormName)>();
         foreach (var form in forms)
         {
             var results = Results(form).Where(l => ids.Contains(l.PatientRegistrationId));
@@ -120,7 +148,8 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
                 results = results.Where(l => l.CreatedAtUtc < LocalTime.DayBoundsUtc(to).To);
 
             var found = await results.Select(l => new { l.Id, RegistrationId = l.PatientRegistrationId!.Value, l.CreatedAtUtc }).ToListAsync(cancellationToken);
-            made.AddRange(found.Select(x => (x.Id, x.RegistrationId, x.CreatedAtUtc)));
+            var formName = formNames.GetValueOrDefault(form.ModuleId, service.Name);
+            made.AddRange(found.Select(x => (x.Id, x.RegistrationId, x.CreatedAtUtc, formName)));
         }
 
         // The latest result of each registration, whichever form it is on.
@@ -130,7 +159,7 @@ public sealed class BatchPrintService(IAppDbContext db, ICurrentUser currentUser
 
         var rows = expected
             .Select(r => latest.TryGetValue(r.Id, out var result)
-                ? new BatchPrintRow(r.Id, r.PatientName, r.RegistrationCode, r.BatchName, result.Id, LocalTime.ToLocalDate(result.CreatedAtUtc))
+                ? new BatchPrintRow(r.Id, r.PatientName, r.RegistrationCode, r.BatchName, result.Id, LocalTime.ToLocalDate(result.CreatedAtUtc), result.FormName)
                 : new BatchPrintRow(r.Id, r.PatientName, r.RegistrationCode, r.BatchName, null, null))
             .OrderBy(r => r.PatientName, StringComparer.CurrentCultureIgnoreCase).ThenBy(r => r.RegistrationId)
             .ToList();

@@ -4,10 +4,12 @@
         xmlns:icn="clr-namespace:DiagnosticLabs.Wpf.Controls"
         Background="{StaticResource WindowBrush}" Width="460" SizeToContent="Height"
         ShowInTaskbar="False" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
-  <!-- Asks which form a result is entered in: one wide button per form (the suggested one is the primary button), and Cancel. -->
+  <!-- Asks which form a result is entered in: one pill per form, drawn like the home chips (ticked when it has a record), and Cancel. -->
   <StackPanel Margin="20,18,20,16">
     <TextBlock x:Name="MessageText" TextWrapping="Wrap" FontSize="14" Margin="0,0,0,14" />
-    <StackPanel x:Name="OptionPanel" />
-    <Button HorizontalAlignment="Right" icn:ButtonIcon.Data="{StaticResource Icon.Cancel}" Content="Cancel" IsCancel="True" Margin="0,6,0,0" />
+    <WrapPanel x:Name="OptionPanel" />
+    <TextBlock Text="&#x2714; has a saved record: opens it.   &#x25CB; no record yet: starts one." Foreground="{StaticResource MutedTextBrush}"
+               TextWrapping="Wrap" Margin="0,6,0,0" />
+    <Button HorizontalAlignment="Right" icn:ButtonIcon.Data="{StaticResource Icon.Cancel}" Content="Cancel" IsCancel="True" Margin="0,12,0,0" />
   </StackPanel>
 </Window>

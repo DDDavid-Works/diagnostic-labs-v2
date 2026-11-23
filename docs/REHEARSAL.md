@@ -70,11 +70,12 @@ On the build machine:
 ## C. Station (repeat per PC)
 
 ### C1. First install
-- [ ] **Credentials for the update share** (workgroup, no domain): on the station run once, as the Windows user who will use the app, `cmdkey /add:SERVER /user:SERVERdlupdate /pass:<password shown by Install-Server.ps1>`; then `dir \SERVERDiagnosticLabsrrent` must list files without a prompt. Windows stores it per user, so repeat for each Windows user on that PC.
-- [ ] Copy the three launcher files (`Start-DiagnosticLabs.cmd`, `Start-DiagnosticLabs.ps1`, `launcher.json`) to a local folder, e.g. `C:\DiagnosticLabs-Launcher`. Edit `launcher.json` to the real server name.
-- [ ] Create a desktop shortcut to `Start-DiagnosticLabs.cmd` (name "Diagnostic Labs"; for the icon, choose the installed `%LOCALAPPDATA%\DiagnosticLabs\app\DiagnosticLabs.Wpf.exe` after the first run, which now carries the app icon).
-- [ ] **No .NET or other runtime is installed on this PC beforehand** (check `dotnet --list-runtimes` returns nothing, to prove the self-contained build).
-- [ ] Double-click the shortcut: the app copies to `%LOCALAPPDATA%\DiagnosticLabs\app`, `appsettings.Local.json` appears there, and the login screen opens.
+- [ ] On the server, run `StationSetup.exe`, Server tab, Restart as administrator: every check is green; note the name/IP and the station password (set a new one the first time).
+- [ ] **No .NET or other runtime is installed on the station beforehand** (check `dotnet --list-runtimes` returns nothing, to prove the self-contained build).
+- [ ] On the station, as the Windows user who will use the app, run `StationSetup.exe` from the USB stick (see `docs/STATION-SETUP.md`), type the server and the password, **Set up this PC**: every step green, the copy shows progress.
+- [ ] `dir \\SERVER\DiagnosticLabs\current` lists files without a prompt; Credential Manager shows the `SERVER` entry for `SERVER\dlupdate`.
+- [ ] The **Diagnostic Labs** shortcuts (desktop, Start menu) carry the app icon; double-click one: the login screen opens, `appsettings.Local.json` is in `%LOCALAPPDATA%\DiagnosticLabs\app`.
+- [ ] Try one failure on purpose (wrong password): the step says the password was refused; fix it and run setup again.
 - [ ] Time from click to login (first run, second run): ________ / ________
 - [ ] A console window flashes briefly: acceptable? ________
 

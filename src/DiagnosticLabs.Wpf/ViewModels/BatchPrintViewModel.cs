@@ -24,11 +24,15 @@ public sealed class BatchPrintRowItem(BatchPrintRow row)
     public string ResultText => HasResult ? "Yes" : "No";
 
     public string DateText { get; } = row.ResultDate?.ToString("dd MMM yyyy") ?? string.Empty;
+
+    /// <summary>The form the result is printed with (empty without a result).</summary>
+    public string FormText { get; } = row.FormName ?? string.Empty;
 }
 
 /// <summary>
 /// Batch Print: pick a company and a service (both required), optionally one of its batches and a range of days, and Search. The results grid lists
-/// every patient of the batch who has the service, with whether the result has been inputted and when. Print then prints the results the grid shows
+/// every patient of the batch who has the service, with whether the result has been inputted, when, and on which form. A service whose results can
+/// be on two forms (Urinalysis: its own form or the Physical Examination sheet) also offers Form: the latest of either, or one form only. Print then prints the results the grid shows
 /// (one page per patient, in the grid's order); patients without a result have no page.
 /// </summary>
 public partial class BatchPrintViewModel(
@@ -38,6 +42,8 @@ public partial class BatchPrintViewModel(
     ILogger<BatchPrintViewModel> logger) : ViewModelBase(logger)
 {
     public const string AnyBatch = "(all batches)";
+
+    public const string AnyForm = "(latest of either)";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanPickBatch))]
@@ -53,10 +59,20 @@ public partial class BatchPrintViewModel(
     private DateTime? _dateTo;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFormChoice))]
     private long _serviceId;
+
+    /// <summary>For a service with more than one form: the form whose results to look for (0: the latest result on any of them).</summary>
+    [ObservableProperty]
+    private int _formModuleId;
 
     [ObservableProperty]
     private string _summary = string.Empty;
+
+    /// <summary>The forms of the picked service, after "(latest of either)"; offered only when it has more than one.</summary>
+    public ObservableCollection<BatchPrintFormOption> Forms { get; } = [];
+
+    public bool HasFormChoice => Services.FirstOrDefault(s => s.ServiceId == ServiceId)?.HasFormChoice ?? false;
 
     public ObservableCollection<LookupOption> Companies { get; } = [];
 
@@ -89,7 +105,22 @@ public partial class BatchPrintViewModel(
 
     partial void OnDateToChanged(DateTime? value) => ClearOutcome();
 
-    partial void OnServiceIdChanged(long value) => ClearOutcome();
+    partial void OnServiceIdChanged(long value)
+    {
+        ClearOutcome();
+        Forms.Clear();
+        var service = Services.FirstOrDefault(s => s.ServiceId == value);
+        if (service is { HasFormChoice: true })
+        {
+            Forms.Add(new BatchPrintFormOption(0, AnyForm));
+            foreach (var form in service.Forms!)
+                Forms.Add(form);
+        }
+
+        FormModuleId = 0;
+    }
+
+    partial void OnFormModuleIdChanged(int value) => ClearOutcome();
 
     /// <summary>The grid and what was said belong to the parameters they were found with.</summary>
     private void ClearOutcome()
@@ -157,7 +188,8 @@ public partial class BatchPrintViewModel(
             ServiceId,
             Batch == AnyBatch ? null : Batch,
             DateFrom is { } from ? DateOnly.FromDateTime(from) : null,
-            DateTo is { } to ? DateOnly.FromDateTime(to) : null);
+            DateTo is { } to ? DateOnly.FromDateTime(to) : null,
+            HasFormChoice && FormModuleId != 0 ? FormModuleId : null);
 
         var result = await runner.RunAsync<IBatchPrintService, Result<BatchPrintSearchResult>>(s => s.SearchAsync(request));
         if (result.IsFailure)
@@ -196,7 +228,8 @@ public partial class BatchPrintViewModel(
         ClearMessage();
         var service = Services.FirstOrDefault(s => s.ServiceId == serviceId)?.Name ?? "Results";
         var company = Companies.FirstOrDefault(c => c.Id == CompanyId)?.Name;
-        var name = string.Join(" - ", new[] { "Batch Print", company, Batch == AnyBatch ? null : Batch, service }.Where(s => !string.IsNullOrWhiteSpace(s)));
-        preview.Show(ReportDocumentBuilder.Build(result.Value), $"Batch Print - {service}", name);
+        var form = FormModuleId != 0 ? Forms.FirstOrDefault(f => f.ModuleId == FormModuleId)?.Name : null;
+        var name = string.Join(" - ", new[] { "Batch Print", company, Batch == AnyBatch ? null : Batch, service, form }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        preview.Show(result.Value, $"Batch Print - {service}", name);
     });
 }

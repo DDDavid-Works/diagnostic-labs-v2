@@ -59,6 +59,7 @@ public partial class MainViewModel(
         [ModuleIds.CompanySetup] = sp => sp.GetRequiredService<CompanySetupViewModel>(),
         [ModuleIds.FormDesigner] = sp => sp.GetRequiredService<FormDesignerViewModel>(),
         [ModuleIds.Stations] = sp => sp.GetRequiredService<StationsViewModel>(),
+        [ModuleIds.Signatures] = sp => sp.GetRequiredService<SignaturesViewModel>(),
     };
 
     public string Greeting => $"Signed in as {session.FullName}";
@@ -279,15 +280,13 @@ public partial class MainViewModel(
             if (page is ILabResultScreen screen)
             {
                 if (resultId is { } id)
-                {
                     screen.RequestResult(id);
-                    if (section is { } s && page is PhysicalExaminationViewModel sheet)
-                        sheet.RequestSection(id, s);
-                }
                 else
-                {
                     screen.RequestRegistration(registrationId);
-                }
+
+                // the section the sheet is opened for keeps (or takes) its defaults
+                if (section is { } s && page is PhysicalExaminationViewModel sheet)
+                    sheet.RequestSection(resultId ?? 0, s);
             }
 
             return page;

@@ -10,6 +10,7 @@
   .\Publish-Release.ps1                                   # build only, to artifacts\publish
   .\Publish-Release.ps1 -ShareTarget \\SERVER\DiagnosticLabs\current
   .\Publish-Release.ps1 -Version 1.0.0 -Zip                 # build and pack artifacts\release-1.0.0.zip for the server
+  .\Publish-Release.ps1 -Version 1.0.4 -Zip -IncludeStationSetup   # also carry StationSetup.exe for IT (about 60 MB more)
 #>
 [CmdletBinding()]
 param(
@@ -18,7 +19,9 @@ param(
     # Update share folder the stations read from. Omit to build only.
     [string]$ShareTarget,
     # Also pack the release into artifacts\release-<version>.zip, to carry to the server (USB or remote session).
-    [switch]$Zip
+    [switch]$Zip,
+    # With -Zip: also build StationSetup.exe into the zip's _server folder; Update-Server.ps1 puts it in the share's setup folder.
+    [switch]$IncludeStationSetup
 )
 
 $ErrorActionPreference = 'Stop'
@@ -61,6 +64,11 @@ else {
         $serverDir = Join-Path $publish '_server'
         New-Item -ItemType Directory -Force -Path $serverDir | Out-Null
         Copy-Item $schema -Destination $serverDir
+        if ($IncludeStationSetup) {
+            dotnet publish (Join-Path $repo 'tools\StationSetup\StationSetup.csproj') -p:PublishProfile=SingleFile -p:Version=$Version
+            if ($LASTEXITCODE -ne 0) { throw "StationSetup publish failed (exit $LASTEXITCODE)." }
+            Copy-Item (Join-Path $repo 'artifacts\station-setup\StationSetup.exe') -Destination $serverDir
+        }
 
         $zipFile = Join-Path $repo "artifacts\release-$Version.zip"
         if (Test-Path $zipFile) { Remove-Item $zipFile -Force }

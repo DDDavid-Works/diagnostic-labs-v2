@@ -72,6 +72,9 @@ internal sealed class CapturePreview : IReportPreviewDialog
 
     public static void Clear() => LastDocument = null;
 
+    /// <summary>Several reports (Batch Print), laid out as the preview first shows them (with the signatures on file).</summary>
+    public void Show(IReadOnlyList<PrintableReport> reports, string title, string fileName) => Show(ReportDocumentBuilder.Build(reports), title, fileName);
+
     // A report that is not a result form (the Sales Report): every page goes to a PNG, and the whole document to a PDF.
     public void Show(FixedDocument document, string title, string fileName)
     {

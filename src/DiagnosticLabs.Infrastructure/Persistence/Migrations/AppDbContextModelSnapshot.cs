@@ -3481,9 +3481,6 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<int?>("ResultModuleId")
-                        .HasColumnType("int");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -3709,6 +3706,51 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasFilter("[ModuleId] IS NOT NULL");
 
                     b.ToTable("ModuleDefaults");
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Settings.SignatoryImage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("Image")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<long>("LookupValueId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LookupValueId")
+                        .IsUnique();
+
+                    b.ToTable("SignatoryImages");
                 });
 
             modelBuilder.Entity("DiagnosticLabs.Domain.Settings.StationVersion", b =>
@@ -4546,6 +4588,25 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ModuleId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("DiagnosticLabs.Domain.Settings.SignatoryImage", b =>
+                {
+                    b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DiagnosticLabs.Domain.Settings.LookupValue", null)
+                        .WithMany()
+                        .HasForeignKey("LookupValueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("DiagnosticLabs.Domain.Identity.User", null)
                         .WithMany()

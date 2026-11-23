@@ -168,6 +168,9 @@ public class MedicalExamReportServiceTests
         Assert.Equal(["Vital Signs done by", "Interview done by", "Assessment done by", "Noted by", "Physician"], print.Signatories.Select(s => s.Role));
         Assert.Equal(["v-VitalSignsBy", "v-InterviewBy", "v-AssessmentBy", "v-NotedBy", "DR. MALONZO"], print.Signatories.Select(s => s.Name));
         Assert.Equal(["v-VitalSignsByLicense", "v-InterviewByLicense", "v-AssessmentByLicense", "v-NotedByLicense", "87844"], print.Signatories.Select(s => s.LicenseNo));
+        Assert.Equal(
+            [.. Enumerable.Repeat(DiagnosticLabs.Application.Entries.EntryFields.MedicalTechnologist, 4), DiagnosticLabs.Application.Entries.EntryFields.Physician],
+            print.Signatories.Select(s => s.List));
         Assert.Equal("Fit to work.", print.ResultTexts.Single(t => t.Label == "Remarks").Text);
         Assert.Equal("Rosa Dimaano", print.PatientLines.Single(l => l.Label == "Patient Name").Value);
     }

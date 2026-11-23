@@ -230,6 +230,8 @@ public class AnnualPhysicalExamServiceTests
         Assert.Equal("DR. FIORA", page2.Fields["AssessmentDoneBy"]);
         Assert.Equal("DR. MALONZO", page2.Fields["PhysicianName"]);
         Assert.Equal("W2234O4504", page2.Fields["PhysicianLicense"]);
+        var physician = Assert.Single(page2.Signatories); // where the page's signature is looked up: the Physician list
+        Assert.Equal(("DR. MALONZO", "W2234O4504", DiagnosticLabs.Application.Entries.EntryFields.Physician), (physician.Name, physician.LicenseNo, physician.List));
         Assert.Equal("qqq", page2.ResultTexts.Single(t => t.Label == "Medical/Surgical History").Text);
         Assert.Equal("www", page2.ResultTexts.Single(t => t.Label == "Remarks").Text);
     }

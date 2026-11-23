@@ -12,6 +12,7 @@ Do not drop one until the client has confirmed that nothing in it is needed. Add
 | `HematologyReports` | `StabNValue`, `StabResult` | Hematology | Hematology rework (`HematologyRework`) | The Stab line (normal value and result). The client's new form has no Stab line. Old results keep what they had; the new form cannot show or change it. |
 | `LabReportPhotos` | `Content`, `ContentType` (the result's photo) | Every lab result form | Photo box removed from the screens and printouts (no migration) | The photo of the old forms, shown in an empty box at the top right. No screen ever set one in the new app and the client does not use it; the table had no rows when the box was removed. Photos migrated from the legacy app stay in the table. |
 | `MedicalExaminationReports` | `ContactNo`, `CivilStatus` | Annual Physical Exam, Page 2 | Page 2 merged into the Annual PE (`MergeAnnualPhysicalExamPage2`) | Page 2's own contact number and civil status. Page 2 now shows and prints the first page's; the migration copied these into the first page where it had none. |
+| `LookupValues` (module 16, fields "Physician Name" and "Physician License") | the Annual PE's own physician lists | Annual Physical Exam, Page 2 | Shared Physician list (`Signatures`) | The physician is picked from the shared Physician list (with its licence) now. The `Signatures` migration copied the Physician Name entries into it (with a licence from a pathologist of the same name). The old entries stay in the table; no screen offers them. |
 
 ## Dropping a hidden field later
 

@@ -61,12 +61,6 @@ public class PatientRegistrationService : SoftDeletableEntity
     public Service Service { get; set; } = null!;
 
     public decimal Price { get; set; }
-
-    /// <summary>
-    /// For a service whose result can be entered in more than one form (Urinalysis on its own form or on the Physical Examination sheet):
-    /// the form (module) chosen for this registration. Null until someone chooses, and for services with only one form.
-    /// </summary>
-    public int? ResultModuleId { get; set; }
 }
 
 /// <summary>

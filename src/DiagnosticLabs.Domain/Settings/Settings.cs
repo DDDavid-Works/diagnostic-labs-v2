@@ -52,6 +52,18 @@ public class LookupValue : ReferenceEntity
     public string? LicenseNo { get; set; }
 }
 
+/// <summary>
+/// The scanned signature of a signatory entry (a medical technologist, pathologist or physician of the Entry Builder lists), printed above the
+/// person's name on the results. Kept out of <see cref="LookupValue"/> so the dropdowns never load images. One per entry.
+/// </summary>
+public class SignatoryImage : AuditableEntity
+{
+    public long LookupValueId { get; set; }
+
+    /// <summary>A PNG with a transparent background, trimmed to the ink and at most <c>SignatureImages.MaxWidth</c> x <c>MaxHeight</c> pixels.</summary>
+    public byte[] Image { get; set; } = [];
+}
+
 /// <summary>Per-module defaults blob (legacy LabResultsDefaults).</summary>
 public class ModuleDefault : ReferenceEntity
 {

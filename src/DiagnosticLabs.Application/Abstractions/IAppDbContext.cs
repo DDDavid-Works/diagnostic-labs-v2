@@ -75,6 +75,8 @@ public interface IAppDbContext
 
     DbSet<LookupValue> LookupValues { get; }
 
+    DbSet<SignatoryImage> SignatoryImages { get; }
+
     DbSet<ModuleDefault> ModuleDefaults { get; }
 
     DbSet<CodeSequence> CodeSequences { get; }

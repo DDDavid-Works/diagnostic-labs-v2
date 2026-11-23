@@ -120,7 +120,7 @@ public class FormSectionTests
     }
 
     [Fact]
-    public async Task Urinalysis_asks_where_to_enter_it_until_a_form_is_chosen_and_then_opens_that_form()
+    public async Task Urinalysis_always_offers_both_forms_with_the_result_saved_in_each()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
@@ -135,17 +135,28 @@ public class FormSectionTests
         Assert.Equal([ModuleIds.Urinalysis, ModuleIds.PhysicalExamination], urine.Choices!.Select(x => x.ModuleId));
         Assert.Equal(sheetId, urine.Choices!.Single(x => x.Section == FormSection.Urinalysis).SheetId);
 
-        var board = new RegistrationBoardService(db, _env.Session);
-        Assert.True((await board.ChooseFormAsync(urine.RegistrationServiceId, ModuleIds.PhysicalExamination)).IsSuccess);
-        Assert.True((await board.ChooseFormAsync(urine.RegistrationServiceId, ModuleIds.Hematology)).IsFailure);
+        // Picking a form and leaving without saving keeps nothing: the next look still asks.
+        Assert.True((await BoardOfAsync(db, "Ben")).Services.Single(s => s.Name == "Urinalysis").NeedsChoice);
 
-        var chosen = (await BoardOfAsync(db, "Ben")).Services.Single(s => s.Name == "Urinalysis");
-        Assert.False(chosen.NeedsChoice);
-        Assert.Equal((ModuleIds.PhysicalExamination, FormSection.Urinalysis, sheetId, 0), (chosen.ModuleId, chosen.Section, chosen.OpenResultId, chosen.ResultCount));
+        // Saved on the sheet: ticked, and still offering both forms (a record may be wanted in each); the sheet choice opens the saved result.
+        (await db.Set<PhysicalExaminationReport>().SingleAsync()).UrinePusCells = "0-2";
+        await db.SaveChangesAsync();
+        var saved = (await BoardOfAsync(db, "Ben")).Services.Single(s => s.Name == "Urinalysis");
+        Assert.True(saved.NeedsChoice);
+        Assert.Equal((ModuleIds.PhysicalExamination, FormSection.Urinalysis, 1, sheetId), (saved.ModuleId, saved.Section, saved.ResultCount, saved.LatestResultId));
+        Assert.Equal(sheetId, saved.Choices!.Single(x => x.Section == FormSection.Urinalysis).ResultId);
+        Assert.Null(saved.Choices!.Single(x => x.ModuleId == ModuleIds.Urinalysis).ResultId);
+
+        // A record in both: counted together, each choice opens its own.
+        var own = await OwnResultAsync(db, registration, LabReportType.Urinalysis);
+        var both = (await BoardOfAsync(db, "Ben")).Services.Single(s => s.Name == "Urinalysis");
+        Assert.Equal((2, own), (both.ResultCount, both.LatestResultId));
+        Assert.Equal(own, both.Choices!.Single(x => x.ModuleId == ModuleIds.Urinalysis).OpenResultId);
+        Assert.Equal(sheetId, both.Choices!.Single(x => x.Section == FormSection.Urinalysis).OpenResultId);
     }
 
     [Fact]
-    public async Task A_result_entered_in_either_place_marks_the_service_done_and_opens_where_it_is()
+    public async Task A_result_entered_in_either_place_marks_the_service_done()
     {
         await using var db = _env.CreateDb();
         SignInAsAdmin();
@@ -190,12 +201,8 @@ public class FormSectionTests
         var registration = await RegisterAsync(db, "Dina", null, c.Cbc, c.Urine, c.Stool);
         var lookup = new LabRegistrationLookup(db, _env.Session, _env.Clock);
 
+        // Urinalysis and Fecalysis have their own forms: they join a sheet only when picked for it on the home screen.
         Assert.Equal([FormSection.Cbc], (await lookup.GetAsync(ModuleIds.PhysicalExamination, registration.Id)).Value.SheetSections);
-
-        var urineLine = await db.PatientRegistrationServices.SingleAsync(s => s.ServiceId == c.Urine.Id);
-        urineLine.ResultModuleId = ModuleIds.PhysicalExamination;
-        await db.SaveChangesAsync();
-        Assert.Equal([FormSection.Cbc, FormSection.Urinalysis], (await lookup.GetAsync(ModuleIds.PhysicalExamination, registration.Id)).Value.SheetSections);
 
         // An older registration billed for the whole sheet has every section.
         var older = await RegisterAsync(db, "Elle", null, c.Sheet);
@@ -260,6 +267,26 @@ public class FormSectionTests
         Assert.Equal(sheetId, rows["Gil"]);
         Assert.Equal(ownId, rows["Hana"]);
         Assert.Null(rows["Ivo"]);
+
+        // A patient with a record on both: the latest by default, or the one on the form asked for; each row says its form.
+        var both = await RegisterAsync(db, "Jo", company, c.Urine);
+        var bothSheet = await SheetAsync(db, both, s => s.UrineColor = "Yellow");
+        var bothOwn = await OwnResultAsync(db, both, LabReportType.Urinalysis);
+        var urineOption = (await batch.GetServicesAsync()).Single(o => o.ServiceId == c.Urine.Id);
+        Assert.True(urineOption.HasFormChoice);
+        Assert.Equal(["Urinalysis", "Physical Examination sheet"], urineOption.Forms!.Select(f => f.Name));
+
+        BatchPrintRow Jo(int? form) => batch.SearchAsync(new BatchPrintRequest(company.Id, c.Urine.Id, FormModuleId: form)).GetAwaiter().GetResult().Value.Rows.Single(r => r.PatientName == "Jo");
+        Assert.Equal((bothOwn, "Urinalysis"), (Jo(null).ResultId, Jo(null).FormName));
+        Assert.Equal((bothSheet, "Physical Examination sheet"), (Jo(ModuleIds.PhysicalExamination).ResultId, Jo(ModuleIds.PhysicalExamination).FormName));
+        Assert.Equal(bothOwn, Jo(ModuleIds.Urinalysis).ResultId);
+
+        // One form only: a patient whose result is on the other form is listed without one.
+        var sheetOnly = (await batch.SearchAsync(new BatchPrintRequest(company.Id, c.Urine.Id, FormModuleId: ModuleIds.PhysicalExamination))).Value.Rows.ToDictionary(r => r.PatientName, r => r.ResultId);
+        Assert.Equal(sheetId, sheetOnly["Gil"]);
+        Assert.Null(sheetOnly["Hana"]);
+        Assert.True((await batch.SearchAsync(new BatchPrintRequest(company.Id, c.Urine.Id, FormModuleId: ModuleIds.Hematology))).IsFailure);
+        Assert.False((await batch.GetServicesAsync()).Single(o => o.ServiceId == c.Cbc.Id).HasFormChoice);
     }
 
     [Fact]

@@ -19,9 +19,15 @@ public interface IDialogService
     /// <summary>"Save", "Don't save" or "Cancel" (stay where you are) for a form that has changes.</summary>
     SaveChoice AskToSave(string message, string title);
 
-    /// <summary>One button per option (the <paramref name="suggested"/> one is the primary button) and Cancel; the index chosen, or null on Cancel.</summary>
-    int? Choose(string message, string title, IReadOnlyList<string> options, int suggested);
+    /// <summary>
+    /// One pill per option, drawn like the home chips (ticked when it already has a record; the <paramref name="suggested"/> one is the default
+    /// button) and Cancel; the index chosen, or null on Cancel.
+    /// </summary>
+    int? Choose(string message, string title, IReadOnlyList<ChoiceOption> options, int suggested);
 }
+
+/// <summary>An answer of <see cref="IDialogService.Choose"/>: its caption, whether it already has a record (ticked), and what clicking it does.</summary>
+public sealed record ChoiceOption(string Caption, bool IsMade, string? ToolTip = null);
 
 public sealed class DialogService : IDialogService
 {
@@ -39,7 +45,7 @@ public sealed class DialogService : IDialogService
             _ => SaveChoice.Cancel,
         };
 
-    public int? Choose(string message, string title, IReadOnlyList<string> options, int suggested)
+    public int? Choose(string message, string title, IReadOnlyList<ChoiceOption> options, int suggested)
     {
         var window = new Views.FormChoiceWindow(message, title, options, suggested)
         {

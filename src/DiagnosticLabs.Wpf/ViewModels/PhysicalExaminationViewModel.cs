@@ -135,7 +135,10 @@ public partial class PhysicalExaminationViewModel(
 
     private (long ResultId, FormSection Section)? _requestedSection;
 
-    /// <summary>Opened from the home screen for one section of a sheet that exists: that section takes its defaults if it is still empty.</summary>
+    /// <summary>
+    /// Opened from the home screen for one section: on a sheet that exists (<paramref name="resultId"/>) that section takes its defaults if it is
+    /// still empty; on a new sheet (0) it keeps them.
+    /// </summary>
     public void RequestSection(long resultId, FormSection section) => _requestedSection = (resultId, section);
 
     private string? ValueOf(string name) =>
@@ -153,9 +156,14 @@ public partial class PhysicalExaminationViewModel(
     // A value that is not the default was typed in and stays.
     protected override void OnRegistrationPickedForNew(ResultRegistration registration)
     {
+        // the section this new sheet was opened for (Urinalysis picked for the sheet on the home screen) is one of its own
+        FormSection? requested = _requestedSection is { ResultId: 0 } r ? r.Section : null;
+        if (requested is not null)
+            _requestedSection = null;
+
         foreach (var (section, fields) in PhysicalExaminationFields.SectionFields)
         {
-            if (registration.SheetSections.Contains(section))
+            if (registration.SheetSections.Contains(section) || section == requested)
                 continue;
 
             foreach (var name in fields.Where(n => ValueOf(n) is not null && ValueOf(n) == DefaultOf(n)))

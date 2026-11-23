@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
+using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Domain.Lab;
 using Microsoft.EntityFrameworkCore;
 
@@ -102,14 +103,14 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
         HasSecondTechnologist
             ?
             [
-                new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense),
-                new PrintSignatory("Medical Technologist", report.MedicalTechnologist2, report.MedicalTechnologist2License),
-                new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense),
+                new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense, EntryFields.MedicalTechnologist),
+                new PrintSignatory("Medical Technologist", report.MedicalTechnologist2, report.MedicalTechnologist2License, EntryFields.MedicalTechnologist),
+                new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense, EntryFields.Pathologist),
             ]
             :
             [
-                new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense),
-                new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense),
+                new PrintSignatory("Medical Technologist", report.MedicalTechnologist, report.MedicalTechnologistLicense, EntryFields.MedicalTechnologist),
+                new PrintSignatory("Pathologist", report.Pathologist, report.PathologistLicense, EntryFields.Pathologist),
             ];
 
     /// <summary>Every value by name, for page designs (like the annual physical exam) that place each one at its own spot.</summary>
@@ -334,7 +335,7 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
 
         var texts = ResultTexts(detail).Append(new PrintText("Remarks", report.Remarks)).ToList();
 
-        return Result<PrintableReport>.Success(new PrintableReport(
+        var printable = new PrintableReport(
             Layout,
             Title,
             letterhead,
@@ -344,6 +345,9 @@ public abstract class LabResultService<TInput, TDetails, TDetail>(
             Signatories(report, detail),
             FooterText,
             PrintFields(report, detail),
-            NextPage: NextPage(report, detail, letterhead, patient)));
+            NextPage: NextPage(report, detail, letterhead, patient));
+
+        // The signatures on file go above the names (the preview can leave them off).
+        return Result<PrintableReport>.Success(await SignatureStamp.AttachAsync(Db, printable, cancellationToken));
     }
 }

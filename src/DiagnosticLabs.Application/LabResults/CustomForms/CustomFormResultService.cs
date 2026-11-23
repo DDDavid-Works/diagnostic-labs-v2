@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DiagnosticLabs.Application.Abstractions;
 using DiagnosticLabs.Application.Common;
+using DiagnosticLabs.Application.Entries;
 using DiagnosticLabs.Domain.Lab;
 using DiagnosticLabs.Domain.Lab.Reports;
 using Microsoft.EntityFrameworkCore;
@@ -316,7 +317,7 @@ public sealed class CustomFormResultService
         {
             if (slot.Role == SignatoryRole.Pathologist)
             {
-                list.Add(new PrintSignatory("Pathologist", report.Pathologist, footer.ShowLicenseNumber ? report.PathologistLicense : null));
+                list.Add(new PrintSignatory("Pathologist", report.Pathologist, footer.ShowLicenseNumber ? report.PathologistLicense : null, EntryFields.Pathologist));
             }
             else
             {
@@ -324,7 +325,8 @@ public sealed class CustomFormResultService
                 list.Add(new PrintSignatory(
                     "Medical Technologist",
                     second ? report.MedicalTechnologist2 : report.MedicalTechnologist,
-                    footer.ShowLicenseNumber ? (second ? report.MedicalTechnologist2License : report.MedicalTechnologistLicense) : null));
+                    footer.ShowLicenseNumber ? (second ? report.MedicalTechnologist2License : report.MedicalTechnologistLicense) : null,
+                    EntryFields.MedicalTechnologist));
             }
         }
 

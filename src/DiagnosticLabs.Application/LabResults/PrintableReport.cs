@@ -30,7 +30,11 @@ public sealed record PrintLine(string Label, string? Value);
 /// <summary>A label with a block of text under it (Result, Remarks).</summary>
 public sealed record PrintText(string Label, string? Text);
 
-public sealed record PrintSignatory(string Role, string? Name, string? LicenseNo = null);
+/// <summary>
+/// A person who signs the printout. <paramref name="List"/> is the Entry Builder list the name was picked from (where its signature is looked up
+/// first); <paramref name="Signature"/> is the stored signature, a PNG printed above the name, or <c>null</c>.
+/// </summary>
+public sealed record PrintSignatory(string Role, string? Name, string? LicenseNo = null, Entries.EntryField? List = null, byte[]? Signature = null);
 
 /// <summary>
 /// Everything a printout needs, already worked out and free of any UI, so what appears on paper is covered by tests.
@@ -48,7 +52,18 @@ public sealed record PrintableReport(
     string FooterNote,
     IReadOnlyDictionary<string, string?>? Fields = null,
     CustomFormPrint? Custom = null,
-    PrintableReport? NextPage = null);
+    PrintableReport? NextPage = null)
+{
+    /// <summary>True when a signature would be printed on this report or the page that follows it.</summary>
+    public bool HasSignatures => Signatories.Any(s => s.Signature is not null) || NextPage?.HasSignatures == true;
+
+    /// <summary>The same report printed with no signatures (the "Print signatures" box of the preview switched off).</summary>
+    public PrintableReport WithoutSignatures() => this with
+    {
+        Signatories = [.. Signatories.Select(s => s.Signature is null ? s : s with { Signature = null })],
+        NextPage = NextPage?.WithoutSignatures(),
+    };
+}
 
 /// <summary>One row of a group on the printout of a custom form: a test with its result and reference value, or a heading line.</summary>
 public sealed record CustomFormPrintRow(bool IsSection, string Name, string? Result, string? Reference);

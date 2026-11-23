@@ -53,6 +53,9 @@ public static class ModuleIds
     /// <summary>The Stations screen (administration): which version each PC runs and when it was last seen (added after the legacy modules).</summary>
     public const int Stations = 34;
 
+    /// <summary>The Signatures screen (administration): the scanned signature of each medical technologist, pathologist and physician (added after the legacy modules).</summary>
+    public const int Signatures = 35;
+
     /// <summary>Modules of the forms made in the Custom Lab Form designer take ids from here up, so they never meet an id added later for a built-in module.</summary>
     public const int FirstCustomForm = 1000;
 

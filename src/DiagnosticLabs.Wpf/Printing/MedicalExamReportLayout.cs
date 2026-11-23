@@ -439,6 +439,8 @@ internal static class MedicalExamReportLayout
             var labelWidth = PageDrawing.Text(label, 9, bold: true).DesiredSize.Width;
             var lineX = x + labelWidth + 4;
             var lineWidth = half - labelWidth - 14;
+            // A short line in the text: the signature sits over the name, above the tops of its letters.
+            PageDrawing.PutSignature(canvas, person, lineX, lineWidth, baseline - 8.0, 20.0);
             Fit(canvas, person?.Name, lineX, baseline - 1, lineWidth, 9);
             HRule(canvas, lineX, baseline + 1.5, lineWidth);
             if (!string.IsNullOrWhiteSpace(person?.LicenseNo))
@@ -523,6 +525,7 @@ internal static class MedicalExamReportLayout
         {
             var person = report.Signatories.FirstOrDefault(s => s.Role == roles[i]);
             var x = Left + (i * (width + gap));
+            PageDrawing.PutSignature(canvas, person, x, width, top + 48.7 - PageDrawing.SignatureAboveName, 40.0);
             PageDrawing.PutFit(canvas, person?.Name, x, top + 48.7, width, 11.7, bold: true, center: true);
             HRule(canvas, x, top + 54.4, width);
             PageDrawing.PutText(canvas, roles[i].ToUpperInvariant(), x, top + 68.9, 10.5, bold: false, width: width, alignment: TextAlignment.Center);

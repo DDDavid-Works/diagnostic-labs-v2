@@ -42,3 +42,4 @@ INSERT #r SELECT 'MedicalExaminationReports rows', (SELECT COUNT(*) FROM [$(Lega
 SELECT Item, LegacyValue, NewValue, CASE WHEN LegacyValue = NewValue THEN 'ok' ELSE 'DIFFERENT' END AS Status FROM #r ORDER BY Item;
 -- Expected difference: Companies is equal (the WALK-IN row is kept); any DIFFERENT lab row count means rows were skipped (see the migration summary).
 -- Services, PackageServices and ServiceItemQuantities may differ: the Annual Physical Exam Page 2 service is deleted (it is part of the Annual Physical Exam now).
+-- LookupValues has more rows than the legacy lists: the Physician list is added (a copy of the Pathologist list plus the Annual PE's Physician Name list).
