@@ -378,8 +378,8 @@ internal sealed class ClinicalMicroscopyReportConfiguration : IEntityTypeConfigu
         builder.HasOne(e => e.LabReport).WithOne().HasForeignKey<ClinicalMicroscopyReport>(e => e.LabReportId);
         builder.Property(e => e.ColorResult).HasMaxLength(50);
         builder.Property(e => e.ColorReference).HasMaxLength(100);
-        builder.Property(e => e.TransparencyResult).HasMaxLength(50);
-        builder.Property(e => e.TransparencyReference).HasMaxLength(100);
+        builder.Property(e => e.AppearanceResult).HasMaxLength(50);
+        builder.Property(e => e.AppearanceReference).HasMaxLength(100);
         builder.Property(e => e.PHResult).HasMaxLength(50);
         builder.Property(e => e.PHReference).HasMaxLength(100);
         builder.Property(e => e.SpecificGravityResult).HasMaxLength(50);
@@ -416,6 +416,7 @@ internal sealed class ClinicalMicroscopyReportConfiguration : IEntityTypeConfigu
         builder.Property(e => e.CrystalsReference).HasMaxLength(100);
         builder.Property(e => e.CastsResult).HasMaxLength(50);
         builder.Property(e => e.CastsReference).HasMaxLength(100);
+        builder.Property(e => e.OthersResult).HasMaxLength(50);
     }
 }
 

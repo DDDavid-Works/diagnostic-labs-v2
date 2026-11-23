@@ -3382,3 +3382,55 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123082548_ClinicalMicroscopyAppearanceOthers'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalMicroscopyReports].[TransparencyResult]', N'AppearanceResult', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123082548_ClinicalMicroscopyAppearanceOthers'
+)
+BEGIN
+    EXEC sp_rename N'[ClinicalMicroscopyReports].[TransparencyReference]', N'AppearanceReference', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123082548_ClinicalMicroscopyAppearanceOthers'
+)
+BEGIN
+    ALTER TABLE [ClinicalMicroscopyReports] ADD [OthersResult] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123082548_ClinicalMicroscopyAppearanceOthers'
+)
+BEGIN
+
+                    UPDATE LookupValues SET FieldName = N'Appearance' WHERE ModuleId = 30 AND FieldName = N'Transparency';
+                    UPDATE LookupValues SET FieldName = N'Amorphous Urates/PO4' WHERE ModuleId = 30 AND FieldName = N'Amorphous Urates/Phosphates';
+                    UPDATE ModuleDefaults SET Defaults = REPLACE(Defaults, N'"TransparencyReference"', N'"AppearanceReference"') WHERE ModuleId = 30;
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."PHReference"', N'5.0 - 7.5') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."PHReference"') = N'5.0 - 8.0';
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."WBCReference"', N'0-3/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."WBCReference"') = N'0-5/hpf';
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CrystalsReference"', N'/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CrystalsReference"') = N'hpf';
+                    UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CastsReference"', N'/lpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CastsReference"') = N'lpf';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261123082548_ClinicalMicroscopyAppearanceOthers'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261123082548_ClinicalMicroscopyAppearanceOthers', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

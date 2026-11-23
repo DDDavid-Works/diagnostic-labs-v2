@@ -1737,7 +1737,7 @@ internal static class ClinicalMicroscopyLayout
         PageDrawing.PutRect(canvas, Left, Top, Right - Left, bottom - Top, null, Brushes.Black, line);
         PageDrawing.PutText(canvas, "Tests", Left, Top + 15.0, Size, bold: true, width: TestWidth, alignment: TextAlignment.Center);
         PageDrawing.PutText(canvas, "Result", resultX, Top + 15.0, Size, bold: true, width: ResultWidth, alignment: TextAlignment.Center);
-        PageDrawing.PutText(canvas, "Reference Range", referenceX, Top + 15.0, Size, bold: true, width: Right - referenceX, alignment: TextAlignment.Center);
+        PageDrawing.PutText(canvas, "Reference Ranges", referenceX, Top + 15.0, Size, bold: true, width: Right - referenceX, alignment: TextAlignment.Center);
         PageDrawing.PutRule(canvas, Left, Top + HeaderHeight, Right - Left, line);
         PageDrawing.PutVerticalRule(canvas, resultX, Top, HeaderHeight, line);
         PageDrawing.PutVerticalRule(canvas, referenceX, Top, HeaderHeight, line);
@@ -1757,7 +1757,7 @@ internal static class ClinicalMicroscopyLayout
                 var baseline = y + 14.0;
                 PageDrawing.PutFit(canvas, test.Label, Left + 24.0, baseline, TestWidth - 28.0, Size);
                 fields.TryGetValue(test.ResultColumn, out var result);
-                fields.TryGetValue(test.ReferenceColumn, out var reference);
+                var reference = test.HasReference && fields.TryGetValue(test.ReferenceColumn, out var value) ? value : null;
                 PageDrawing.PutFit(canvas, result, resultX + 3.0, baseline, ResultWidth - 6.0, Size, center: true);
                 PageDrawing.PutFit(canvas, reference, referenceX + 3.0, baseline, Right - referenceX - 6.0, Size, center: true);
                 y += RowHeight;

@@ -23,7 +23,7 @@ public class ClinicalMicroscopyServiceTests
     private LabResultHeader Header() =>
         new(null, null, null, "Rosa Dimaano", "41", "Female", "ACME", Today, "Repeat if needed", "DR. A", "DR. B", MedicalTechnologist2: "DR. C");
 
-    private static IEnumerable<string> AllColumns() => ClinicalMicroscopyFields.Tests.SelectMany(t => new[] { t.ResultColumn, t.ReferenceColumn });
+    private static IEnumerable<string> AllColumns() => ClinicalMicroscopyFields.Tests.SelectMany(t => t.Columns);
 
     // Every column gets its own value, so a value that lands in the wrong column shows.
     private static ClinicalMicroscopyData FullData() => new(AllColumns().ToDictionary(c => c, c => (string?)("v-" + c)));
@@ -40,17 +40,21 @@ public class ClinicalMicroscopyServiceTests
     }
 
     [Fact]
-    public void The_form_has_the_three_parts_and_twenty_tests_of_the_printed_form_in_order()
+    public void The_form_has_the_three_parts_and_twenty_one_tests_of_the_client_sketch_in_order()
     {
         Assert.Equal(["PHYSICAL EXAMINATION", "CHEMICAL EXAMINATION", "MICROSCOPIC EXAMINATION"], ClinicalMicroscopyFields.Sections.Select(s => s.Title));
         Assert.Equal(
-            ["Color", "Transparency", "pH", "Specific Gravity", "Protein", "Glucose", "Blood", "Leukocytes", "Nitrite", "Bilirubin", "Urobilinogen", "Ketones",
-             "WBC", "RBC", "Mucus Threads", "Epithelial Cells", "Amorphous Urates/Phosphates", "Bacteria", "Crystals", "Casts"],
+            ["Color", "Appearance", "pH", "Specific Gravity", "Glucose", "Protein", "Leukocytes", "Nitrite", "Urobilinogen", "Blood", "Ketones", "Bilirubin",
+             "Mucus Threads", "Epithelial Cells", "Amorphous Urates/PO4", "Bacteria", "White Blood Cells", "Red Blood Cells", "Crystals", "Casts", "Others"],
             ClinicalMicroscopyFields.Tests.Select(t => t.Label));
 
         // the numbers are typed; every other result is picked from a list of its own
-        Assert.Equal(["pH", "Specific Gravity", "WBC", "RBC"], ClinicalMicroscopyFields.Tests.Where(t => !t.IsChoice).Select(t => t.Label));
+        Assert.Equal(["pH", "Specific Gravity", "White Blood Cells", "Red Blood Cells", "Others"], ClinicalMicroscopyFields.Tests.Where(t => !t.IsChoice).Select(t => t.Label));
         Assert.All(ClinicalMicroscopyFields.Tests.Where(t => t.IsChoice), t => Assert.Equal(ModuleIds.ClinicalMicroscopy, t.Entry.ModuleId));
+
+        // Others has a result only
+        Assert.Equal(["Others"], ClinicalMicroscopyFields.Tests.Where(t => !t.HasReference).Select(t => t.Label));
+        Assert.Equal(["OthersResult"], ClinicalMicroscopyFields.Tests.Single(t => t.Name == "Others").Columns);
     }
 
     [Fact]
@@ -120,6 +124,9 @@ public class ClinicalMicroscopyServiceTests
         Assert.Equal("Clinical Microscopy", print.Title);
         Assert.Equal("v-PHReference", print.Fields!["PHReference"]);
         Assert.Equal("v-AmorphousUratesPhosphatesResult", print.Fields["AmorphousUratesPhosphatesResult"]);
+        Assert.Equal("v-AppearanceResult", print.Fields["AppearanceResult"]);
+        Assert.Equal("v-OthersResult", print.Fields["OthersResult"]);
+        Assert.False(print.Fields.ContainsKey("OthersReference"));
         Assert.Equal(AllColumns().Count(), print.Fields.Count);
         Assert.Equal(["DR. A", "DR. C", "DR. B"], print.Signatories.Select(s => s.Name));
         Assert.Equal(["111", "222", "333"], print.Signatories.Select(s => s.LicenseNo));

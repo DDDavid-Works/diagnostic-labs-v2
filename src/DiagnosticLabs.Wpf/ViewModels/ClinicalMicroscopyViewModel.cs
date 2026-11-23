@@ -26,6 +26,9 @@ public sealed class MicroscopyRow
 
     public bool IsText => !Test.IsChoice;
 
+    /// <summary>False for Others, which has a result only.</summary>
+    public bool HasReference => Test.HasReference;
+
     /// <summary>The result of a test that is picked from a list.</summary>
     public ChoiceField? Choice { get; }
 
@@ -81,7 +84,8 @@ public partial class ClinicalMicroscopyViewModel(
         foreach (var row in Rows)
         {
             values[row.Test.ResultColumn] = row.Result;
-            values[row.Test.ReferenceColumn] = row.Reference.Value;
+            if (row.HasReference)
+                values[row.Test.ReferenceColumn] = row.Reference.Value;
         }
 
         return new ClinicalMicroscopyInput(Id, BuildHeader(), new ClinicalMicroscopyData(values), RowVersion);
@@ -93,7 +97,7 @@ public partial class ClinicalMicroscopyViewModel(
         foreach (var row in Rows)
         {
             row.Result = d.Data.Value(row.Test.ResultColumn);
-            row.Reference.Value = d.Data.Value(row.Test.ReferenceColumn);
+            row.Reference.Value = row.HasReference ? d.Data.Value(row.Test.ReferenceColumn) : null;
         }
 
         RowVersion = d.RowVersion;
@@ -110,7 +114,7 @@ public partial class ClinicalMicroscopyViewModel(
 
     // The reference ranges are what a new form starts with; the results are per person.
     protected override IEnumerable<DefaultField> ExtraDefaultFields() =>
-        Rows.Select(row => new DefaultField(row.Test.ReferenceColumn, () => row.Reference.Value, v => row.Reference.Value = v));
+        Rows.Where(row => row.HasReference).Select(row => new DefaultField(row.Test.ReferenceColumn, () => row.Reference.Value, v => row.Reference.Value = v));
 
     protected override Task<Result<PrintableReport>> GetPrintableAsync(long id) =>
         Call<IClinicalMicroscopyService, Result<PrintableReport>>(s => s.GetPrintableAsync(id));

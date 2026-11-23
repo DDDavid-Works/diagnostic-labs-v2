@@ -16,12 +16,18 @@ public static class ClinicalMicroscopyFields
     public const int ResultMaxLength = 50;
     public const int ReferenceMaxLength = 100;
 
-    /// <summary>One line of the table: <see cref="IsChoice"/> tests are picked from a list of their own (maintained in the entry builder), the others are typed.</summary>
-    public sealed record Test(string Name, string Label, bool IsChoice = true)
+    /// <summary>
+    /// One line of the table: <see cref="IsChoice"/> tests are picked from a list of their own (maintained in the entry builder), the others are typed. A test
+    /// without <see cref="HasReference"/> (Others) has a result only: no reference range on the screen, the printout or the saved defaults.
+    /// </summary>
+    public sealed record Test(string Name, string Label, bool IsChoice = true, bool HasReference = true)
     {
         public string ResultColumn => Name + "Result";
 
         public string ReferenceColumn => Name + "Reference";
+
+        /// <summary>The columns this test is saved in: the result, and the reference range when it has one.</summary>
+        public IEnumerable<string> Columns => HasReference ? [ResultColumn, ReferenceColumn] : [ResultColumn];
 
         /// <summary>The list this test's result is picked from (it belongs to this form).</summary>
         public EntryField Entry => new(Label, EntryKind.SingleLine, ModuleIds.ClinicalMicroscopy);
@@ -32,16 +38,18 @@ public static class ClinicalMicroscopyFields
     /// <summary>The three parts of the printed form, in order.</summary>
     public static readonly Section[] Sections =
     [
-        new("PHYSICAL EXAMINATION", [new("Color", "Color"), new("Transparency", "Transparency")]),
+        new("PHYSICAL EXAMINATION", [new("Color", "Color"), new("Appearance", "Appearance")]),
         new("CHEMICAL EXAMINATION",
         [
-            new("PH", "pH", false), new("SpecificGravity", "Specific Gravity", false), new("Protein", "Protein"), new("Glucose", "Glucose"), new("Blood", "Blood"),
-            new("Leukocytes", "Leukocytes"), new("Nitrite", "Nitrite"), new("Bilirubin", "Bilirubin"), new("Urobilinogen", "Urobilinogen"), new("Ketones", "Ketones"),
+            new("PH", "pH", false), new("SpecificGravity", "Specific Gravity", false), new("Glucose", "Glucose"), new("Protein", "Protein"),
+            new("Leukocytes", "Leukocytes"), new("Nitrite", "Nitrite"), new("Urobilinogen", "Urobilinogen"), new("Blood", "Blood"), new("Ketones", "Ketones"),
+            new("Bilirubin", "Bilirubin"),
         ]),
         new("MICROSCOPIC EXAMINATION",
         [
-            new("WBC", "WBC", false), new("RBC", "RBC", false), new("MucusThreads", "Mucus Threads"), new("EpithelialCells", "Epithelial Cells"),
-            new("AmorphousUratesPhosphates", "Amorphous Urates/Phosphates"), new("Bacteria", "Bacteria"), new("Crystals", "Crystals"), new("Casts", "Casts"),
+            new("MucusThreads", "Mucus Threads"), new("EpithelialCells", "Epithelial Cells"), new("AmorphousUratesPhosphates", "Amorphous Urates/PO4"),
+            new("Bacteria", "Bacteria"), new("WBC", "White Blood Cells", false), new("RBC", "Red Blood Cells", false), new("Crystals", "Crystals"), new("Casts", "Casts"),
+            new("Others", "Others", IsChoice: false, HasReference: false),
         ]),
     ];
 
@@ -75,7 +83,7 @@ public sealed class ClinicalMicroscopyService(IAppDbContext db, ICurrentUser cur
 {
     // Every value is read and written by column name, so the form is described in one place (ClinicalMicroscopyFields).
     private static readonly Dictionary<string, PropertyInfo> Columns = ClinicalMicroscopyFields.Tests
-        .SelectMany(t => new[] { t.ResultColumn, t.ReferenceColumn })
+        .SelectMany(t => t.Columns)
         .ToDictionary(n => n, n => typeof(ClinicalMicroscopyReport).GetProperty(n)!);
 
     protected override string Title => "Clinical Microscopy";
@@ -94,7 +102,8 @@ public sealed class ClinicalMicroscopyService(IAppDbContext db, ICurrentUser cur
         foreach (var test in ClinicalMicroscopyFields.Tests)
         {
             Max(errors, input.Data.Value(test.ResultColumn), ClinicalMicroscopyFields.ResultMaxLength, $"{test.Label} result");
-            Max(errors, input.Data.Value(test.ReferenceColumn), ClinicalMicroscopyFields.ReferenceMaxLength, $"{test.Label} reference range");
+            if (test.HasReference)
+                Max(errors, input.Data.Value(test.ReferenceColumn), ClinicalMicroscopyFields.ReferenceMaxLength, $"{test.Label} reference range");
         }
 
         return errors;

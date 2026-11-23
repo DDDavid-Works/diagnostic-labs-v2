@@ -2733,7 +2733,7 @@
               <TextBox Text="{Binding ResultText.Value, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsText, Converter={StaticResource BoolToVis}}" />
             </Grid>
           </Border>
-          <Border Grid.Column="2" Style="{StaticResource MicroCell}"><TextBox Text="{Binding Reference.Value, UpdateSourceTrigger=PropertyChanged}" /></Border>
+          <Border Grid.Column="2" Style="{StaticResource MicroCell}"><TextBox Text="{Binding Reference.Value, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding HasReference, Converter={StaticResource BoolToVis}}" /></Border>
         </Grid>
       </DataTemplate>
       <DataTemplate x:Key="MicroSection" DataType="{x:Type vm:MicroscopySection}">
@@ -2793,7 +2793,7 @@
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Style="{StaticResource MicroCell}" Padding="6,3"><TextBlock Text="Tests" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" /></Border>
                 <Border Grid.Column="1" Style="{StaticResource MicroCell}" Padding="6,3"><TextBlock Text="Result" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
-                <Border Grid.Column="2" Style="{StaticResource MicroCell}" Padding="6,3"><TextBlock Text="Reference Range" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
+                <Border Grid.Column="2" Style="{StaticResource MicroCell}" Padding="6,3"><TextBlock Text="Reference Ranges" Style="{StaticResource PaperLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" /></Border>
               </Grid>
               <ItemsControl ItemsSource="{Binding Sections}" ItemTemplate="{StaticResource MicroSection}" />
             </StackPanel>

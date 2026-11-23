@@ -1924,6 +1924,14 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("AppearanceReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("AppearanceResult")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("BacteriaReference")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -2020,6 +2028,10 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("OthersResult")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("PHReference")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -2049,14 +2061,6 @@ namespace DiagnosticLabs.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("SpecificGravityResult")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("TransparencyReference")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("TransparencyResult")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 

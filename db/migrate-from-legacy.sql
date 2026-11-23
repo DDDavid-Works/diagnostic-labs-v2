@@ -1002,7 +1002,7 @@ BEGIN
 END
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 30) AND NOT EXISTS (SELECT 1 FROM ModuleDefaults WHERE ModuleId = 30)
     INSERT INTO ModuleDefaults (ModuleId, Defaults, IsActive, CreatedAtUtc, UpdatedAtUtc) VALUES (30, N'{}', 1, SYSUTCDATETIME(), SYSUTCDATETIME());
-UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."PHReference"', N'5.0 - 8.0') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."PHReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."PHReference"', N'5.0 - 7.5') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."PHReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."SpecificGravityReference"', N'1.005 - 1.030') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."SpecificGravityReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."ProteinReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."ProteinReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."GlucoseReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."GlucoseReference"') IS NULL;
@@ -1012,10 +1012,10 @@ UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."NitriteReference"
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."BilirubinReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."BilirubinReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."UrobilinogenReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."UrobilinogenReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."KetonesReference"', N'NEGATIVE') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."KetonesReference"') IS NULL;
-UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."WBCReference"', N'0-5/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."WBCReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."WBCReference"', N'0-3/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."WBCReference"') IS NULL;
 UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."RBCReference"', N'0-2/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."RBCReference"') IS NULL;
-UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CrystalsReference"', N'hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CrystalsReference"') IS NULL;
-UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CastsReference"', N'lpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CastsReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CrystalsReference"', N'/hpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CrystalsReference"') IS NULL;
+UPDATE ModuleDefaults SET Defaults = JSON_MODIFY(Defaults, '$."CastsReference"', N'/lpf') WHERE ModuleId = 30 AND ISJSON(Defaults) = 1 AND JSON_VALUE(Defaults, '$."CastsReference"') IS NULL;
 
 -- Physical Examination (Walk-In), the Medical Examination Report (a form added after the legacy app): its module record and billable service
 IF EXISTS (SELECT 1 FROM Modules WHERE Id = 6) AND NOT EXISTS (SELECT 1 FROM Modules WHERE Id = 33)

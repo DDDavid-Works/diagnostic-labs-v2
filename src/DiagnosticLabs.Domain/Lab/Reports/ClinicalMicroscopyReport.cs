@@ -11,9 +11,9 @@ public class ClinicalMicroscopyReport : LabReportDetail
 
     public string? ColorReference { get; set; }
 
-    public string? TransparencyResult { get; set; }
+    public string? AppearanceResult { get; set; }
 
-    public string? TransparencyReference { get; set; }
+    public string? AppearanceReference { get; set; }
 
     public string? PHResult { get; set; }
 
@@ -86,4 +86,7 @@ public class ClinicalMicroscopyReport : LabReportDetail
     public string? CastsResult { get; set; }
 
     public string? CastsReference { get; set; }
+
+    /// <summary>The Others line has a result only (no reference range).</summary>
+    public string? OthersResult { get; set; }
 }

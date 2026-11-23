@@ -19,8 +19,8 @@ internal static partial class Program
         Pump(1500);
         var rows = vm.Sections.SelectMany(s => s.Rows).ToList();
         string Ref(string name) => rows.First(r => r.Test.Name == name).Reference.Value ?? "";
-        Check("a new form starts with the reference ranges and empty results", Ref("PH") == "5.0 - 8.0" && Ref("SpecificGravity") == "1.005 - 1.030" && Ref("Protein") == "NEGATIVE" && Ref("Ketones") == "NEGATIVE"
-            && Ref("WBC") == "0-5/hpf" && Ref("RBC") == "0-2/hpf" && Ref("Crystals") == "hpf" && Ref("Casts") == "lpf" && rows.All(r => r.Result is null), $"{Ref("PH")}/{Ref("WBC")}");
+        Check("a new form starts with the reference ranges and empty results", Ref("PH") == "5.0 - 7.5" && Ref("SpecificGravity") == "1.005 - 1.030" && Ref("Protein") == "NEGATIVE" && Ref("Ketones") == "NEGATIVE"
+            && Ref("WBC") == "0-3/hpf" && Ref("RBC") == "0-2/hpf" && Ref("Crystals") == "/hpf" && Ref("Casts") == "/lpf" && Ref("Others") == "" && Ref("Appearance") == "" && rows.All(r => r.Result is null), $"{Ref("PH")}/{Ref("WBC")}");
         Check("it starts clean", !vm.IsDirty, "");
         Snapshot("cm-1-new.png");
 
@@ -36,9 +36,9 @@ internal static partial class Program
             vm.Pathologist = "Ma. Angelita C. Gutierrez, MD, FPSP";
             var values = new Dictionary<string, string>
             {
-                ["Color"] = "YELLOW", ["Transparency"] = "CLEAR", ["PH"] = "6.0", ["SpecificGravity"] = "1.015", ["Protein"] = "NEGATIVE", ["Glucose"] = "NEGATIVE", ["Blood"] = "NEGATIVE",
+                ["Color"] = "YELLOW", ["Appearance"] = "CLEAR", ["PH"] = "6.0", ["SpecificGravity"] = "1.015", ["Protein"] = "NEGATIVE", ["Glucose"] = "NEGATIVE", ["Blood"] = "NEGATIVE",
                 ["Leukocytes"] = "TRACE", ["Nitrite"] = "NEGATIVE", ["Bilirubin"] = "NEGATIVE", ["Urobilinogen"] = "NORMAL", ["Ketones"] = "NEGATIVE", ["WBC"] = "2-4/hpf", ["RBC"] = "0-1/hpf",
-                ["MucusThreads"] = "RARE", ["EpithelialCells"] = "FEW", ["AmorphousUratesPhosphates"] = "NONE", ["Bacteria"] = "FEW", ["Crystals"] = "NONE", ["Casts"] = "NONE",
+                ["MucusThreads"] = "RARE", ["EpithelialCells"] = "FEW", ["AmorphousUratesPhosphates"] = "NONE", ["Bacteria"] = "FEW", ["Crystals"] = "NONE", ["Casts"] = "NONE", ["Others"] = "Few calcium oxalate seen",
             };
             foreach (var r in rows)
                 r.Result = values[r.Test.Name];
@@ -63,7 +63,7 @@ internal static partial class Program
         Act(() => vm.SearchCommand.Execute(null), 1500);
         Act(() => vm.SelectedItem = vm.Items.First(), 1800);
         var reopened = vm.Sections.SelectMany(s => s.Rows).ToDictionary(r => r.Test.Name, r => r.Result);
-        Check("it reopens with every result and the reference ranges", reopened["Leukocytes"] == "TRACE" && reopened["PH"] == "6.0" && reopened["Casts"] == "NONE" && Ref("WBC") == "0-5/hpf"
+        Check("it reopens with every result and the reference ranges", reopened["Leukocytes"] == "TRACE" && reopened["PH"] == "6.0" && reopened["Casts"] == "NONE" && reopened["Others"] == "Few calcium oxalate seen" && Ref("WBC") == "0-3/hpf"
             && vm.MedicalTechnologist2 == "Ann Jeanette D. Evaristo, RMT" && vm.Remarks == "Repeat in one week" && !vm.IsDirty, $"{reopened["Leukocytes"]}/{vm.IsDirty}");
         Act(() => vm.ToggleSearchCommand.Execute(null));
         Act(() => vm.PrintCommand.Execute(null), 3000);
